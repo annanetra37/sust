@@ -1,0 +1,68 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import VerifyEmail from './pages/VerifyEmail';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import AcceptInvite from './pages/AcceptInvite';
+import Home from './pages/Home';
+import Analytics from './pages/Analytics';
+import S1Dashboard from './pages/S1Dashboard';
+import E1Dashboard from './pages/E1Dashboard';
+import S1Upload from './pages/S1Upload';
+import E1Upload from './pages/E1Upload';
+import Reports from './pages/Reports';
+import HistoryPage from './pages/HistoryPage';
+import UsersPage from './pages/UsersPage';
+import SettingsPage from './pages/SettingsPage';
+import Connections from './pages/Connections';
+import ComingSoon from './pages/ComingSoon';
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user) return <Navigate to="/" replace />;
+  return children;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
+
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/" element={<Home />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/dashboard/S/social-1" element={<S1Dashboard />} />
+        <Route path="/dashboard/E/environmental-1" element={<E1Dashboard />} />
+        <Route path="/platform/S/social-1" element={<S1Upload />} />
+        <Route path="/platform/E/environmental-1" element={<E1Upload />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/users" element={<UsersPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/connections" element={<Connections />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}

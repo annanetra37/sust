@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Authentication & Users ─────────────────────────────────────
+
+model Company {
+  id               String   @id @default(uuid())
+  name             String
+  country          String
+  hqLocation       String?
+  industry         String
+  companySize      String
+  ownershipType    String?
+  yearEstablished  Int?
+  legalStructure   String?
+  regionsOfOp      String[] @default([])
+  stockExchange    String?
+  tickerSymbol     String?
+  creditBalance    Int      @default(100)
+  esgStandard      String   @default("ESRS")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  users            User[]
+  orgUnits         OrgUnit[]
+  creditTxns       CreditTransaction[]
+  uploadHistory    UploadHistory[]
+  dataConnections  DataConnection[]
+
+  workforceComp    FS1WorkforceComposition[]
+  workforceDiver   FS1WorkforceDiversity[]
+  workplaceInj     FS1WorkplaceInjuries[]
+  employeeTraining FS1EmployeeTraining[]
+  employeeTurnover FS1EmployeeTurnover[]
+
+  emissionActivity FE1EmissionActivityData[]
+  ghgInventory     FE1GHGInventory[]
+  sbtiTargets      SBTiTarget[]
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  firstName       String
+  lastName        String
+  phone           String?
+  jobTitle        String?
+  role            Role      @default(CUSTOM)
+  isActive        Boolean   @default(false)
+  emailVerified   Boolean   @default(false)
+  otpCode         String?
+  otpExpiresAt    DateTime?
+  otpLastSentAt   DateTime?
+  resetToken      String?
+  resetTokenExp   DateTime?
+  inviteToken     String?
+  inviteTokenExp  DateTime?
+  refreshToken    String?
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  permissions     UserPermission[]
+  creditTxns      CreditTransaction[]
+  uploadHistory   UploadHistory[]
+}
+
+enum Role {
+  ADMIN
+  CUSTOM
+}
+
+model UserPermission {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orgUnitId String
+  orgUnit   OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  canView   Boolean @default(false)
+  canUpload Boolean @default(false)
+  canDelete Boolean @default(false)
+
+  @@unique([userId, orgUnitId])
+}
+
+model OrgUnit {
+  id        String  @id @default(uuid())
+  name      String
+  country   String
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  permissions      UserPermission[]
+  workforceComp    FS1WorkforceComposition[]
+  workforceDiver   FS1WorkforceDiversity[]
+  workplaceInj     FS1WorkplaceInjuries[]
+  employeeTraining FS1EmployeeTraining[]
+  employeeTurnover FS1EmployeeTurnover[]
+  emissionActivity FE1EmissionActivityData[]
+  ghgInventory     FE1GHGInventory[]
+
+  @@unique([name, companyId])
+}
+
+// ─── Credits ────────────────────────────────────────────────────
+
+model CreditTransaction {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  transactionType String   // EXCEL_S1, EXCEL_E1, XAPTURE_E1
+  creditsUsed     Int
+  description     String?
+  relatedFileId   String?
+  createdAt       DateTime @default(now())
+}
+
+// ─── Upload History ─────────────────────────────────────────────
+
+model UploadHistory {
+  id          String       @id @default(uuid())
+  companyId   String
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  fileName    String
+  fileType    String       // E1, S1
+  orgUnit     String?
+  status      UploadStatus @default(PROCESSING)
+  totalRows   Int?
+  processedRows Int?
+  errorMessage String?
+  createdAt   DateTime     @default(now())
+  completedAt DateTime?
+}
+
+enum UploadStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ─── S1: Own Workforce ──────────────────────────────────────────
+
+model FS1WorkforceComposition {
+  id            String  @id @default(uuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId     String
+  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year          Int
+  quarter       Int?
+  gender        String  // Male, Female, Non-binary, Not disclosed
+  contractType  String  // Permanent, Temporary, Part-time, Full-time
+  country       String?
+  employeeCount Int
+  createdAt     DateTime @default(now())
+}
+
+model FS1WorkforceDiversity {
+  id               String  @id @default(uuid())
+  companyId        String
+  company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId        String
+  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year             Int
+  quarter          Int?
+  gender           String
+  disabilityStatus String  // Yes, No, Not disclosed
+  disabilityType   String?
+  count            Int
+  createdAt        DateTime @default(now())
+}
+
+model FS1WorkplaceInjuries {
+  id           String  @id @default(uuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId    String
+  orgUnit      OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year         Int
+  quarter      Int?
+  injuryType   String
+  injuryStatus String  // Fatal, Non-fatal, Lost-time
+  gender       String?
+  count        Int
+  createdAt    DateTime @default(now())
+}
+
+model FS1EmployeeTraining {
+  id             String  @id @default(uuid())
+  companyId      String
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId      String
+  orgUnit        OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year           Int
+  quarter        Int?
+  gender         String
+  trainingHours  Float
+  employeeCount  Int
+  createdAt      DateTime @default(now())
+}
+
+model FS1EmployeeTurnover {
+  id            String  @id @default(uuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId     String
+  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year          Int
+  quarter       Int?
+  gender        String
+  turnoverType  String  // Voluntary, Involuntary
+  count         Int
+  createdAt     DateTime @default(now())
+}
+
+// ─── E1: Climate Change ─────────────────────────────────────────
+
+model ActivityCategory {
+  id              String  @id @default(uuid())
+  name            String  @unique
+  subcategories   ActivitySubcategory[]
+}
+
+model ActivitySubcategory {
+  id              String  @id @default(uuid())
+  name            String
+  categoryId      String
+  category        ActivityCategory @relation(fields: [categoryId], references: [id])
+  emissionSource  String?
+  scope           String  // Scope 1, Scope 2, Scope 3
+  unit            String?
+  emissionFactor  Float?
+  emissionFactorUnit String?
+
+  @@unique([name, categoryId])
+}
+
+model FE1EmissionActivityData {
+  id                String   @id @default(uuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId         String
+  orgUnit           OrgUnit  @relation(fields: [orgUnitId], references: [id])
+  year              Int
+  month             Int?
+  activityCategory  String
+  activitySubcat    String
+  calcMethod        String   // consumption, expenditure
+  quantity          Float
+  unit              String
+  emissionFactor    Float?
+  totalEmissions    Float?   // tCO2e
+  scope             String
+  currency          String?
+  amount            Float?
+  sourceDoc         String?
+  createdAt         DateTime @default(now())
+}
+
+model FE1GHGInventory {
+  id               String  @id @default(uuid())
+  companyId        String
+  company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId        String
+  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id])
+  year             Int
+  scope            String
+  totalEmissions   Float   // tCO2e
+  employeeCount    Int?
+  intensity        Float?  // tCO2e per employee
+  createdAt        DateTime @default(now())
+
+  @@unique([companyId, orgUnitId, year, scope])
+}
+
+model SBTiTarget {
+  id                String  @id @default(uuid())
+  companyId         String
+  company           Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  baseYear          Int
+  targetYear        Int
+  method            String  // absolute, intensity, renewable_share
+  reductionPct      Float?
+  absoluteTarget    Float?
+  scope             String  // Scope 1+2, Scope 3, All
+  description       String?
+  createdAt         DateTime @default(now())
+}
+
+// ─── Data Connections ───────────────────────────────────────────
+
+model DataConnection {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name         String
+  type         String   // postgresql, mysql, sqlserver, aws_rds, rest_api
+  config       Json     // encrypted connection details
+  status       String   @default("disconnected") // connected, disconnected, error
+  lastSyncAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
