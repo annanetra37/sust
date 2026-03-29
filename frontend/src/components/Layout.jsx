@@ -3,7 +3,7 @@ import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
-  History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield
+  History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -37,6 +37,7 @@ const NAV = [
       { label: 'Ethics & Compliance', path: '/coming-soon', badge: 'Enterprise' },
     ],
   },
+  { label: 'SBTi Targets', path: '/sbti-targets', icon: Target },
   { label: 'Reports', path: '/reports', icon: FileText },
   { label: 'Data Connections', path: '/connections', icon: Database },
   { label: 'History', path: '/history', icon: History },

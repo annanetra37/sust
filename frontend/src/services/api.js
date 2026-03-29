@@ -114,6 +114,9 @@ const api = {
   getHistory: (params) => request(`/history?${new URLSearchParams(params || {})}`),
   getHistoryDetail: (id) => request(`/history/${id}`),
   getDataYears: () => request('/history/meta/years'),
+  getFileDownloadUrl: (id, fileIndex) => `/api/history/${id}/download/${fileIndex || 0}`,
+  getFileViewUrl: (id, fileIndex) => `/api/history/${id}/view/${fileIndex || 0}`,
+  updateAuditStatus: (id, data) => request(`/history/${id}/audit`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Reports
   generateReport: async (data) => {

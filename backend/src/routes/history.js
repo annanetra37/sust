@@ -3,6 +3,9 @@ const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { paginate } = require('../utils/helpers');
 const { formatError } = require('../utils/errors');
+const { getFilePath } = require('../utils/fileStore');
+const path = require('path');
+const fs = require('fs');
 
 router.use(authenticate);
 
@@ -128,6 +131,93 @@ router.get('/meta/years', async (req, res) => {
     if (allYears.length === 0) allYears.push(new Date().getFullYear());
 
     res.json(allYears);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// Download original file(s)
+router.get('/:id/download/:fileIndex?', async (req, res) => {
+  try {
+    const record = await prisma.uploadHistory.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!record) return res.status(404).json({ error: 'Upload not found.' });
+    if (!record.storedFilePath) return res.status(404).json({ error: 'Original file not available for this upload.' });
+
+    // Handle multiple files (stored as "path1||path2||path3")
+    const paths = record.storedFilePath.split('||');
+    const idx = parseInt(req.params.fileIndex) || 0;
+
+    if (idx >= paths.length) return res.status(404).json({ error: 'File index out of range.' });
+
+    const filePath = getFilePath(paths[idx]);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File no longer exists on server.' });
+
+    const ext = path.extname(filePath);
+    const downloadName = paths.length > 1
+      ? `${record.fileName}_${idx + 1}${ext}`
+      : record.fileName;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
+    res.setHeader('Content-Type', record.storedFileMime || 'application/octet-stream');
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// Serve original file for inline viewing (PDF/images)
+router.get('/:id/view/:fileIndex?', async (req, res) => {
+  try {
+    const record = await prisma.uploadHistory.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!record || !record.storedFilePath) return res.status(404).json({ error: 'File not available.' });
+
+    const paths = record.storedFilePath.split('||');
+    const idx = parseInt(req.params.fileIndex) || 0;
+    if (idx >= paths.length) return res.status(404).json({ error: 'File not found.' });
+
+    const filePath = getFilePath(paths[idx]);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File no longer exists.' });
+
+    res.setHeader('Content-Type', record.storedFileMime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'inline');
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// Update audit status (Admin only)
+router.patch('/:id/audit', async (req, res) => {
+  try {
+    const { auditStatus, auditNote } = req.body;
+    const validStatuses = ['pending', 'verified', 'flagged', 'rejected'];
+    if (!validStatuses.includes(auditStatus)) {
+      return res.status(400).json({ error: `Audit status must be: ${validStatuses.join(', ')}` });
+    }
+
+    const record = await prisma.uploadHistory.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!record) return res.status(404).json({ error: 'Upload not found.' });
+
+    await prisma.uploadHistory.update({
+      where: { id: req.params.id },
+      data: {
+        auditStatus,
+        auditNote: auditNote || null,
+        auditedBy: `${req.user.firstName} ${req.user.lastName}`,
+        auditedAt: new Date(),
+      },
+    });
+
+    res.json({ message: `Audit status updated to "${auditStatus}".` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

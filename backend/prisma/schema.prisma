@@ -130,20 +130,28 @@ model CreditTransaction {
 // ─── Upload History ─────────────────────────────────────────────
 
 model UploadHistory {
-  id          String       @id @default(uuid())
-  companyId   String
-  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  fileName    String
-  fileType    String       // E1, S1
-  orgUnit     String?
-  status      UploadStatus @default(PROCESSING)
-  totalRows   Int?
-  processedRows Int?
-  errorMessage String?
-  createdAt   DateTime     @default(now())
-  completedAt DateTime?
+  id             String       @id @default(uuid())
+  companyId      String
+  company        Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  fileName       String
+  fileType       String       // E1, S1
+  orgUnit        String?
+  orgUnitId      String?
+  status         UploadStatus @default(PROCESSING)
+  totalRows      Int?
+  processedRows  Int?
+  errorMessage   String?
+  storedFilePath String?      // path to original uploaded file on disk
+  storedFileSize Int?         // file size in bytes
+  storedFileMime String?      // MIME type
+  auditStatus    String?      @default("pending") // pending, verified, flagged, rejected
+  auditNote      String?
+  auditedBy      String?
+  auditedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  completedAt    DateTime?
 }
 
 enum UploadStatus {

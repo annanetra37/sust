@@ -5,6 +5,7 @@ const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
 const { mapSchema, cleanAndTransform, validateAndCoerce } = require('../services/aiEtl');
+const { saveFile } = require('../utils/fileStore');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -86,14 +87,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
 
+    // Store original file
+    const stored = saveFile(req.file, req.user.companyId);
+
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId,
         userId: req.user.id,
         fileName: req.file.originalname,
         fileType: 'S1',
-        orgUnit: orgUnit.name,
+        orgUnit: orgUnit.name, orgUnitId,
         status: 'PROCESSING',
+        ...stored,
       },
     });
 

@@ -1,8 +1,21 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FileSpreadsheet, Search, CheckCircle, XCircle, Loader2, ArrowLeft, ChevronRight, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import {
+  FileSpreadsheet, Search, CheckCircle, XCircle, Loader2, ArrowLeft, ChevronRight,
+  User, Download, Eye, Shield, FileText, ExternalLink, AlertTriangle, CheckCircle2
+} from 'lucide-react';
+import { InfoTip } from '../components/HelpSystem';
+
+const AUDIT_STATUSES = [
+  { value: 'pending', label: 'Pending Review', color: 'bg-gray-100 text-gray-600', icon: '...' },
+  { value: 'verified', label: 'Verified', color: 'bg-green-100 text-green-700', icon: null },
+  { value: 'flagged', label: 'Flagged', color: 'bg-amber-100 text-amber-700', icon: null },
+  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700', icon: null },
+];
 
 export default function HistoryPage() {
+  const { user } = useAuth();
   const [records, setRecords] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -12,6 +25,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [auditNote, setAuditNote] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -27,11 +41,17 @@ export default function HistoryPage() {
     return <Loader2 className="w-4 h-4 text-brand-600 animate-spin" />;
   };
 
+  const auditBadge = (s) => {
+    const st = AUDIT_STATUSES.find((a) => a.value === s) || AUDIT_STATUSES[0];
+    return <span className={`badge ${st.color}`}>{st.label}</span>;
+  };
+
   const openDetail = async (id) => {
     setDetailLoading(true);
     try {
       const data = await api.getHistoryDetail(id);
       setDetail(data);
+      setAuditNote(data.upload.auditNote || '');
     } catch (err) {
       alert(err.error || 'Failed to load details');
     } finally {
@@ -39,9 +59,32 @@ export default function HistoryPage() {
     }
   };
 
+  const updateAudit = async (newStatus) => {
+    try {
+      await api.updateAuditStatus(detail.upload.id, { auditStatus: newStatus, auditNote });
+      // Refresh detail
+      const data = await api.getHistoryDetail(detail.upload.id);
+      setDetail(data);
+    } catch (err) {
+      alert(err.error || 'Failed to update audit status');
+    }
+  };
+
+  const getFileLinks = (upload) => {
+    if (!upload.storedFilePath) return [];
+    const paths = upload.storedFilePath.split('||');
+    return paths.map((_, i) => ({
+      downloadUrl: api.getFileDownloadUrl(upload.id, i),
+      viewUrl: api.getFileViewUrl(upload.id, i),
+      label: paths.length > 1 ? `File ${i + 1}` : upload.fileName,
+    }));
+  };
+
   // ─── Detail View ────────────────────────────────
   if (detail) {
     const { upload, transformedData, creditTransaction, recordCount } = detail;
+    const files = getFileLinks(upload);
+
     return (
       <div className="space-y-6 max-w-6xl mx-auto">
         <button onClick={() => setDetail(null)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-600 transition-colors">
@@ -66,7 +109,7 @@ export default function HistoryPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-xs text-gray-500">Type</p>
-              <p className="font-semibold">{upload.fileType === 'E1' ? 'Environmental (E1)' : 'Social (S1)'}</p>
+              <p className="font-semibold">{upload.fileType === 'E1' ? 'Environmental' : 'Social'}</p>
             </div>
             <div className="bg-gray-50 rounded-lg p-3">
               <p className="text-xs text-gray-500">Org Unit</p>
@@ -89,17 +132,111 @@ export default function HistoryPage() {
           )}
 
           {creditTransaction && (
-            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-800">
-                <strong>Credits used:</strong> {creditTransaction.creditsUsed} — {creditTransaction.description}
-              </p>
+            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200 text-sm text-amber-800">
+              <strong>Credits used:</strong> {creditTransaction.creditsUsed} — {creditTransaction.description}
+            </div>
+          )}
+        </div>
+
+        {/* Original files — downloadable/viewable */}
+        {files.length > 0 && (
+          <div className="card">
+            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Original Source Files
+              <InfoTip>Original uploaded files are stored for audit traceability. Auditors can view or download these to verify the source data.</InfoTip>
+            </h3>
+            <div className="space-y-2">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-medium">{f.label}</span>
+                    {upload.storedFileSize && files.length === 1 && (
+                      <span className="text-xs text-gray-400">{(upload.storedFileSize / 1024).toFixed(1)} KB</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a href={f.viewUrl} target="_blank" rel="noopener noreferrer"
+                      className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> View
+                    </a>
+                    <a href={f.downloadUrl} download
+                      className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
+                      <Download className="w-3 h-3" /> Download
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Audit Trail */}
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <Shield className="w-4 h-4" /> Audit Trail
+            <InfoTip>Auditors can mark each upload as Verified, Flagged, or Rejected. Add notes to explain findings.</InfoTip>
+          </h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs text-gray-500">Audit Status</p>
+              <div className="mt-1">{auditBadge(upload.auditStatus)}</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs text-gray-500">Reviewed By</p>
+              <p className="font-semibold text-sm">{upload.auditedBy || 'Not yet reviewed'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs text-gray-500">Review Date</p>
+              <p className="font-semibold text-sm">{upload.auditedAt ? new Date(upload.auditedAt).toLocaleString() : '—'}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs text-gray-500">Data Integrity</p>
+              <p className="font-semibold text-sm">{recordCount} records created</p>
+            </div>
+          </div>
+
+          {/* Audit controls */}
+          {user?.role === 'ADMIN' && (
+            <div className="border-t pt-4 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Audit Note</label>
+                <textarea className="input" rows={2} placeholder="Add review notes, findings, or verification details..."
+                  value={auditNote} onChange={(e) => setAuditNote(e.target.value)} />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => updateAudit('verified')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 transition-colors">
+                  <CheckCircle2 className="w-4 h-4" /> Mark Verified
+                </button>
+                <button onClick={() => updateAudit('flagged')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors">
+                  <AlertTriangle className="w-4 h-4" /> Flag for Review
+                </button>
+                <button onClick={() => updateAudit('rejected')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 transition-colors">
+                  <XCircle className="w-4 h-4" /> Reject
+                </button>
+                {upload.auditStatus !== 'pending' && (
+                  <button onClick={() => updateAudit('pending')}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200 transition-colors">
+                    Reset to Pending
+                  </button>
+                )}
+              </div>
+              {upload.auditNote && (
+                <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                  <strong>Current note:</strong> {upload.auditNote}
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Transformed data table */}
         <div className="card p-0 overflow-hidden">
-          <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+          <div className="px-4 py-3 border-b bg-gray-50">
             <h3 className="font-semibold text-gray-900">Transformed Data ({recordCount} records)</h3>
           </div>
 
@@ -149,7 +286,6 @@ export default function HistoryPage() {
               </table>
             </div>
           ) : (
-            // S1 data table
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
@@ -168,7 +304,7 @@ export default function HistoryPage() {
                       <td className="px-3 py-2">{r.year}{r.quarter ? ` Q${r.quarter}` : ''}</td>
                       <td className="px-3 py-2">{r.gender || '—'}</td>
                       <td className="px-3 py-2 text-gray-500">
-                        {r.contractType || r.disabilityStatus || r.turnoverType || r.injuryType || r.trainingHours ? `${r.trainingHours} hrs` : '—'}
+                        {r.contractType || r.disabilityStatus || r.turnoverType || r.injuryType || (r.trainingHours ? `${r.trainingHours} hrs` : '') || '—'}
                       </td>
                       <td className="px-3 py-2 text-right font-mono font-semibold">
                         {r.employeeCount || r.count || r.trainingHours || '—'}
@@ -217,15 +353,16 @@ export default function HistoryPage() {
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Uploaded By</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Rows</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Audit</th>
               <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Date</th>
               <th className="w-8"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {loading ? (
-              <tr><td colSpan={8} className="text-center py-8 text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-gray-400">Loading...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={8} className="text-center py-8 text-gray-400">No uploads found</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-gray-400">No uploads found</td></tr>
             ) : records.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openDetail(r.id)}>
                 <td className="px-4 py-3 text-sm">
@@ -244,6 +381,7 @@ export default function HistoryPage() {
                 </td>
                 <td className="px-4 py-3 text-sm">{r.processedRows ?? '—'} / {r.totalRows ?? '—'}</td>
                 <td className="px-4 py-3"><div className="flex items-center gap-1.5">{statusIcon(r.status)} <span className="text-sm">{r.status}</span></div></td>
+                <td className="px-4 py-3">{auditBadge(r.auditStatus)}</td>
                 <td className="px-4 py-3 text-sm text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3"><ChevronRight className="w-4 h-4 text-gray-300" /></td>
               </tr>

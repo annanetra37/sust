@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
 const { mapSchema, cleanAndTransform, validateAndCoerce, extractDocumentWithAI } = require('../services/aiEtl');
 const { extractText } = require('../services/docExtract');
+const { saveFile, saveFiles } = require('../utils/fileStore');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const docUpload = multer({
@@ -124,11 +125,15 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
 
+    // Store original file
+    const stored = saveFile(req.file, req.user.companyId);
+
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId, userId: req.user.id,
         fileName: req.file.originalname, fileType: 'E1',
-        orgUnit: orgUnit.name, status: 'PROCESSING',
+        orgUnit: orgUnit.name, orgUnitId, status: 'PROCESSING',
+        ...stored,
       },
     });
 
@@ -296,12 +301,20 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
     // Resolve org unit name for display
     const orgUnit = orgUnitId ? await prisma.orgUnit.findUnique({ where: { id: orgUnitId } }) : null;
 
+    // Store original files
+    const storedFiles = saveFiles(req.files, req.user.companyId);
+    // Store first file path in upload record; individual file paths are in storedFiles
+    const firstFile = storedFiles[0] || {};
+
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId, userId: req.user.id,
         fileName: `AI Doc Extract — ${mode} (${docCount} files)`,
-        fileType: 'E1', orgUnit: orgUnit ? orgUnit.name : orgUnitId,
+        fileType: 'E1', orgUnit: orgUnit ? orgUnit.name : orgUnitId, orgUnitId,
         status: 'PROCESSING', totalRows: docCount,
+        storedFilePath: storedFiles.map((f) => f.storedFilePath).join('||'),
+        storedFileSize: storedFiles.reduce((s, f) => s + (f.storedFileSize || 0), 0),
+        storedFileMime: firstFile.storedFileMime,
       },
     });
 
