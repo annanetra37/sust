@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Brain, Search, CheckCircle, Database, BarChart3, Lightbulb } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sparkles, Brain, Search, CheckCircle, Database, BarChart3, Lightbulb, ArrowRight, RotateCcw } from 'lucide-react';
 
 const STEPS = [
   { icon: Search, label: 'Reading your data...', color: 'text-blue-500' },
@@ -67,17 +68,30 @@ export default function ProcessingScreen({ progress, status, type }) {
     return () => clearInterval(timer);
   }, [status, showFact]);
 
+  const dashboardPath = type === 'E1' ? '/dashboard/E/environmental-1' : '/dashboard/S/social-1';
+  const dashboardLabel = type === 'E1' ? 'E1 Climate Dashboard' : 'S1 Workforce Dashboard';
+
   if (status === 'COMPLETED') {
     return (
       <div className="card border-green-200 dark:border-green-800">
-        <div className="flex flex-col items-center text-center py-4">
+        <div className="flex flex-col items-center text-center py-6">
           <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4 animate-bounce">
             <CheckCircle className="w-8 h-8 text-green-500" />
           </div>
           <h3 className="text-lg font-bold text-green-700 dark:text-green-400">Processing Complete</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {progress?.processedRows || 0} records processed successfully. View your updated dashboard for results.
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-6">
+            {progress?.processedRows || 0} records processed successfully.
           </p>
+          <div className="flex gap-3">
+            <Link to={dashboardPath}
+              className="btn-primary flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" /> Go to {dashboardLabel} <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/history"
+              className="btn-secondary flex items-center gap-2">
+              View in History
+            </Link>
+          </div>
         </div>
       </div>
     );
