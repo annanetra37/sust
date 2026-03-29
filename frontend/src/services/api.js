@@ -91,7 +91,7 @@ const api = {
   // E1
   getE1Dashboard: (params) => request(`/e1/dashboard?${new URLSearchParams(params)}`),
   uploadE1: (formData) => request('/e1/upload', { method: 'POST', body: formData }),
-  uploadXapture: (formData) => request('/e1/xapture', { method: 'POST', body: formData }),
+  uploadDocExtract: (formData) => request('/e1/doc-extract', { method: 'POST', body: formData }),
   getE1Progress: (id) => request(`/e1/upload/${id}/progress`),
   getSBTiTargets: () => request('/e1/sbti'),
   createSBTiTarget: (data) => request('/e1/sbti', { method: 'POST', body: JSON.stringify(data) }),

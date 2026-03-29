@@ -22,8 +22,4 @@ module.exports = {
     key: process.env.AZURE_OPENAI_KEY,
     deployment: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o',
   },
-  xapture: {
-    url: process.env.XAPTURE_API_URL,
-    key: process.env.XAPTURE_API_KEY,
-  },
 };

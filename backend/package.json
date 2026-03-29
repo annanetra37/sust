@@ -27,7 +27,10 @@
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5",
     "pdfkit": "^0.15.1",
-    "docx": "^9.1.1"
+    "docx": "^9.1.1",
+    "pdf-parse": "^1.1.1",
+    "tesseract.js": "^5.1.1",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.7",

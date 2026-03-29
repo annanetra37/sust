@@ -1,24 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Upload, FileSpreadsheet, FileImage, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileImage, CheckCircle, XCircle, Loader2, ScanSearch } from 'lucide-react';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [tab, setTab] = useState('excel'); // excel | xapture
+  const [tab, setTab] = useState('excel'); // excel | doc-extract
   const [orgUnitId, setOrgUnitId] = useState('');
   const [activityCategory, setActivityCategory] = useState('');
   const [activitySubcategory, setActivitySubcategory] = useState('');
   const [calcMethod, setCalcMethod] = useState('consumption');
   const [file, setFile] = useState(null);
-  const [xaptureFiles, setXaptureFiles] = useState([]);
-  const [xaptureMode, setXaptureMode] = useState('Travel');
+  const [docFiles, setDocFiles] = useState([]);
+  const [extractMode, setExtractMode] = useState('Travel');
   const [uploading, setUploading] = useState(false);
   const [uploadId, setUploadId] = useState(null);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState('');
   const fileRef = useRef();
-  const xFileRef = useRef();
+  const docFileRef = useRef();
   const pollRef = useRef();
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function E1Upload() {
     if (!uploadId) return;
     const poll = async () => {
       try {
-        const p = tab === 'excel' ? await api.getE1Progress(uploadId) : await api.getE1Progress(uploadId);
+        const p = await api.getE1Progress(uploadId);
         setProgress(p);
         if (p.status !== 'PROCESSING') clearInterval(pollRef.current);
       } catch {}
@@ -42,7 +42,7 @@ export default function E1Upload() {
     pollRef.current = setInterval(poll, 10000);
     poll();
     return () => clearInterval(pollRef.current);
-  }, [uploadId, tab]);
+  }, [uploadId]);
 
   const handleExcelUpload = async () => {
     if (!file || !orgUnitId) return;
@@ -64,19 +64,19 @@ export default function E1Upload() {
     }
   };
 
-  const handleXaptureUpload = async () => {
-    if (!xaptureFiles.length) return;
+  const handleDocExtract = async () => {
+    if (!docFiles.length) return;
     setError('');
     setUploading(true);
     try {
       const fd = new FormData();
-      xaptureFiles.forEach((f) => fd.append('files', f));
-      fd.append('mode', xaptureMode);
+      docFiles.forEach((f) => fd.append('files', f));
+      fd.append('mode', extractMode);
       fd.append('orgUnitId', orgUnitId);
-      const res = await api.uploadXapture(fd);
+      const res = await api.uploadDocExtract(fd);
       setUploadId(res.uploadId);
     } catch (err) {
-      setError(err.error || err.message || 'Upload failed');
+      setError(err.error || err.message || 'Extraction failed');
     } finally {
       setUploading(false);
     }
@@ -88,7 +88,7 @@ export default function E1Upload() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">E1 — Upload Emissions Data</h1>
-        <p className="text-gray-500">Upload Excel files or extract data from documents</p>
+        <p className="text-gray-500">Upload Excel files or extract data from invoices & receipts</p>
       </div>
 
       {/* Tabs */}
@@ -96,8 +96,8 @@ export default function E1Upload() {
         <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('excel')}>
           <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Excel Upload
         </button>
-        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'xapture' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('xapture')}>
-          <FileImage className="w-4 h-4 inline mr-1" /> Xapture (Documents)
+        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'doc-extract' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('doc-extract')}>
+          <ScanSearch className="w-4 h-4 inline mr-1" /> Document Extract
         </button>
       </div>
 
@@ -166,6 +166,16 @@ export default function E1Upload() {
         </div>
       ) : (
         <div className="card space-y-4">
+          {/* How it works */}
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <h4 className="font-semibold text-blue-900 text-sm mb-1">How Document Extract Works</h4>
+            <p className="text-xs text-blue-700">
+              Our built-in engine uses PDF text parsing and OCR (for images) to read your invoices and receipts.
+              It then applies intelligent pattern matching to extract quantities, amounts, distances, fuel volumes,
+              energy usage, and more — automatically calculating emissions using verified emission factors.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Org Unit</label>
@@ -175,43 +185,71 @@ export default function E1Upload() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Extraction Mode</label>
-              <select className="input" value={xaptureMode} onChange={(e) => setXaptureMode(e.target.value)}>
-                <option>Travel</option>
-                <option>Stay</option>
-                <option>Energy</option>
-                <option>Company Vehicle</option>
+              <select className="input" value={extractMode} onChange={(e) => setExtractMode(e.target.value)}>
+                <option value="Travel">Travel (flights, trains, taxis)</option>
+                <option value="Stay">Stay (hotels, accommodation)</option>
+                <option value="Energy">Energy (electricity, gas, fuel bills)</option>
+                <option value="Company Vehicle">Company Vehicle (fuel, mileage)</option>
               </select>
+            </div>
+          </div>
+
+          {/* Mode details */}
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className={`p-2.5 rounded-lg border ${extractMode === 'Travel' ? 'border-brand-300 bg-brand-50' : 'border-gray-200'}`}>
+              <p className="font-medium text-gray-700">Travel</p>
+              <p className="text-gray-500">Extracts: transport type, distance, departure/arrival, fare</p>
+            </div>
+            <div className={`p-2.5 rounded-lg border ${extractMode === 'Stay' ? 'border-brand-300 bg-brand-50' : 'border-gray-200'}`}>
+              <p className="font-medium text-gray-700">Stay</p>
+              <p className="text-gray-500">Extracts: hotel name, nights, rooms, total cost</p>
+            </div>
+            <div className={`p-2.5 rounded-lg border ${extractMode === 'Energy' ? 'border-brand-300 bg-brand-50' : 'border-gray-200'}`}>
+              <p className="font-medium text-gray-700">Energy</p>
+              <p className="text-gray-500">Extracts: energy type, usage (kWh/m3/litres), meter readings</p>
+            </div>
+            <div className={`p-2.5 rounded-lg border ${extractMode === 'Company Vehicle' ? 'border-brand-300 bg-brand-50' : 'border-gray-200'}`}>
+              <p className="font-medium text-gray-700">Company Vehicle</p>
+              <p className="text-gray-500">Extracts: fuel type, litres/gallons, distance, vehicle reg</p>
             </div>
           </div>
 
           <div
             className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-brand-400 transition-colors cursor-pointer"
-            onClick={() => xFileRef.current?.click()}
+            onClick={() => docFileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); setXaptureFiles([...xaptureFiles, ...Array.from(e.dataTransfer.files)].slice(0, 20)); }}
+            onDrop={(e) => { e.preventDefault(); setDocFiles([...docFiles, ...Array.from(e.dataTransfer.files)].slice(0, 20)); }}
           >
-            <input ref={xFileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.zip" multiple onChange={(e) => setXaptureFiles([...xaptureFiles, ...Array.from(e.target.files)].slice(0, 20))} />
-            {xaptureFiles.length > 0 ? (
-              <div className="space-y-1">
-                {xaptureFiles.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <span>{f.name}</span>
-                    <button className="text-red-500 text-xs" onClick={(e) => { e.stopPropagation(); setXaptureFiles(xaptureFiles.filter((_, j) => j !== i)); }}>Remove</button>
+            <input ref={docFileRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" multiple onChange={(e) => setDocFiles([...docFiles, ...Array.from(e.target.files)].slice(0, 20))} />
+            {docFiles.length > 0 ? (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {docFiles.map((f, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <FileImage className="w-4 h-4 text-gray-400" />
+                      <span className="truncate max-w-[300px]">{f.name}</span>
+                      <span className="text-gray-400 text-xs">{(f.size / 1024).toFixed(0)} KB</span>
+                    </div>
+                    <button className="text-red-500 hover:text-red-700 text-xs font-medium" onClick={(e) => { e.stopPropagation(); setDocFiles(docFiles.filter((_, j) => j !== i)); }}>
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
             ) : (
               <>
-                <FileImage className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">Drop invoices/receipts here (PDF, JPG, PNG, ZIP)</p>
+                <ScanSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">Drop invoices & receipts here (PDF, JPG, PNG)</p>
                 <p className="text-xs text-gray-400 mt-1">Up to 20 files, 10MB each — 2 credits per document</p>
+                <p className="text-xs text-gray-400">Text extracted via PDF parsing + OCR, then pattern-matched for emission data</p>
               </>
             )}
           </div>
 
           {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
-          <button className="btn-primary w-full" disabled={!xaptureFiles.length || uploading} onClick={handleXaptureUpload}>
-            {uploading ? 'Uploading...' : `Extract ${xaptureFiles.length} Document${xaptureFiles.length !== 1 ? 's' : ''}`}
+          <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!docFiles.length || uploading} onClick={handleDocExtract}>
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanSearch className="w-4 h-4" />}
+            {uploading ? 'Extracting...' : `Extract & Process ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''}`}
           </button>
         </div>
       )}
@@ -223,15 +261,20 @@ export default function E1Upload() {
             {progress.status === 'PROCESSING' && <Loader2 className="w-5 h-5 text-brand-600 animate-spin" />}
             {progress.status === 'COMPLETED' && <CheckCircle className="w-5 h-5 text-green-500" />}
             {progress.status === 'FAILED' && <XCircle className="w-5 h-5 text-red-500" />}
-            <span className="font-medium">{progress.status}</span>
+            <span className="font-medium">
+              {progress.status === 'PROCESSING' ? 'Extracting data from documents...' : progress.status === 'COMPLETED' ? 'Extraction Complete' : 'Extraction Failed'}
+            </span>
           </div>
           {progress.totalRows > 0 && (
             <>
               <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                <div className="bg-brand-600 h-2.5 rounded-full transition-all" style={{ width: `${progress.progress}%` }} />
+                <div className={`h-2.5 rounded-full transition-all ${progress.status === 'FAILED' ? 'bg-red-500' : 'bg-brand-600'}`} style={{ width: `${progress.progress}%` }} />
               </div>
-              <p className="text-sm text-gray-500">{progress.processedRows} / {progress.totalRows} ({progress.progress}%)</p>
+              <p className="text-sm text-gray-500">{progress.processedRows} / {progress.totalRows} documents ({progress.progress}%)</p>
             </>
+          )}
+          {progress.status === 'COMPLETED' && (
+            <p className="text-sm text-green-600 mt-2">Data extracted and emissions calculated. View results on the E1 Dashboard.</p>
           )}
           {progress.error && <p className="text-sm text-red-600 mt-2">{progress.error}</p>}
         </div>

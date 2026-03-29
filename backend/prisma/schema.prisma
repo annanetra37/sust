@@ -119,7 +119,7 @@ model CreditTransaction {
   company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userId          String
   user            User     @relation(fields: [userId], references: [id])
-  transactionType String   // EXCEL_S1, EXCEL_E1, XAPTURE_E1
+  transactionType String   // EXCEL_S1, EXCEL_E1, DOC_EXTRACT_E1
   creditsUsed     Int
   description     String?
   relatedFileId   String?

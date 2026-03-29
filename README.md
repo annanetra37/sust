@@ -55,6 +55,6 @@ Open http://localhost:5173
 | POST /api/s1/upload | Upload workforce Excel |
 | GET /api/e1/dashboard | E1 emissions analytics |
 | POST /api/e1/upload | Upload emissions Excel |
-| POST /api/e1/xapture | Document extraction |
+| POST /api/e1/doc-extract | Document extraction (OCR + pattern engine) |
 | POST /api/reports/generate | Generate ESG report |
 | GET /api/settings/* | Org units, standards, credits |

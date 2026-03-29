@@ -4,7 +4,7 @@ const XLSX = require('xlsx');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
-const config = require('../config');
+const { extractDocument } = require('../services/docExtract');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const docUpload = multer({
@@ -226,14 +226,19 @@ async function aggregateGHGInventory(companyId, orgUnitId) {
   }
 }
 
-// ─── Xapture Document Upload ────────────────────────────────
+// ─── Document Extract (In-house OCR + Pattern Engine) ───────
 
-router.post('/xapture', docUpload.array('files', 20), async (req, res) => {
+router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files provided' });
 
     const { mode, orgUnitId } = req.body; // Travel, Stay, Energy, Company Vehicle
-    if (!mode) return res.status(400).json({ error: 'Extraction mode required' });
+    if (!mode) return res.status(400).json({ error: 'Extraction mode required (Travel, Stay, Energy, Company Vehicle)' });
+
+    const validModes = ['Travel', 'Stay', 'Energy', 'Company Vehicle'];
+    if (!validModes.includes(mode)) {
+      return res.status(400).json({ error: `Invalid mode. Supported: ${validModes.join(', ')}` });
+    }
 
     const docCount = req.files.length;
     const creditCost = docCount * 2;
@@ -249,16 +254,16 @@ router.post('/xapture', docUpload.array('files', 20), async (req, res) => {
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId, userId: req.user.id,
-        fileName: `Xapture batch (${docCount} docs)`,
+        fileName: `Doc Extract — ${mode} (${docCount} files)`,
         fileType: 'E1', orgUnit: orgUnitId,
         status: 'PROCESSING', totalRows: docCount,
       },
     });
 
     // Process with concurrency limit of 3
-    processXaptureDocuments(req.files, req.user, orgUnitId, mode, uploadRecord.id)
+    processDocuments(req.files, req.user, orgUnitId, mode, uploadRecord.id)
       .catch((err) => {
-        console.error('Xapture error:', err);
+        console.error('Doc extract error:', err);
         prisma.uploadHistory.update({
           where: { id: uploadRecord.id },
           data: { status: 'FAILED', errorMessage: err.message },
@@ -267,15 +272,16 @@ router.post('/xapture', docUpload.array('files', 20), async (req, res) => {
 
     res.status(202).json({ message: 'Document extraction started', uploadId: uploadRecord.id, documents: docCount });
   } catch (err) {
-    console.error('Xapture upload error:', err);
+    console.error('Doc extract upload error:', err);
     res.status(500).json({ error: 'Upload failed' });
   }
 });
 
-async function processXaptureDocuments(files, user, orgUnitId, mode, uploadId) {
+async function processDocuments(files, user, orgUnitId, mode, uploadId) {
   const MAX_CONCURRENT = 3;
   let processed = 0;
-  const results = [];
+  let succeeded = 0;
+  const extractionResults = [];
 
   for (let i = 0; i < files.length; i += MAX_CONCURRENT) {
     const batch = files.slice(i, i + MAX_CONCURRENT);
@@ -285,33 +291,45 @@ async function processXaptureDocuments(files, user, orgUnitId, mode, uploadId) {
 
     for (const result of batchResults) {
       processed++;
-      if (result.status === 'fulfilled' && result.value) {
-        results.push(result.value);
 
-        // Store extracted data as emission activity
-        const data = result.value;
-        await prisma.fE1EmissionActivityData.create({
-          data: {
-            companyId: user.companyId, orgUnitId: orgUnitId || undefined,
-            year: new Date().getFullYear(),
-            activityCategory: mode,
-            activitySubcat: data.subType || mode,
-            calcMethod: 'consumption',
-            quantity: data.quantity || 0,
-            unit: data.unit || 'km',
-            totalEmissions: data.emissions || 0,
-            scope: data.scope || 'Scope 3',
-            currency: data.currency || null,
-            amount: data.amount || null,
-            sourceDoc: data.sourceFile || null,
-          },
-        });
+      if (result.status === 'fulfilled' && result.value && result.value.items?.length > 0) {
+        const extraction = result.value;
+        extractionResults.push(extraction);
+
+        // Store each extracted item as an emission activity record
+        for (const item of extraction.items) {
+          if (item.quantity > 0 || item.amount > 0) {
+            await prisma.fE1EmissionActivityData.create({
+              data: {
+                companyId: user.companyId,
+                orgUnitId: orgUnitId || undefined,
+                year: item.date ? new Date(item.date).getFullYear() : new Date().getFullYear(),
+                month: item.date ? new Date(item.date).getMonth() + 1 : null,
+                activityCategory: mode,
+                activitySubcat: item.subType || mode,
+                calcMethod: 'consumption',
+                quantity: item.quantity || 0,
+                unit: item.unit || 'km',
+                emissionFactor: item.emissionFactor || 0,
+                totalEmissions: item.emissions || 0,
+                scope: item.scope || 'Scope 3',
+                currency: item.currency || null,
+                amount: item.amount || null,
+                sourceDoc: extraction.sourceFile || null,
+              },
+            });
+            succeeded++;
+          }
+        }
+      } else if (result.status === 'rejected') {
+        console.error(`Extraction failed for file: ${result.reason?.message || result.reason}`);
       }
+
       await prisma.uploadHistory.update({ where: { id: uploadId }, data: { processedRows: processed } });
     }
   }
 
-  await deductCredits(user.companyId, user.id, files.length * 2, 'XAPTURE_E1', `Xapture: ${files.length} documents`, uploadId);
+  await deductCredits(user.companyId, user.id, files.length * 2, 'DOC_EXTRACT_E1', `Document extraction (${mode}): ${files.length} files, ${succeeded} records`, uploadId);
 
   if (orgUnitId) {
     await aggregateGHGInventory(user.companyId, orgUnitId);
@@ -321,37 +339,6 @@ async function processXaptureDocuments(files, user, orgUnitId, mode, uploadId) {
     where: { id: uploadId },
     data: { status: 'COMPLETED', processedRows: processed, completedAt: new Date() },
   });
-}
-
-async function extractDocument(file, mode) {
-  if (!config.xapture.url) {
-    // Dev mock: return simulated extraction
-    return {
-      sourceFile: file.originalname,
-      subType: mode,
-      quantity: Math.random() * 1000,
-      unit: mode === 'Travel' ? 'km' : mode === 'Energy' ? 'kWh' : 'nights',
-      emissions: Math.random() * 50,
-      scope: 'Scope 3',
-      currency: 'USD',
-      amount: Math.random() * 500,
-    };
-  }
-
-  // Real Xapture API call
-  const FormData = require('form-data');
-  const form = new FormData();
-  form.append('file', file.buffer, file.originalname);
-  form.append('mode', mode);
-
-  const response = await fetch(config.xapture.url + '/extract', {
-    method: 'POST',
-    headers: { 'X-API-Key': config.xapture.key, ...form.getHeaders() },
-    body: form,
-  });
-
-  if (!response.ok) throw new Error(`Xapture API error: ${response.status}`);
-  return response.json();
 }
 
 // ─── Upload Progress ────────────────────────────────────────
