@@ -36,9 +36,13 @@ router.post('/signup', async (req, res) => {
       const company = await tx.company.create({
         data: {
           name: companyName, country, industry, companySize,
-          ownershipType, yearEstablished, legalStructure,
-          hqLocation, regionsOfOp: regionsOfOp || [],
-          stockExchange, tickerSymbol,
+          ownershipType: ownershipType || null,
+          yearEstablished: yearEstablished ? parseInt(yearEstablished) : null,
+          legalStructure: legalStructure || null,
+          hqLocation: hqLocation || null,
+          regionsOfOp: regionsOfOp || [],
+          stockExchange: stockExchange || null,
+          tickerSymbol: tickerSymbol || null,
         },
       });
 
