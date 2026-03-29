@@ -12,11 +12,12 @@ export default function S1Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
+  const filterKey = `${filters.year}|${filters.orgUnits}`;
 
   useEffect(() => {
     setLoading(true);
     api.getS1Dashboard(filters).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [filters]);
+  }, [filterKey]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
   if (!data) return <div className="text-center text-gray-500 py-12">No data available. Upload workforce data to get started.</div>;

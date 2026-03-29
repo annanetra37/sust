@@ -1,4 +1,6 @@
 const router = require('express').Router();
+const jwt = require('jsonwebtoken');
+const config = require('../config');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { paginate } = require('../utils/helpers');
@@ -7,7 +9,35 @@ const { getFilePath } = require('../utils/fileStore');
 const path = require('path');
 const fs = require('fs');
 
-router.use(authenticate);
+// Auth middleware that also accepts ?token= query parameter (for file downloads in new tabs)
+async function authenticateWithToken(req, res, next) {
+  // Try standard Bearer auth first
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    return authenticate(req, res, next);
+  }
+  // Fall back to query parameter token
+  const token = req.query.token;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, config.jwt.secret);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, role: true, isActive: true, companyId: true, firstName: true, lastName: true },
+      });
+      if (!user || !user.isActive) {
+        return res.status(401).json({ error: 'Account inactive or not found' });
+      }
+      req.user = user;
+      return next();
+    } catch {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+  }
+  return res.status(401).json({ error: 'Authentication required' });
+}
+
+router.use(authenticateWithToken);
 
 // List upload history
 router.get('/', async (req, res) => {

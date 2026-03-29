@@ -19,11 +19,11 @@ router.get('/dashboard', async (req, res) => {
   const { orgUnits, year } = req.query;
   const y = parseInt(year) || new Date().getFullYear();
 
-  const orgFilter = orgUnits
-    ? { orgUnitId: { in: orgUnits.split(',') } }
-    : {};
-
+  const orgList = orgUnits ? orgUnits.split(',').filter(Boolean) : [];
+  const orgFilter = orgList.length > 0 ? { orgUnitId: { in: orgList } } : {};
   const where = { companyId, year: y, ...orgFilter };
+
+  console.log('[S1 Dashboard] Query:', JSON.stringify({ companyId, year: y, orgList: orgList.length || 'ALL' }));
 
   const [composition, diversity, training, turnover, injuries] = await Promise.all([
     prisma.fS1WorkforceComposition.findMany({ where }),
