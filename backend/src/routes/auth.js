@@ -72,7 +72,9 @@ router.post('/signup', async (req, res) => {
     });
   } catch (err) {
     console.error('Signup error:', err);
-    res.status(500).json({ error: 'Registration failed' });
+    const message = err.message || 'Registration failed';
+    const detail = err.meta?.target || err.meta?.cause || undefined;
+    res.status(500).json({ error: message, detail });
   }
 });
 
