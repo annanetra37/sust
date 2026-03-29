@@ -61,10 +61,11 @@ router.post('/signup', async (req, res) => {
         data: { name: 'Headquarters', country, companyId: company.id },
       });
 
+      // Send OTP inside the transaction — if this fails, everything rolls back
+      await sendOTP(email, otp);
+
       return { user, company };
     });
-
-    await sendOTP(email, otp);
 
     res.status(201).json({
       message: 'Account created. Check your email for verification code.',
@@ -216,12 +217,17 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return res.json({ message: 'If an account with this email exists, a reset link has been sent.' });
 
     const token = generateToken();
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { resetToken: token, resetTokenExp: new Date(Date.now() + 60 * 60 * 1000) },
-    });
-
-    await sendResetLink(email, token);
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken: token, resetTokenExp: new Date(Date.now() + 60 * 60 * 1000) },
+      });
+      await sendResetLink(email, token);
+    } catch (emailErr) {
+      // Revert the token if email fails
+      await prisma.user.update({ where: { id: user.id }, data: { resetToken: null, resetTokenExp: null } });
+      throw emailErr;
+    }
     res.json({ message: 'If an account with this email exists, a reset link has been sent.' });
   } catch (err) {
     const { status, error } = formatError(err);
@@ -270,20 +276,24 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
     const token = generateToken();
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
 
-    await prisma.user.create({
-      data: {
-        email: email.toLowerCase(),
-        passwordHash: '',
-        firstName, lastName, phone: phone || null, jobTitle: jobTitle || null,
-        role: role === 'ADMIN' ? 'ADMIN' : 'CUSTOM',
-        companyId: req.user.companyId,
-        emailVerified: true,
-        inviteToken: token,
-        inviteTokenExp: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.user.create({
+        data: {
+          email: email.toLowerCase(),
+          passwordHash: '',
+          firstName, lastName, phone: phone || null, jobTitle: jobTitle || null,
+          role: role === 'ADMIN' ? 'ADMIN' : 'CUSTOM',
+          companyId: req.user.companyId,
+          emailVerified: true,
+          inviteToken: token,
+          inviteTokenExp: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      // Send inside transaction — if email fails, user creation rolls back
+      await sendInvite(email, token, company.name);
     });
 
-    await sendInvite(email, token, company.name);
     res.status(201).json({ message: `Invitation sent to ${email}.` });
   } catch (err) {
     const { status, error } = formatError(err);
