@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Globe, Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
+import { LogoFull } from '../components/Logo';
 
 export default function Login() {
   const { login } = useAuth();
@@ -30,12 +31,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-50 dark:from-gray-950 dark:to-gray-900 px-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Globe className="w-12 h-12 text-brand-600 mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-gray-900">Triple I ESG Portal</h1>
-          <p className="text-gray-500 mt-1">Sign in to your account</p>
+        <div className="flex flex-col items-center mb-8">
+          <LogoFull className="mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="card space-y-4">

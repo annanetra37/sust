@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
+import { LogoFull } from './Logo';
 
 const NAV = [
   { label: 'Home', path: '/', icon: LayoutDashboard },
@@ -72,13 +73,7 @@ export default function Layout() {
         sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
       )}>
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2">
-            <Globe className="w-8 h-8 text-brand-600" />
-            <div>
-              <h1 className="font-bold text-lg text-brand-900 leading-tight">Triple I</h1>
-              <p className="text-xs text-gray-500">ESG Portal</p>
-            </div>
-          </div>
+          <LogoFull />
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2 px-2">

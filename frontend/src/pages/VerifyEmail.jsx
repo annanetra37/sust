@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { Mail } from 'lucide-react';
+import { LogoMark } from '../components/Logo';
 
 export default function VerifyEmail() {
   const location = useLocation();
@@ -47,7 +48,7 @@ export default function VerifyEmail() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Mail className="w-12 h-12 text-brand-600 mx-auto mb-3" />
+          <LogoMark className="w-12 h-12 text-brand-600 mx-auto mb-3" />
           <h1 className="text-2xl font-bold text-gray-900">Verify Your Email</h1>
           <p className="text-gray-500 mt-1">Enter the 6-digit code sent to <strong>{email}</strong></p>
         </div>

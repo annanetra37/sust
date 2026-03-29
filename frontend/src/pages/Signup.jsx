@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Globe } from 'lucide-react';
+import { LogoFull } from '../components/Logo';
 
 const INDUSTRIES = ['Technology', 'Manufacturing', 'Finance', 'Healthcare', 'Energy', 'Retail', 'Transportation', 'Agriculture', 'Construction', 'Other'];
 const SIZES = ['1-50', '51-200', '201-500', '501-1000', '1001-5000', '5000+'];
@@ -40,10 +40,10 @@ export default function Signup() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-lg">
-        <div className="text-center mb-6">
-          <Globe className="w-12 h-12 text-brand-600 mx-auto mb-3" />
-          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-500 mt-1">Step {step} of 2 — {step === 1 ? 'Personal Information' : 'Company Details'}</p>
+        <div className="flex flex-col items-center mb-6">
+          <LogoFull className="mb-3" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">Create Account</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Step {step} of 2 — {step === 1 ? 'Personal Information' : 'Company Details'}</p>
         </div>
 
         {/* Progress bar */}
