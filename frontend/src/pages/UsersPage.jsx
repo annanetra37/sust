@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { UserPlus, Trash2, Shield, ToggleLeft, ToggleRight, Copy, Check } from 'lucide-react';
+import { UserPlus, Trash2, Shield, ToggleLeft, ToggleRight, Copy, Check, XCircle } from 'lucide-react';
 import { HelpBanner, InfoTip } from '../components/HelpSystem';
 
 export default function UsersPage() {
@@ -71,7 +71,13 @@ export default function UsersPage() {
         load();
       }
     } catch (err) {
-      alert(err.error || 'Failed to invite user.');
+      // If the error response actually contains a successful creation with invite link
+      if (err.inviteLink) {
+        setInviteResult(err);
+        load();
+      } else {
+        setInviteResult({ message: err.error || 'Failed to invite user.', error: true });
+      }
     }
   };
 
@@ -124,8 +130,19 @@ export default function UsersPage() {
       {showInvite && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {inviteResult?.inviteLink ? (
-              // Email failed — show manual invite link
+            {inviteResult?.error ? (
+              // Real error — user was NOT created
+              <div className="p-6 space-y-4">
+                <XCircle className="w-12 h-12 text-red-500 mx-auto" />
+                <h2 className="text-lg font-bold text-red-700 text-center">Invitation Failed</h2>
+                <p className="text-sm text-red-600 text-center">{inviteResult.message}</p>
+                <div className="flex gap-3">
+                  <button className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>Close</button>
+                  <button className="btn-primary flex-1" onClick={() => setInviteResult(null)}>Try Again</button>
+                </div>
+              </div>
+            ) : inviteResult?.inviteLink ? (
+              // User created but email failed — show manual invite link
               <div className="p-6 space-y-4">
                 <h2 className="text-lg font-bold text-amber-600">User Created — Email Not Sent</h2>
                 <p className="text-sm text-gray-600">{inviteResult.message}</p>
