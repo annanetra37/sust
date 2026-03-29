@@ -7,6 +7,7 @@ const { generateOTP, generateToken } = require('../utils/helpers');
 const { sendOTP, sendResetLink, sendInvite } = require('../utils/email');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { formatError } = require('../utils/errors');
+const { logActivity } = require('../utils/activityLog');
 
 // ─── Sign Up (2-step: personal + company) ────────────────────
 
@@ -156,6 +157,8 @@ router.post('/login', async (req, res) => {
     const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, { expiresIn: config.jwt.refreshExpiry });
 
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken } });
+
+    logActivity(user.id, user.companyId, 'LOGIN', `Signed in`, null, req.ip);
 
     res.json({
       accessToken,

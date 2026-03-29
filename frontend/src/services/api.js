@@ -104,6 +104,7 @@ const api = {
   deleteOrgUnit: (id) => request(`/settings/org-units/${id}`, { method: 'DELETE' }),
   getEsgStandard: () => request('/settings/esg-standard'),
   setEsgStandard: (standard) => request('/settings/esg-standard', { method: 'PUT', body: JSON.stringify({ standard }) }),
+  previewReset: (data) => request('/settings/reset/preview', { method: 'POST', body: JSON.stringify(data) }),
   resetS1: (data) => request('/settings/reset/s1', { method: 'POST', body: JSON.stringify(data) }),
   resetE1: (data) => request('/settings/reset/e1', { method: 'POST', body: JSON.stringify(data) }),
   getCredits: (params) => request(`/settings/credits?${new URLSearchParams(params || {})}`),
@@ -135,6 +136,9 @@ const api = {
   createConnection: (data) => request('/connections', { method: 'POST', body: JSON.stringify(data) }),
   testConnection: (id) => request(`/connections/${id}/test`, { method: 'POST' }),
   deleteConnection: (id) => request(`/connections/${id}`, { method: 'DELETE' }),
+
+  // Activity Log
+  getActivityLog: (params) => request(`/activity-log?${new URLSearchParams(params || {})}`),
 
   // Lineage
   getLineage: (params) => request(`/lineage?${new URLSearchParams(params || {})}`),

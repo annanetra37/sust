@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch
+  Sun, Moon, GitBranch, Activity
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -44,6 +44,7 @@ const NAV = [
   { label: 'Data Connections', path: '/connections', icon: Database },
   { label: 'Data Lineage', path: '/lineage', icon: GitBranch },
   { label: 'History', path: '/history', icon: History },
+  { label: 'Activity Log', path: '/activity-log', icon: Activity, adminOnly: true },
   { label: 'Users', path: '/users', icon: Users2, adminOnly: true },
   { label: 'Settings', path: '/settings', icon: Settings },
 ];

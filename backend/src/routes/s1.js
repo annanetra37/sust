@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
 const { mapSchema, cleanAndTransform, validateAndCoerce } = require('../services/aiEtl');
 const { saveFile } = require('../utils/fileStore');
+const { logActivity } = require('../utils/activityLog');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -111,6 +112,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
     });
 
+    logActivity(req.user.id, req.user.companyId, 'UPLOAD_S1', `Uploaded ${req.file.originalname} for ${orgUnit.name} (${year})`, { fileName: req.file.originalname, orgUnit: orgUnit.name, year }, req.ip);
     res.status(202).json({ message: 'AI processing started', uploadId: uploadRecord.id });
   } catch (err) {
     console.error('S1 upload error:', err);

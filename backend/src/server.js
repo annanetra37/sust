@@ -29,6 +29,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/connections', require('./routes/connections'));
 app.use('/api/assistant', require('./routes/assistant'));
 app.use('/api/lineage', require('./routes/lineage'));
+app.use('/api/activity-log', require('./routes/activityLog'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));

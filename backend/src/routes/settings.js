@@ -82,7 +82,104 @@ router.put('/esg-standard', requireAdmin, async (req, res) => {
   }
 });
 
-// ─── Data Reset ─────────────────────────────────────────────
+// ─── Data Reset Preview ─────────────────────────────────────
+
+router.post('/reset/preview', requireAdmin, async (req, res) => {
+  try {
+    const { type, year, quarter, orgUnitId } = req.body;
+    if (!year) return res.status(400).json({ error: 'Year is required.' });
+
+    const companyId = req.user.companyId;
+    const y = parseInt(year);
+
+    if (type === 's1') {
+      const where = { companyId, year: y };
+      if (quarter) where.quarter = parseInt(quarter);
+      if (orgUnitId) where.orgUnitId = orgUnitId;
+
+      const [comp, div, train, turn, inj] = await Promise.all([
+        prisma.fS1WorkforceComposition.count({ where }),
+        prisma.fS1WorkforceDiversity.count({ where }),
+        prisma.fS1EmployeeTraining.count({ where }),
+        prisma.fS1EmployeeTurnover.count({ where }),
+        prisma.fS1WorkplaceInjuries.count({ where }),
+      ]);
+
+      const total = comp + div + train + turn + inj;
+
+      // Get some sample records
+      const samples = await prisma.fS1WorkforceComposition.findMany({
+        where,
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { orgUnit: { select: { name: true } } },
+      });
+
+      res.json({
+        total,
+        breakdown: [
+          { table: 'Workforce Composition', count: comp },
+          { table: 'Workforce Diversity', count: div },
+          { table: 'Employee Training', count: train },
+          { table: 'Employee Turnover', count: turn },
+          { table: 'Workplace Injuries', count: inj },
+        ].filter((b) => b.count > 0),
+        samples: samples.map((s) => ({
+          orgUnit: s.orgUnit?.name,
+          year: s.year,
+          quarter: s.quarter,
+          gender: s.gender,
+          contractType: s.contractType,
+          count: s.employeeCount,
+        })),
+      });
+    } else {
+      const where = { companyId, year: y };
+
+      const [activities, inventory] = await Promise.all([
+        prisma.fE1EmissionActivityData.count({ where }),
+        prisma.fE1GHGInventory.count({ where }),
+      ]);
+
+      const total = activities + inventory;
+
+      // Get sample activity records
+      const samples = await prisma.fE1EmissionActivityData.findMany({
+        where,
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Aggregate emissions that will be lost
+      const emissionSum = await prisma.fE1EmissionActivityData.aggregate({
+        where,
+        _sum: { totalEmissions: true, quantity: true },
+      });
+
+      res.json({
+        total,
+        breakdown: [
+          { table: 'Emission Activity Data', count: activities },
+          { table: 'GHG Inventory', count: inventory },
+        ].filter((b) => b.count > 0),
+        samples: samples.map((s) => ({
+          category: s.activityCategory,
+          subcategory: s.activitySubcat,
+          scope: s.scope,
+          quantity: s.quantity,
+          unit: s.unit,
+          emissions: s.totalEmissions,
+        })),
+        totalEmissions: emissionSum._sum.totalEmissions || 0,
+      });
+    }
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// ─── Data Reset (actual delete) ─────────────────────────────
 
 router.post('/reset/s1', requireAdmin, async (req, res) => {
   try {

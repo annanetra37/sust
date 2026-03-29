@@ -72,6 +72,21 @@ model User {
   permissions     UserPermission[]
   creditTxns      CreditTransaction[]
   uploadHistory   UploadHistory[]
+  activityLogs    ActivityLog[]
+}
+
+// ─── Activity Log ───────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  companyId   String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  action      String   // LOGIN, UPLOAD_S1, UPLOAD_E1, DOC_EXTRACT, INVITE_USER, DELETE_USER, RESET_DATA, GENERATE_REPORT, UPDATE_SETTINGS, CREATE_CONNECTION, SET_SBTI_TARGET, AUDIT_UPDATE
+  detail      String?  // human-readable detail
+  metadata    Json?    // extra structured data
+  ipAddress   String?
+  createdAt   DateTime @default(now())
 }
 
 enum Role {
