@@ -31,16 +31,16 @@ export default function LineagePage() {
   const [filters, setFilters] = useState({ topic: '', orgUnitId: '', userId: '' });
   const [expanded, setExpanded] = useState({});
 
-  const load = () => {
+  const filtersKey = `${filters.topic}|${filters.orgUnitId}|${filters.userId}`;
+
+  useEffect(() => {
     setLoading(true);
     const params = {};
     if (filters.topic) params.topic = filters.topic;
     if (filters.orgUnitId) params.orgUnitId = filters.orgUnitId;
     if (filters.userId) params.userId = filters.userId;
     api.getLineage(params).then(setData).catch(console.error).finally(() => setLoading(false));
-  };
-
-  useEffect(load, [filters]);
+  }, [filtersKey]);
 
   const toggle = (key) => setExpanded((p) => ({ ...p, [key]: !p[key] }));
 
