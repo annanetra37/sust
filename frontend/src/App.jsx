@@ -19,6 +19,7 @@ import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import Connections from './pages/Connections';
 import SBTiTargets from './pages/SBTiTargets';
+import LineagePage from './pages/LineagePage';
 import ComingSoon from './pages/ComingSoon';
 
 function ProtectedRoute({ children }) {
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/sbti-targets" element={<SBTiTargets />} />
+        <Route path="/lineage" element={<LineagePage />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 

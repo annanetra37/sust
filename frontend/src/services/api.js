@@ -136,6 +136,18 @@ const api = {
   testConnection: (id) => request(`/connections/${id}/test`, { method: 'POST' }),
   deleteConnection: (id) => request(`/connections/${id}`, { method: 'DELETE' }),
 
+  // Lineage
+  getLineage: (params) => request(`/lineage?${new URLSearchParams(params || {})}`),
+  exportAuditTrail: async (data) => {
+    const blob = await request('/lineage/export', { method: 'POST', body: JSON.stringify(data) });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ESG_Audit_Trail_${new Date().toISOString().split('T')[0]}.${data.format === 'docx' ? 'docx' : 'pdf'}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Assistant
   chatAssistant: (message, history) => request('/assistant/chat', { method: 'POST', body: JSON.stringify({ message, history }) }),
 
