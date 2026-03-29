@@ -50,7 +50,7 @@ export default function E1Dashboard() {
             <span className="text-sm text-gray-500">Total GHG Emissions</span>
             <InfoTip title="GHG Emissions">Total greenhouse gas emissions in tonnes of CO2 equivalent (tCO2e) across all scopes (1, 2, 3) for the selected year.</InfoTip>
           </div>
-          <span className="text-2xl font-bold">{stats.totalEmissions.toFixed(1)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
+          <span className="text-2xl font-bold">{stats.totalEmissions < 0.1 ? stats.totalEmissions.toFixed(4) : stats.totalEmissions.toFixed(2)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
         </div>
         <div className="stat-card">
           <TrendingUp className="w-5 h-5 text-amber-500" />

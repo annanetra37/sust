@@ -29,43 +29,53 @@ router.get('/dashboard', async (req, res) => {
   const orgFilter = orgUnits ? { orgUnitId: { in: orgUnits.split(',') } } : {};
   const where = { companyId, year: y, ...orgFilter };
 
-  const [activities, inventory, targets, allInventory] = await Promise.all([
+  const [activities, inventory, targets, allActivities] = await Promise.all([
     prisma.fE1EmissionActivityData.findMany({ where }),
     prisma.fE1GHGInventory.findMany({ where }),
     prisma.sBTiTarget.findMany({ where: { companyId } }),
-    prisma.fE1GHGInventory.findMany({ where: { companyId, ...orgFilter }, orderBy: { year: 'asc' } }),
+    prisma.fE1EmissionActivityData.findMany({ where: { companyId, ...orgFilter }, orderBy: { year: 'asc' } }),
   ]);
 
-  const totalEmissions = inventory.reduce((s, r) => s + r.totalEmissions, 0);
-  const totalEmployees = inventory.reduce((s, r) => s + (r.employeeCount || 0), 0);
-  const intensity = totalEmployees > 0 ? (totalEmissions / totalEmployees).toFixed(2) : 0;
+  // Compute stats from activity data (source of truth) — not inventory
+  const totalEmissions = activities.reduce((s, r) => s + (r.totalEmissions || 0), 0);
+  const inventoryEmployees = inventory.reduce((s, r) => s + (r.employeeCount || 0), 0);
+  const intensity = inventoryEmployees > 0 ? (totalEmissions / inventoryEmployees).toFixed(2) : 0;
 
+  // By scope — from activity data
   const byScope = {};
-  inventory.forEach((r) => { byScope[r.scope] = (byScope[r.scope] || 0) + r.totalEmissions; });
+  activities.forEach((r) => {
+    const scope = r.scope || 'Scope 3';
+    byScope[scope] = (byScope[scope] || 0) + (r.totalEmissions || 0);
+  });
 
+  // By activity category
   const byActivity = {};
   activities.forEach((r) => {
-    byActivity[r.activityCategory] = (byActivity[r.activityCategory] || 0) + (r.totalEmissions || 0);
+    const cat = r.activityCategory || 'Other';
+    byActivity[cat] = (byActivity[cat] || 0) + (r.totalEmissions || 0);
   });
 
+  // By org unit — from activity data
   const byOrgUnit = {};
-  inventory.forEach((r) => {
+  activities.forEach((r) => {
     if (!byOrgUnit[r.orgUnitId]) byOrgUnit[r.orgUnitId] = {};
-    byOrgUnit[r.orgUnitId][r.scope] = (byOrgUnit[r.orgUnitId][r.scope] || 0) + r.totalEmissions;
+    const scope = r.scope || 'Scope 3';
+    byOrgUnit[r.orgUnitId][scope] = (byOrgUnit[r.orgUnitId][scope] || 0) + (r.totalEmissions || 0);
   });
 
+  // Emissions trend — from all activity data across all years
   const emissionsTrend = {};
-  allInventory.forEach((r) => {
+  allActivities.forEach((r) => {
     if (!emissionsTrend[r.year]) emissionsTrend[r.year] = 0;
-    emissionsTrend[r.year] += r.totalEmissions;
+    emissionsTrend[r.year] += r.totalEmissions || 0;
   });
 
   let sbtiProgress = null;
   if (targets.length > 0) {
     const target = targets[0];
-    const baseYearEmissions = allInventory
+    const baseYearEmissions = allActivities
       .filter((r) => r.year === target.baseYear)
-      .reduce((s, r) => s + r.totalEmissions, 0);
+      .reduce((s, r) => s + (r.totalEmissions || 0), 0);
     const currentEmissions = totalEmissions;
     const targetEmissions = target.reductionPct
       ? baseYearEmissions * (1 - target.reductionPct / 100)
@@ -82,7 +92,14 @@ router.get('/dashboard', async (req, res) => {
   }
 
   res.json({
-    stats: { totalEmissions, intensity: parseFloat(intensity), totalEmployees, sbtiProgress },
+    stats: {
+      totalEmissions,
+      intensity: parseFloat(intensity),
+      totalEmployees: inventoryEmployees,
+      activityCount: activities.length,
+      totalAmount: activities.reduce((s, r) => s + (r.amount || 0), 0),
+      sbtiProgress,
+    },
     charts: {
       byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value })),
       byActivity: Object.entries(byActivity).map(([activity, value]) => ({ activity, value })),
