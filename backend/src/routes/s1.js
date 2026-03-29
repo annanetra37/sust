@@ -4,6 +4,7 @@ const XLSX = require('xlsx');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
+const { mapSchema, cleanAndTransform, validateAndCoerce } = require('../services/aiEtl');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -30,7 +31,6 @@ router.get('/dashboard', async (req, res) => {
     prisma.fS1WorkplaceInjuries.findMany({ where }),
   ]);
 
-  // Aggregate stats
   const totalEmployees = composition.reduce((s, r) => s + r.employeeCount, 0);
   const byGender = {};
   composition.forEach((r) => { byGender[r.gender] = (byGender[r.gender] || 0) + r.employeeCount; });
@@ -38,10 +38,8 @@ router.get('/dashboard', async (req, res) => {
   const totalTrainingHours = training.reduce((s, r) => s + r.trainingHours, 0);
   const totalTurnover = turnover.reduce((s, r) => s + r.count, 0);
   const turnoverRate = totalEmployees > 0 ? ((totalTurnover / totalEmployees) * 100).toFixed(1) : 0;
-
   const disabilityCount = diversity.filter((r) => r.disabilityStatus === 'Yes').reduce((s, r) => s + r.count, 0);
 
-  // Charts data
   const turnoverByOrgUnit = {};
   turnover.forEach((r) => {
     const key = r.orgUnitId;
@@ -74,7 +72,7 @@ router.get('/dashboard', async (req, res) => {
   });
 });
 
-// ─── Upload Excel ───────────────────────────────────────────
+// ─── Upload (AI-Powered ETL) ────────────────────────────────
 
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -88,7 +86,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
 
-    // Create upload record
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId,
@@ -100,29 +97,42 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       },
     });
 
-    // Process in background
-    processS1Excel(workbook, req.user, orgUnitId, uploadRecord.id).catch((err) => {
-      console.error('S1 processing error:', err);
+    processS1WithAI(workbook, req.user, orgUnitId, uploadRecord.id).catch((err) => {
+      console.error('S1 AI processing error:', err);
       prisma.uploadHistory.update({
         where: { id: uploadRecord.id },
         data: { status: 'FAILED', errorMessage: err.message },
       });
     });
 
-    res.status(202).json({ message: 'Processing started', uploadId: uploadRecord.id });
+    res.status(202).json({ message: 'AI processing started', uploadId: uploadRecord.id });
   } catch (err) {
     console.error('S1 upload error:', err);
     res.status(500).json({ error: 'Upload failed' });
   }
 });
 
-async function processS1Excel(workbook, user, orgUnitId, uploadId) {
+async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
   let totalRows = 0;
   let processedRows = 0;
+  let insertedRows = 0;
 
+  // Collect all data from all sheets
+  const allSheetData = [];
   for (const sheetName of workbook.SheetNames) {
-    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    totalRows += data.length;
+    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: null });
+    if (data.length > 0) {
+      allSheetData.push({ sheetName, data });
+      totalRows += data.length;
+    }
+  }
+
+  if (totalRows === 0) {
+    await prisma.uploadHistory.update({
+      where: { id: uploadId },
+      data: { status: 'FAILED', errorMessage: 'No data found in file' },
+    });
+    return;
   }
 
   // Check credits
@@ -137,77 +147,122 @@ async function processS1Excel(workbook, user, orgUnitId, uploadId) {
 
   await prisma.uploadHistory.update({ where: { id: uploadId }, data: { totalRows } });
 
-  for (const sheetName of workbook.SheetNames) {
-    const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-    const normalizedSheet = sheetName.toLowerCase().replace(/\s+/g, '_');
+  // Process each sheet through the AI ETL pipeline
+  for (const { sheetName, data } of allSheetData) {
+    try {
+      const columns = Object.keys(data[0] || {});
 
-    for (const row of data) {
-      try {
-        const year = parseInt(row.year || row.Year || new Date().getFullYear());
-        const quarter = row.quarter || row.Quarter ? parseInt(row.quarter || row.Quarter) : null;
-        const gender = row.gender || row.Gender || 'Not disclosed';
+      // Step 1: AI Schema Mapping
+      const mappingResult = await mapSchema(data, columns, 'S1');
 
-        if (normalizedSheet.includes('composition') || normalizedSheet.includes('workforce')) {
-          await prisma.fS1WorkforceComposition.create({
-            data: {
-              companyId: user.companyId, orgUnitId, year, quarter, gender,
-              contractType: row.contract_type || row.contractType || row.ContractType || 'Permanent',
-              country: row.country || row.Country || null,
-              employeeCount: parseInt(row.count || row.employee_count || row.employeeCount || row.Count || 0),
-            },
-          });
-        } else if (normalizedSheet.includes('diversity')) {
-          await prisma.fS1WorkforceDiversity.create({
-            data: {
-              companyId: user.companyId, orgUnitId, year, quarter, gender,
-              disabilityStatus: row.disability_status || row.disabilityStatus || 'Not disclosed',
-              disabilityType: row.disability_type || row.disabilityType || null,
-              count: parseInt(row.count || row.Count || 0),
-            },
-          });
-        } else if (normalizedSheet.includes('training')) {
-          await prisma.fS1EmployeeTraining.create({
-            data: {
-              companyId: user.companyId, orgUnitId, year, quarter, gender,
-              trainingHours: parseFloat(row.training_hours || row.trainingHours || row.hours || 0),
-              employeeCount: parseInt(row.count || row.employee_count || row.employeeCount || 0),
-            },
-          });
-        } else if (normalizedSheet.includes('turnover')) {
-          await prisma.fS1EmployeeTurnover.create({
-            data: {
-              companyId: user.companyId, orgUnitId, year, quarter, gender,
-              turnoverType: row.turnover_type || row.turnoverType || row.type || 'Voluntary',
-              count: parseInt(row.count || row.Count || 0),
-            },
-          });
-        } else if (normalizedSheet.includes('injur')) {
-          await prisma.fS1WorkplaceInjuries.create({
-            data: {
-              companyId: user.companyId, orgUnitId, year, quarter,
-              injuryType: row.injury_type || row.injuryType || row.type || 'Other',
-              injuryStatus: row.injury_status || row.injuryStatus || row.status || 'Non-fatal',
-              gender,
-              count: parseInt(row.count || row.Count || 0),
-            },
-          });
+      // Step 2+3: For each mapping, clean and ingest
+      for (const mapping of mappingResult.mappings) {
+        if (mapping.confidence < 0.3) continue; // skip very low confidence mappings
+
+        // Step 2: AI Data Cleaning
+        const cleanedRows = await cleanAndTransform(data, mapping, 'S1');
+
+        // Step 3: Validation
+        const { valid, invalid } = validateAndCoerce(cleanedRows, mapping.targetTable, 'S1');
+
+        if (invalid.length > 0) {
+          console.warn(`S1 ${sheetName}: ${invalid.length} rows failed validation`);
         }
 
-        processedRows++;
-        if (processedRows % 50 === 0) {
-          await prisma.uploadHistory.update({ where: { id: uploadId }, data: { processedRows } });
+        // Step 4: Ingest into correct table
+        for (const row of valid) {
+          try {
+            const base = { companyId: user.companyId, orgUnitId };
+
+            switch (mapping.targetTable) {
+              case 'workforce_composition':
+                await prisma.fS1WorkforceComposition.create({
+                  data: {
+                    ...base,
+                    year: row.year, quarter: row.quarter || null,
+                    gender: row.gender, contractType: row.contractType,
+                    country: row.country || null,
+                    employeeCount: row.employeeCount,
+                  },
+                });
+                break;
+
+              case 'workforce_diversity':
+                await prisma.fS1WorkforceDiversity.create({
+                  data: {
+                    ...base,
+                    year: row.year, quarter: row.quarter || null,
+                    gender: row.gender,
+                    disabilityStatus: row.disabilityStatus,
+                    disabilityType: row.disabilityType || null,
+                    count: row.count,
+                  },
+                });
+                break;
+
+              case 'employee_training':
+                await prisma.fS1EmployeeTraining.create({
+                  data: {
+                    ...base,
+                    year: row.year, quarter: row.quarter || null,
+                    gender: row.gender,
+                    trainingHours: row.trainingHours,
+                    employeeCount: row.employeeCount,
+                  },
+                });
+                break;
+
+              case 'employee_turnover':
+                await prisma.fS1EmployeeTurnover.create({
+                  data: {
+                    ...base,
+                    year: row.year, quarter: row.quarter || null,
+                    gender: row.gender,
+                    turnoverType: row.turnoverType,
+                    count: row.count,
+                  },
+                });
+                break;
+
+              case 'workplace_injuries':
+                await prisma.fS1WorkplaceInjuries.create({
+                  data: {
+                    ...base,
+                    year: row.year, quarter: row.quarter || null,
+                    injuryType: row.injuryType,
+                    injuryStatus: row.injuryStatus,
+                    gender: row.gender || null,
+                    count: row.count,
+                  },
+                });
+                break;
+            }
+
+            insertedRows++;
+          } catch (err) {
+            console.error('Row insert error:', err.message);
+          }
+
+          processedRows++;
+          if (processedRows % 25 === 0) {
+            await prisma.uploadHistory.update({ where: { id: uploadId }, data: { processedRows } });
+          }
         }
-      } catch (err) {
-        console.error('Row processing error:', err.message);
+
+        // Count skipped rows towards processed
+        processedRows += invalid.length;
       }
+    } catch (err) {
+      console.error(`Sheet "${sheetName}" processing error:`, err.message);
+      processedRows += data.length;
     }
   }
 
-  await deductCredits(user.companyId, user.id, totalRows, 'EXCEL_S1', `S1 data upload: ${totalRows} rows`, uploadId);
+  await deductCredits(user.companyId, user.id, totalRows, 'EXCEL_S1', `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows`, uploadId);
 
   await prisma.uploadHistory.update({
     where: { id: uploadId },
-    data: { status: 'COMPLETED', processedRows, completedAt: new Date() },
+    data: { status: 'COMPLETED', processedRows: totalRows, completedAt: new Date() },
   });
 }
 
