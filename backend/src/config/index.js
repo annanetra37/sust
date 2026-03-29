@@ -17,9 +17,4 @@ module.exports = {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  azure: {
-    endpoint: process.env.AZURE_OPENAI_ENDPOINT,
-    key: process.env.AZURE_OPENAI_KEY,
-    deployment: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o',
-  },
 };
