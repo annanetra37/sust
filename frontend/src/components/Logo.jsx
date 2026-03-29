@@ -1,10 +1,32 @@
 export function LogoMark({ className = 'w-8 h-8' }) {
   return (
-    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Triple I triangular mark */}
-      <path d="M20 2L36 34H4L20 2Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
-      <path d="M20 10L30 30H10L20 10Z" stroke="currentColor" strokeWidth="2" fill="none" />
-      <circle cx="20" cy="22" r="2.5" fill="currentColor" />
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad-left" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#00C30A" />
+          <stop offset="100%" stopColor="#003700" />
+        </linearGradient>
+        <linearGradient id="grad-right" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#b6e8b8" />
+          <stop offset="100%" stopColor="#003700" />
+        </linearGradient>
+        <linearGradient id="grad-bottom" x1="0" y1="0.5" x2="1" y2="0.5">
+          <stop offset="0%" stopColor="#b6e8b8" />
+          <stop offset="100%" stopColor="#c8e8ca" />
+        </linearGradient>
+      </defs>
+      {/* Top dot */}
+      <circle cx="50" cy="14" r="7" fill="#003700" />
+      {/* Left bar (going from top-center down-left) */}
+      <rect x="24" y="20" width="12" height="42" rx="6" transform="rotate(-25 30 41)" fill="url(#grad-left)" />
+      {/* Right bar (going from top-center down-right) */}
+      <rect x="55" y="26" width="12" height="42" rx="6" transform="rotate(25 61 47)" fill="url(#grad-right)" />
+      {/* Bottom bar (horizontal) */}
+      <rect x="24" y="76" width="52" height="12" rx="6" fill="url(#grad-bottom)" />
+      {/* Bottom-left dot */}
+      <circle cx="18" cy="82" r="6" fill="#003700" />
+      {/* Bottom-right dot */}
+      <circle cx="82" cy="82" r="6" fill="#003700" />
     </svg>
   );
 }
@@ -12,12 +34,12 @@ export function LogoMark({ className = 'w-8 h-8' }) {
 export function LogoFull({ className = '', dark = false }) {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      <LogoMark className={`w-9 h-9 ${dark ? 'text-white' : 'text-gray-900 dark:text-white'}`} />
+      <LogoMark className="w-9 h-9" />
       <div className="flex flex-col">
-        <span className={`font-bold text-[15px] tracking-wider leading-tight ${dark ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+        <span className={`font-bold text-[15px] tracking-[0.2em] leading-tight ${dark ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
           TRIPLE I
         </span>
-        <span className={`text-[10px] font-medium tracking-widest ${dark ? 'text-white/60' : 'text-emerald-600 dark:text-emerald-400'}`}>
+        <span className="text-[10px] font-medium tracking-widest text-[#00C30A] dark:text-[#4ade80]">
           ESG PORTAL
         </span>
       </div>
@@ -26,11 +48,5 @@ export function LogoFull({ className = '', dark = false }) {
 }
 
 export function LogoIcon({ className = 'w-6 h-6' }) {
-  return (
-    <svg className={className} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 2L36 34H4L20 2Z" stroke="currentColor" strokeWidth="2.5" fill="none" />
-      <path d="M20 10L30 30H10L20 10Z" stroke="currentColor" strokeWidth="2" fill="none" />
-      <circle cx="20" cy="22" r="2.5" fill="currentColor" />
-    </svg>
-  );
+  return <LogoMark className={className} />;
 }
