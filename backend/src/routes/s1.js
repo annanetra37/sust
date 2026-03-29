@@ -116,7 +116,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     res.status(202).json({ message: 'AI processing started', uploadId: uploadRecord.id });
   } catch (err) {
     console.error('S1 upload error:', err);
-    res.status(500).json({ error: 'Upload failed' });
+    const { status, error } = require('../utils/errors').formatError(err);
+    res.status(status).json({ error });
   }
 });
 

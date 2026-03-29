@@ -152,7 +152,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     res.status(202).json({ message: 'AI processing started', uploadId: uploadRecord.id });
   } catch (err) {
     console.error('E1 upload error:', err);
-    res.status(500).json({ error: 'Upload failed' });
+    const { status, error } = require('../utils/errors').formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -334,7 +335,8 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
     res.status(202).json({ message: 'AI document extraction started', uploadId: uploadRecord.id, documents: docCount });
   } catch (err) {
     console.error('Doc extract upload error:', err);
-    res.status(500).json({ error: 'Upload failed' });
+    const { status, error } = require('../utils/errors').formatError(err);
+    res.status(status).json({ error });
   }
 });
 
