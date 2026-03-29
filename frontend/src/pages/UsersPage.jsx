@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { UserPlus, Trash2, Shield, ToggleLeft, ToggleRight } from 'lucide-react';
+import { UserPlus, Trash2, Shield, ToggleLeft, ToggleRight, Copy, Check } from 'lucide-react';
+import { HelpBanner, InfoTip } from '../components/HelpSystem';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [orgUnits, setOrgUnits] = useState([]);
   const [showInvite, setShowInvite] = useState(false);
   const [showPerms, setShowPerms] = useState(null);
-  const [invite, setInvite] = useState({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', role: 'CUSTOM' });
+  const [invite, setInvite] = useState({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', role: 'CUSTOM', permissions: [] });
   const [perms, setPerms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inviteResult, setInviteResult] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -20,16 +23,62 @@ export default function UsersPage() {
 
   useEffect(load, []);
 
+  // Initialize permissions when opening invite modal
+  const openInviteModal = () => {
+    setInvite({
+      firstName: '', lastName: '', email: '', phone: '', jobTitle: '', role: 'CUSTOM',
+      permissions: orgUnits.map((ou) => ({ orgUnitId: ou.id, name: ou.name, country: ou.country, canView: false, canUpload: false, canDelete: false })),
+    });
+    setInviteResult(null);
+    setShowInvite(true);
+  };
+
+  const toggleAllPermsForUnit = (idx) => {
+    const p = invite.permissions[idx];
+    const allOn = p.canView && p.canUpload && p.canDelete;
+    const next = [...invite.permissions];
+    next[idx] = { ...p, canView: !allOn, canUpload: !allOn, canDelete: !allOn };
+    setInvite({ ...invite, permissions: next });
+  };
+
+  const updateInvitePerm = (idx, key) => {
+    const next = [...invite.permissions];
+    next[idx] = { ...next[idx], [key]: !next[idx][key] };
+    // If enabling upload or delete, also enable view
+    if ((key === 'canUpload' || key === 'canDelete') && !next[idx][key] === false) {
+      // no-op
+    } else if ((key === 'canUpload' || key === 'canDelete') && next[idx][key]) {
+      next[idx].canView = true;
+    }
+    setInvite({ ...invite, permissions: next });
+  };
+
   const handleInvite = async (e) => {
     e.preventDefault();
     try {
-      await api.invite(invite);
-      setShowInvite(false);
-      setInvite({ firstName: '', lastName: '', email: '', phone: '', jobTitle: '', role: 'CUSTOM' });
-      load();
+      const payload = {
+        ...invite,
+        permissions: invite.role === 'CUSTOM'
+          ? invite.permissions.filter((p) => p.canView || p.canUpload || p.canDelete)
+          : undefined,
+      };
+      const res = await api.invite(payload);
+      setInviteResult(res);
+      if (!res.inviteLink) {
+        // Email sent successfully — close after brief delay
+        setTimeout(() => { setShowInvite(false); load(); }, 2000);
+      } else {
+        load();
+      }
     } catch (err) {
-      alert(err.error || 'Failed');
+      alert(err.error || 'Failed to invite user.');
     }
+  };
+
+  const copyLink = async (link) => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const toggleStatus = async (user) => {
@@ -38,7 +87,7 @@ export default function UsersPage() {
   };
 
   const deleteUser = async (user) => {
-    if (!confirm(`Delete ${user.firstName} ${user.lastName}?`)) return;
+    if (!confirm(`Delete ${user.firstName} ${user.lastName}? This cannot be undone.`)) return;
     await api.deleteUser(user.id);
     load();
   };
@@ -61,75 +110,180 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-        <button className="btn-primary flex items-center gap-2" onClick={() => setShowInvite(true)}>
+        <button className="btn-primary flex items-center gap-2" onClick={openInviteModal}>
           <UserPlus className="w-4 h-4" /> Invite User
         </button>
       </div>
 
-      {/* Invite Modal */}
+      <HelpBanner id="users-guide" title="Managing Users & Permissions" variant="info">
+        Invite team members with Admin (full access) or Custom roles. Custom users can be given specific
+        View, Upload, or Delete permissions per organizational unit. Permissions can be changed anytime.
+      </HelpBanner>
+
+      {/* ─── Invite Modal ──────────────────────────── */}
       {showInvite && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleInvite} className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
-            <h2 className="text-lg font-bold">Invite User</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <input className="input" placeholder="First name *" required value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
-              <input className="input" placeholder="Last name *" required value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
-            </div>
-            <input type="email" className="input" placeholder="Email *" required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
-            <input className="input" placeholder="Phone" value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} />
-            <input className="input" placeholder="Job title" value={invite.jobTitle} onChange={(e) => setInvite({ ...invite, jobTitle: e.target.value })} />
-            <select className="input" value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value })}>
-              <option value="CUSTOM">Custom</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-            <div className="flex gap-3">
-              <button type="button" className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>Cancel</button>
-              <button type="submit" className="btn-primary flex-1">Send Invite</button>
-            </div>
-          </form>
+          <div className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {inviteResult?.inviteLink ? (
+              // Email failed — show manual invite link
+              <div className="p-6 space-y-4">
+                <h2 className="text-lg font-bold text-amber-600">User Created — Email Not Sent</h2>
+                <p className="text-sm text-gray-600">{inviteResult.message}</p>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 mb-1">Share this invite link with the user:</p>
+                  <div className="flex items-center gap-2">
+                    <input className="input text-xs flex-1" readOnly value={inviteResult.inviteLink} />
+                    <button className="btn-secondary text-xs flex items-center gap-1" onClick={() => copyLink(inviteResult.inviteLink)}>
+                      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                <button className="btn-primary w-full" onClick={() => setShowInvite(false)}>Done</button>
+              </div>
+            ) : inviteResult ? (
+              // Email sent successfully
+              <div className="p-6 text-center space-y-3">
+                <Check className="w-12 h-12 text-green-500 mx-auto" />
+                <h2 className="text-lg font-bold text-green-700">Invitation Sent</h2>
+                <p className="text-sm text-gray-600">{inviteResult.message}</p>
+              </div>
+            ) : (
+              // Invite form
+              <form onSubmit={handleInvite} className="p-6 space-y-4">
+                <h2 className="text-lg font-bold">Invite User</h2>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <input className="input" placeholder="First name *" required value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
+                  <input className="input" placeholder="Last name *" required value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
+                </div>
+                <input type="email" className="input" placeholder="Email *" required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <input className="input" placeholder="Phone" value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} />
+                  <input className="input" placeholder="Job title" value={invite.jobTitle} onChange={(e) => setInvite({ ...invite, jobTitle: e.target.value })} />
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <label className="text-sm font-medium text-gray-700">Role</label>
+                    <InfoTip>Admin has full access to everything. Custom lets you control exactly which org units and actions this user can access.</InfoTip>
+                  </div>
+                  <select className="input" value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value })}>
+                    <option value="CUSTOM">Custom (restricted)</option>
+                    <option value="ADMIN">Admin (full access)</option>
+                  </select>
+                </div>
+
+                {/* Permissions grid — only for Custom role */}
+                {invite.role === 'CUSTOM' && (
+                  <div>
+                    <div className="flex items-center gap-1 mb-2">
+                      <label className="text-sm font-medium text-gray-700">Permissions by Org Unit</label>
+                      <InfoTip>Select which organizational units this user can access and what they can do in each.</InfoTip>
+                    </div>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
+                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
+                              <span className="flex items-center justify-center gap-0.5">View <InfoTip size="sm">Can see dashboards and data for this unit.</InfoTip></span>
+                            </th>
+                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
+                              <span className="flex items-center justify-center gap-0.5">Upload <InfoTip size="sm">Can upload data (Excel, documents) for this unit.</InfoTip></span>
+                            </th>
+                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
+                              <span className="flex items-center justify-center gap-0.5">Delete <InfoTip size="sm">Can delete/reset data for this unit.</InfoTip></span>
+                            </th>
+                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-14">All</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {invite.permissions.map((p, i) => {
+                            const allOn = p.canView && p.canUpload && p.canDelete;
+                            return (
+                              <tr key={p.orgUnitId} className="hover:bg-gray-50">
+                                <td className="px-3 py-2">
+                                  <p className="font-medium">{p.name}</p>
+                                  <p className="text-xs text-gray-400">{p.country}</p>
+                                </td>
+                                <td className="text-center px-3 py-2">
+                                  <input type="checkbox" className="w-4 h-4 rounded" checked={p.canView} onChange={() => updateInvitePerm(i, 'canView')} />
+                                </td>
+                                <td className="text-center px-3 py-2">
+                                  <input type="checkbox" className="w-4 h-4 rounded" checked={p.canUpload} onChange={() => updateInvitePerm(i, 'canUpload')} />
+                                </td>
+                                <td className="text-center px-3 py-2">
+                                  <input type="checkbox" className="w-4 h-4 rounded" checked={p.canDelete} onChange={() => updateInvitePerm(i, 'canDelete')} />
+                                </td>
+                                <td className="text-center px-3 py-2">
+                                  <input type="checkbox" className="w-4 h-4 rounded accent-brand-600" checked={allOn} onChange={() => toggleAllPermsForUnit(i)} />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {invite.permissions.every((p) => !p.canView && !p.canUpload && !p.canDelete) && (
+                      <p className="text-xs text-amber-600 mt-1">No permissions selected — this user won't be able to access any data.</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <button type="button" className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>Cancel</button>
+                  <button type="submit" className="btn-primary flex-1">Send Invite</button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Permissions Modal */}
+      {/* ─── Edit Permissions Modal ────────────────── */}
       {showPerms && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg space-y-4">
             <h2 className="text-lg font-bold">Edit Permissions</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Org Unit</th>
-                  <th className="text-center py-2">View</th>
-                  <th className="text-center py-2">Upload</th>
-                  <th className="text-center py-2">Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {perms.map((p, i) => (
-                  <tr key={p.orgUnitId} className="border-b">
-                    <td className="py-2">{p.name}</td>
-                    {['canView', 'canUpload', 'canDelete'].map((key) => (
-                      <td key={key} className="text-center">
-                        <input type="checkbox" checked={p[key]} onChange={(e) => {
-                          const next = [...perms];
-                          next[i] = { ...next[i], [key]: e.target.checked };
-                          setPerms(next);
-                        }} />
-                      </td>
-                    ))}
+            <div className="border rounded-lg overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">View</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">Upload</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">Delete</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {perms.map((p, i) => (
+                    <tr key={p.orgUnitId} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium">{p.name}</td>
+                      {['canView', 'canUpload', 'canDelete'].map((key) => (
+                        <td key={key} className="text-center px-3 py-2">
+                          <input type="checkbox" className="w-4 h-4 rounded" checked={p[key]} onChange={(e) => {
+                            const next = [...perms];
+                            next[i] = { ...next[i], [key]: e.target.checked };
+                            if ((key === 'canUpload' || key === 'canDelete') && e.target.checked) next[i].canView = true;
+                            setPerms(next);
+                          }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="flex gap-3">
               <button className="btn-secondary flex-1" onClick={() => setShowPerms(null)}>Cancel</button>
-              <button className="btn-primary flex-1" onClick={savePerms}>Save</button>
+              <button className="btn-primary flex-1" onClick={savePerms}>Save Permissions</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Users Table */}
+      {/* ─── Users Table ───────────────────────────── */}
       <div className="card overflow-hidden p-0">
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
@@ -157,6 +311,9 @@ export default function UsersPage() {
                   <span className={`badge ${u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
                     {u.role}
                   </span>
+                  {u.role === 'CUSTOM' && u.permissions?.length > 0 && (
+                    <span className="text-xs text-gray-400 ml-1">({u.permissions.length} unit{u.permissions.length !== 1 ? 's' : ''})</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`badge ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -165,13 +322,13 @@ export default function UsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    <button className="text-gray-400 hover:text-brand-600" title="Permissions" onClick={() => openPerms(u)}>
+                    <button className="text-gray-400 hover:text-brand-600" title="Edit permissions" onClick={() => openPerms(u)}>
                       <Shield className="w-4 h-4" />
                     </button>
                     <button className="text-gray-400 hover:text-amber-600" title={u.isActive ? 'Deactivate' : 'Activate'} onClick={() => toggleStatus(u)}>
                       {u.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                     </button>
-                    <button className="text-gray-400 hover:text-red-600" title="Delete" onClick={() => deleteUser(u)}>
+                    <button className="text-gray-400 hover:text-red-600" title="Delete user" onClick={() => deleteUser(u)}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

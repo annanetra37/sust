@@ -265,7 +265,7 @@ router.post('/reset-password', async (req, res) => {
 
 router.post('/invite', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { email, firstName, lastName, phone, jobTitle, role } = req.body;
+    const { email, firstName, lastName, phone, jobTitle, role, permissions } = req.body;
     if (!email || !firstName || !lastName) {
       return res.status(400).json({ error: 'Email, first name, and last name are required to send an invitation.' });
     }
@@ -275,9 +275,11 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
 
     const token = generateToken();
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
+    const inviteLink = `${config.frontend.url}/accept-invite?token=${token}`;
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.create({
+    // Create user + permissions in transaction
+    const newUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
           email: email.toLowerCase(),
           passwordHash: '',
@@ -290,11 +292,38 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
         },
       });
 
-      // Send inside transaction — if email fails, user creation rolls back
-      await sendInvite(email, token, company.name);
+      // Set org unit permissions if Custom role
+      if (role !== 'ADMIN' && permissions && permissions.length > 0) {
+        await tx.userPermission.createMany({
+          data: permissions.map((p) => ({
+            userId: user.id,
+            orgUnitId: p.orgUnitId,
+            canView: !!p.canView,
+            canUpload: !!p.canUpload,
+            canDelete: !!p.canDelete,
+          })),
+        });
+      }
+
+      return user;
     });
 
-    res.status(201).json({ message: `Invitation sent to ${email}.` });
+    // Try sending email — but don't fail if SMTP is broken
+    let emailSent = false;
+    try {
+      await sendInvite(email, token, company.name);
+      emailSent = true;
+    } catch (emailErr) {
+      console.warn('Email send failed (user still created):', emailErr.message);
+    }
+
+    res.status(201).json({
+      message: emailSent
+        ? `Invitation sent to ${email}.`
+        : `User created but email could not be sent. Share the invite link manually.`,
+      inviteLink: emailSent ? undefined : inviteLink,
+      userId: newUser.id,
+    });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

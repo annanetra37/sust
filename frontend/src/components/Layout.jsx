@@ -14,26 +14,27 @@ const NAV = [
   {
     label: 'Environmental', icon: Leaf, color: 'text-esg-e',
     children: [
-      { label: 'E1 — Climate Change', path: '/dashboard/E/environmental-1' },
-      { label: 'E2 — Pollution', path: '/coming-soon', badge: 'Soon' },
-      { label: 'E3 — Water', path: '/coming-soon', badge: 'Soon' },
-      { label: 'E4 — Biodiversity', path: '/coming-soon', badge: 'Soon' },
-      { label: 'E5 — Circular Economy', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Climate & Emissions', path: '/dashboard/E/environmental-1', tag: 'GHG · Carbon' },
+      { label: 'Pollution & Waste', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Water Resources', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Biodiversity', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Circular Economy', path: '/coming-soon', badge: 'Soon' },
     ],
   },
   {
     label: 'Social', icon: Users2, color: 'text-esg-s',
     children: [
-      { label: 'S1 — Own Workforce', path: '/dashboard/S/social-1' },
-      { label: 'S2 — Value Chain Workers', path: '/coming-soon', badge: 'Soon' },
-      { label: 'S3 — Communities', path: '/coming-soon', badge: 'Soon' },
-      { label: 'S4 — Consumers', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Workforce & Employees', path: '/dashboard/S/social-1', tag: 'DEI · HR' },
+      { label: 'Supply Chain Labor', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Community Impact', path: '/coming-soon', badge: 'Soon' },
+      { label: 'Consumer Protection', path: '/coming-soon', badge: 'Soon' },
     ],
   },
   {
     label: 'Governance', icon: Shield, color: 'text-esg-g',
     children: [
-      { label: 'G1 — Board Composition', path: '/coming-soon', badge: 'Enterprise' },
+      { label: 'Board & Leadership', path: '/coming-soon', badge: 'Enterprise' },
+      { label: 'Ethics & Compliance', path: '/coming-soon', badge: 'Enterprise' },
     ],
   },
   { label: 'Reports', path: '/reports', icon: FileText },

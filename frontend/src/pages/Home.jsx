@@ -10,28 +10,29 @@ const PILLARS = [
     key: 'E', title: 'Environmental', icon: Leaf, color: 'esg-e', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200',
     description: 'Climate impact, pollution, water usage, biodiversity, and circular economy metrics.',
     items: [
-      { id: 'E1', name: 'Climate Change', desc: 'GHG emissions, carbon footprint, SBTi targets', path: '/dashboard/E/environmental-1', active: true },
-      { id: 'E2', name: 'Pollution', desc: 'Air, water, soil pollution tracking', badge: 'Under Development' },
-      { id: 'E3', name: 'Water & Marine Resources', desc: 'Water consumption and discharge', badge: 'Under Development' },
-      { id: 'E4', name: 'Biodiversity & Ecosystems', desc: 'Impact on natural habitats', badge: 'Under Development' },
-      { id: 'E5', name: 'Circular Economy', desc: 'Waste management and resource efficiency', badge: 'Upgrade for Enterprise' },
+      { id: 'ENV', name: 'Climate & Emissions', desc: 'GHG emissions (Scope 1/2/3), carbon footprint, decarbonization targets', path: '/dashboard/E/environmental-1', active: true, standards: 'ESRS E1 · GRI 305 · TCFD · CDP' },
+      { id: 'ENV', name: 'Pollution & Waste', desc: 'Air, water, soil pollution and waste management tracking', badge: 'Under Development', standards: 'ESRS E2 · GRI 306' },
+      { id: 'ENV', name: 'Water Resources', desc: 'Water consumption, discharge, and stress area assessment', badge: 'Under Development', standards: 'ESRS E3 · GRI 303' },
+      { id: 'ENV', name: 'Biodiversity', desc: 'Impact on ecosystems, habitats, and protected areas', badge: 'Under Development', standards: 'ESRS E4 · GRI 304' },
+      { id: 'ENV', name: 'Circular Economy', desc: 'Resource efficiency, material flows, and product lifecycle', badge: 'Upgrade for Enterprise', standards: 'ESRS E5 · GRI 301' },
     ],
   },
   {
     key: 'S', title: 'Social', icon: Users2, color: 'esg-s', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200',
     description: 'Workforce composition, diversity, training, and community impact metrics.',
     items: [
-      { id: 'S1', name: 'Own Workforce', desc: 'Employee demographics, training, turnover, diversity', path: '/dashboard/S/social-1', active: true },
-      { id: 'S2', name: 'Workers in Value Chain', desc: 'Supply chain labor practices', badge: 'Under Development' },
-      { id: 'S3', name: 'Affected Communities', desc: 'Community engagement and impact', badge: 'Under Development' },
-      { id: 'S4', name: 'Consumers & End-Users', desc: 'Product safety and data privacy', badge: 'Upgrade for Enterprise' },
+      { id: 'SOC', name: 'Workforce & Employees', desc: 'Employee demographics, DEI, training hours, turnover rates', path: '/dashboard/S/social-1', active: true, standards: 'ESRS S1 · GRI 401-405 · SASB' },
+      { id: 'SOC', name: 'Supply Chain Labor', desc: 'Working conditions and labor rights across the value chain', badge: 'Under Development', standards: 'ESRS S2 · GRI 414' },
+      { id: 'SOC', name: 'Community Impact', desc: 'Local community engagement, indigenous rights, social investment', badge: 'Under Development', standards: 'ESRS S3 · GRI 413' },
+      { id: 'SOC', name: 'Consumer Protection', desc: 'Product safety, data privacy, and responsible marketing', badge: 'Upgrade for Enterprise', standards: 'ESRS S4 · GRI 416-418' },
     ],
   },
   {
     key: 'G', title: 'Governance', icon: Shield, color: 'esg-g', bgColor: 'bg-amber-50', borderColor: 'border-amber-200',
     description: 'Board composition, leadership structure, and corporate governance practices.',
     items: [
-      { id: 'G1', name: 'Board Composition & Leadership', desc: 'Board diversity, independence, governance structure', badge: 'Upgrade for Enterprise' },
+      { id: 'GOV', name: 'Board & Leadership', desc: 'Board diversity, independence, executive compensation', badge: 'Upgrade for Enterprise', standards: 'ESRS G1 · GRI 405 · TCFD' },
+      { id: 'GOV', name: 'Ethics & Compliance', desc: 'Anti-corruption, whistleblowing, political contributions', badge: 'Upgrade for Enterprise', standards: 'ESRS G1 · GRI 205-206' },
     ],
   },
 ];
@@ -103,21 +104,24 @@ export default function Home() {
 
             {isExpanded && (
               <div className="mt-4 grid gap-3">
-                {pillar.items.map((item) => (
-                  <div key={item.id} className={clsx('flex items-center gap-3 p-3 rounded-lg border', item.active ? 'border-gray-200 hover:border-brand-300 hover:bg-brand-50/30' : 'border-gray-100 bg-gray-50')}>
-                    <span className={clsx('w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold', item.active ? `${pillar.bgColor} text-${pillar.color}` : 'bg-gray-100 text-gray-400')}>
-                      {item.id}
+                {pillar.items.map((item, idx) => (
+                  <div key={item.name + idx} className={clsx('flex items-center gap-3 p-3 rounded-lg border', item.active ? 'border-gray-200 hover:border-brand-300 hover:bg-brand-50/30' : 'border-gray-100 bg-gray-50')}>
+                    <span className={clsx('w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0', item.active ? `${pillar.bgColor} text-${pillar.color}` : 'bg-gray-100 text-gray-400')}>
+                      {item.id.charAt(0)}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className={clsx('font-medium text-sm', item.active ? 'text-gray-900' : 'text-gray-400')}>{item.name}</p>
                       <p className="text-xs text-gray-400">{item.desc}</p>
+                      {item.standards && (
+                        <p className="text-[10px] text-gray-300 mt-0.5">{item.standards}</p>
+                      )}
                     </div>
                     {item.active ? (
-                      <Link to={item.path} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium">
+                      <Link to={item.path} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium shrink-0">
                         Open <ArrowRight className="w-4 h-4" />
                       </Link>
                     ) : (
-                      <span className="badge bg-gray-100 text-gray-500">{item.badge}</span>
+                      <span className="badge bg-gray-100 text-gray-500 shrink-0">{item.badge}</span>
                     )}
                   </div>
                 ))}
