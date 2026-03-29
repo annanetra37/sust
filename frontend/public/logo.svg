@@ -1,0 +1,30 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="barLeft" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0%" stop-color="#003700"/>
+      <stop offset="50%" stop-color="#e0f0e0"/>
+      <stop offset="100%" stop-color="#003700"/>
+    </linearGradient>
+    <linearGradient id="barRight" x1="0.7" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#e0f0e0"/>
+      <stop offset="100%" stop-color="#003700"/>
+    </linearGradient>
+    <linearGradient id="barBottom" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#e0f0e0"/>
+      <stop offset="50%" stop-color="#d0e8d0"/>
+      <stop offset="100%" stop-color="#e0f0e0"/>
+    </linearGradient>
+  </defs>
+  <!-- Top dot -->
+  <circle cx="100" cy="30" r="10" fill="#003700"/>
+  <!-- Left bar: top-center going down-left -->
+  <line x1="88" y1="44" x2="52" y2="120" stroke="url(#barLeft)" stroke-width="16" stroke-linecap="round"/>
+  <!-- Right bar: top-center going down-right -->
+  <line x1="112" y1="44" x2="148" y2="120" stroke="url(#barRight)" stroke-width="16" stroke-linecap="round"/>
+  <!-- Bottom bar: horizontal -->
+  <line x1="62" y1="140" x2="138" y2="140" stroke="url(#barBottom)" stroke-width="16" stroke-linecap="round"/>
+  <!-- Bottom-left dot -->
+  <circle cx="42" cy="140" r="9" fill="#003700"/>
+  <!-- Bottom-right dot -->
+  <circle cx="158" cy="140" r="9" fill="#003700"/>
+</svg>
