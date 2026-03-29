@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Upload, FileSpreadsheet, FileImage, CheckCircle, XCircle, Loader2, ScanSearch, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
+import ProcessingScreen from '../components/ProcessingScreen';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
   const [tab, setTab] = useState('excel');
   const [orgUnitId, setOrgUnitId] = useState('');
+  const [reportingYear, setReportingYear] = useState(new Date().getFullYear());
   const [file, setFile] = useState(null);
   const [docFiles, setDocFiles] = useState([]);
   const [extractMode, setExtractMode] = useState('Travel');
@@ -35,7 +37,7 @@ export default function E1Upload() {
         if (p.status !== 'PROCESSING') clearInterval(pollRef.current);
       } catch {}
     };
-    pollRef.current = setInterval(poll, 10000);
+    pollRef.current = setInterval(poll, 5000);
     poll();
     return () => clearInterval(pollRef.current);
   }, [uploadId]);
@@ -48,6 +50,7 @@ export default function E1Upload() {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('orgUnitId', orgUnitId);
+      fd.append('reportingYear', reportingYear);
       const res = await api.uploadE1(fd);
       setUploadId(res.uploadId);
     } catch (err) {
@@ -66,6 +69,7 @@ export default function E1Upload() {
       docFiles.forEach((f) => fd.append('files', f));
       fd.append('mode', extractMode);
       fd.append('orgUnitId', orgUnitId);
+      fd.append('reportingYear', reportingYear);
       const res = await api.uploadDocExtract(fd);
       setUploadId(res.uploadId);
     } catch (err) {
@@ -75,27 +79,26 @@ export default function E1Upload() {
     }
   };
 
+  const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+
+  // Show processing screen when upload is active
+  if (uploadId) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">E1 — Connect Emissions Data</h1>
+          <p className="text-gray-500 dark:text-gray-400">Processing your data for reporting year {reportingYear}...</p>
+        </div>
+        <ProcessingScreen progress={progress} status={progress?.status || 'PROCESSING'} type="E1" />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">E1 — Connect Emissions Data</h1>
-        <p className="text-gray-500">Upload spreadsheets, scan invoices, or connect a data source — AI handles the rest</p>
-      </div>
-
-      {/* AI badge */}
-      <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-emerald-900">AI-Powered Emissions ETL</h3>
-            <p className="text-sm text-emerald-700 mt-1">
-              No templates required. Upload raw emissions data in any format — our AI identifies activity categories,
-              maps columns, normalizes units, looks up emission factors, and calculates tCO2e automatically.
-            </p>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">E1 — Connect Emissions Data</h1>
+        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets, scan invoices, or connect a data source</p>
       </div>
 
       <HelpBanner
@@ -103,34 +106,60 @@ export default function E1Upload() {
         title="Two Ways to Connect Emissions Data"
         variant="info"
         steps={[
-          'Spreadsheet: Upload Excel/CSV with energy, travel, or fuel data — AI maps columns and assigns scopes automatically',
-          'Invoices & Receipts: Upload PDF/JPG/PNG documents — AI reads and extracts emission-relevant data using OCR',
-          'Both methods auto-calculate tCO2e emissions using verified emission factors',
-          'Results appear on the E1 Dashboard with scope breakdowns and trend charts',
+          'Select the reporting year and organizational unit first',
+          'Spreadsheet: Upload Excel/CSV — AI maps columns and assigns scopes automatically',
+          'Invoices & Receipts: Upload documents — AI reads and extracts emission data',
+          'All data is assigned to your selected reporting year for consistent reporting',
         ]}
       />
 
+      {/* AI badge */}
+      <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 rounded-xl border border-emerald-200 dark:border-emerald-800">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-emerald-900 dark:text-emerald-200">AI-Powered Emissions ETL</h3>
+            <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
+              No templates required. Upload raw emissions data — AI identifies categories, maps columns, and calculates tCO2e.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Reporting year + org unit — shared across both tabs */}
+      <div className="card">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <FieldLabel label="Reporting Year" required info="The ESG reporting year. All processed data will be assigned to this year for consistent reporting." />
+            <select className="input" value={reportingYear} onChange={(e) => setReportingYear(parseInt(e.target.value))}>
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div>
+            <FieldLabel label="Organizational Unit" required info="The business unit this data belongs to." />
+            <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
+              {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('excel')}>
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('excel')}>
           <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Spreadsheet
         </button>
-        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'doc-extract' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('doc-extract')}>
+        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'doc-extract' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('doc-extract')}>
           <ScanSearch className="w-4 h-4 inline mr-1" /> Invoices & Receipts
         </button>
       </div>
 
       {tab === 'excel' ? (
         <div className="card space-y-4">
-          <div>
-            <FieldLabel label="Organizational Unit" required info="The business unit or office this emissions data belongs to." />
-            <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
-              {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          </div>
-
           <div
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-emerald-400 transition-colors cursor-pointer"
             onClick={() => fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); setFile(e.dataTransfer.files[0]); }}
@@ -146,41 +175,33 @@ export default function E1Upload() {
               </div>
             ) : (
               <>
-                <Upload className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">Drop any emissions spreadsheet — AI auto-detects categories & scopes</p>
-                <p className="text-xs text-gray-400 mt-1">Any column names, any language, any units — 1 credit per row</p>
+                <Upload className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-500 dark:text-gray-400">Drop any emissions spreadsheet — AI auto-detects categories & scopes</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Any column names, any language, any units — 1 credit per row</p>
               </>
             )}
           </div>
 
-          {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+          {error && <div className="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>}
           <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!file || uploading} onClick={handleExcelUpload}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {uploading ? 'Starting AI processing...' : 'Upload & Process with AI'}
+            {uploading ? 'Starting AI processing...' : `Process with AI for ${reportingYear}`}
           </button>
         </div>
       ) : (
         <div className="card space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Org Unit</label>
-              <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
-                {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
-              <select className="input" value={extractMode} onChange={(e) => setExtractMode(e.target.value)}>
-                <option value="Travel">Travel (flights, trains, taxis)</option>
-                <option value="Stay">Stay (hotels, accommodation)</option>
-                <option value="Energy">Energy (electricity, gas, fuel bills)</option>
-                <option value="Company Vehicle">Company Vehicle (fuel, mileage)</option>
-              </select>
-            </div>
+          <div>
+            <FieldLabel label="Document Type" info="Select the type of documents you're uploading for better extraction accuracy." />
+            <select className="input" value={extractMode} onChange={(e) => setExtractMode(e.target.value)}>
+              <option value="Travel">Travel (flights, trains, taxis)</option>
+              <option value="Stay">Stay (hotels, accommodation)</option>
+              <option value="Energy">Energy (electricity, gas, fuel bills)</option>
+              <option value="Company Vehicle">Company Vehicle (fuel, mileage)</option>
+            </select>
           </div>
 
           <div
-            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-emerald-400 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-emerald-400 transition-colors cursor-pointer"
             onClick={() => docFileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); setDocFiles([...docFiles, ...Array.from(e.dataTransfer.files)].slice(0, 20)); }}
@@ -189,7 +210,7 @@ export default function E1Upload() {
             {docFiles.length > 0 ? (
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {docFiles.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm bg-gray-50 rounded px-3 py-1.5">
+                  <div key={i} className="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-800 rounded px-3 py-1.5">
                     <div className="flex items-center gap-2">
                       <FileImage className="w-4 h-4 text-gray-400" />
                       <span className="truncate max-w-[300px]">{f.name}</span>
@@ -201,45 +222,18 @@ export default function E1Upload() {
               </div>
             ) : (
               <>
-                <ScanSearch className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500">Drop invoices & receipts — AI reads any language, any format</p>
-                <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG — up to 20 files, 10MB each — 2 credits per document</p>
+                <ScanSearch className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-500 dark:text-gray-400">Drop invoices & receipts — AI reads any language, any format</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, JPG, PNG — up to 20 files, 10MB each — 2 credits per document</p>
               </>
             )}
           </div>
 
-          {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+          {error && <div className="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>}
           <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!docFiles.length || uploading} onClick={handleDocExtract}>
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {uploading ? 'AI is reading documents...' : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} with AI`}
+            {uploading ? 'AI is reading documents...' : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
           </button>
-        </div>
-      )}
-
-      {/* Progress */}
-      {progress && (
-        <div className="card">
-          <div className="flex items-center gap-3 mb-3">
-            {progress.status === 'PROCESSING' && <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />}
-            {progress.status === 'COMPLETED' && <CheckCircle className="w-5 h-5 text-green-500" />}
-            {progress.status === 'FAILED' && <XCircle className="w-5 h-5 text-red-500" />}
-            <span className="font-medium">
-              {progress.status === 'PROCESSING' ? 'AI is mapping, cleaning, and ingesting your data...' :
-               progress.status === 'COMPLETED' ? 'Extraction & ingestion complete' : 'Processing failed'}
-            </span>
-          </div>
-          {progress.totalRows > 0 && (
-            <>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                <div className={`h-2.5 rounded-full transition-all ${progress.status === 'FAILED' ? 'bg-red-500' : 'bg-emerald-600'}`} style={{ width: `${progress.progress}%` }} />
-              </div>
-              <p className="text-sm text-gray-500">{progress.processedRows} / {progress.totalRows} ({progress.progress}%)</p>
-            </>
-          )}
-          {progress.status === 'COMPLETED' && (
-            <p className="text-sm text-green-600 mt-2">Emissions data extracted, scopes assigned, and tCO2e calculated. View the E1 Dashboard.</p>
-          )}
-          {progress.error && <p className="text-sm text-red-600 mt-2">{progress.error}</p>}
         </div>
       )}
     </div>

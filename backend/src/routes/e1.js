@@ -117,8 +117,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
-    const { orgUnitId } = req.body;
+    const { orgUnitId, reportingYear } = req.body;
     if (!orgUnitId) return res.status(400).json({ error: 'Org unit required' });
+    const year = parseInt(reportingYear) || new Date().getFullYear();
 
     const orgUnit = await prisma.orgUnit.findFirst({ where: { id: orgUnitId, companyId: req.user.companyId } });
     if (!orgUnit) return res.status(404).json({ error: 'Org unit not found' });
@@ -137,7 +138,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       },
     });
 
-    processE1WithAI(workbook, req.user, orgUnitId, uploadRecord.id)
+    processE1WithAI(workbook, req.user, orgUnitId, uploadRecord.id, year)
       .catch((err) => {
         console.error('E1 AI processing error:', err);
         prisma.uploadHistory.update({
@@ -153,7 +154,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-async function processE1WithAI(workbook, user, orgUnitId, uploadId) {
+async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYear) {
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const data = XLSX.utils.sheet_to_json(sheet, { defval: null });
   const totalRows = data.length;
@@ -215,7 +216,7 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId) {
         await prisma.fE1EmissionActivityData.create({
           data: {
             companyId: user.companyId, orgUnitId,
-            year: row.year, month: row.month || null,
+            year: reportingYear, month: row.month || null,
             activityCategory: row.activityCategory || 'Other',
             activitySubcat: row.activitySubcat || 'Other',
             calcMethod: row.calcMethod || 'consumption',
@@ -279,7 +280,8 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files provided' });
 
-    const { mode, orgUnitId } = req.body;
+    const { mode, orgUnitId, reportingYear: reqYear } = req.body;
+    const docYear = parseInt(reqYear) || new Date().getFullYear();
     if (!mode) return res.status(400).json({ error: 'Extraction mode required (Travel, Stay, Energy, Company Vehicle)' });
 
     const validModes = ['Travel', 'Stay', 'Energy', 'Company Vehicle'];
@@ -318,7 +320,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
       },
     });
 
-    processDocumentsWithAI(req.files, req.user, orgUnitId, mode, uploadRecord.id)
+    processDocumentsWithAI(req.files, req.user, orgUnitId, mode, uploadRecord.id, docYear)
       .catch((err) => {
         console.error('AI doc extract error:', err);
         prisma.uploadHistory.update({
@@ -334,7 +336,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
   }
 });
 
-async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId) {
+async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, reportingYear) {
   const MAX_CONCURRENT = 3;
   let processed = 0;
   let succeeded = 0;
@@ -366,14 +368,13 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId) {
           const ems = parseFloat(item.emissions) || 0;
 
           if (qty > 0 || amt > 0 || ems > 0) {
-            const itemYear = item.date ? new Date(item.date).getFullYear() : new Date().getFullYear();
-            const itemMonth = item.date ? new Date(item.date).getMonth() + 1 : new Date().getMonth() + 1;
+            const itemMonth = item.date ? new Date(item.date).getMonth() + 1 : null;
 
             await prisma.fE1EmissionActivityData.create({
               data: {
                 companyId: user.companyId,
                 orgUnitId,
-                year: itemYear,
+                year: reportingYear,
                 month: itemMonth,
                 activityCategory: item.activityCategory || mode,
                 activitySubcat: item.subType || mode,

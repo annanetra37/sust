@@ -79,8 +79,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file provided' });
 
-    const { orgUnitId } = req.body;
+    const { orgUnitId, reportingYear } = req.body;
     if (!orgUnitId) return res.status(400).json({ error: 'Org unit required' });
+    const year = parseInt(reportingYear) || new Date().getFullYear();
 
     const orgUnit = await prisma.orgUnit.findFirst({ where: { id: orgUnitId, companyId: req.user.companyId } });
     if (!orgUnit) return res.status(404).json({ error: 'Org unit not found' });
@@ -102,7 +103,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       },
     });
 
-    processS1WithAI(workbook, req.user, orgUnitId, uploadRecord.id).catch((err) => {
+    processS1WithAI(workbook, req.user, orgUnitId, uploadRecord.id, year).catch((err) => {
       console.error('S1 AI processing error:', err);
       prisma.uploadHistory.update({
         where: { id: uploadRecord.id },
@@ -117,7 +118,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
+async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYear) {
   let totalRows = 0;
   let processedRows = 0;
   let insertedRows = 0;
@@ -184,7 +185,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
                 await prisma.fS1WorkforceComposition.create({
                   data: {
                     ...base,
-                    year: row.year, quarter: row.quarter || null,
+                    year: reportingYear, quarter: row.quarter || null,
                     gender: row.gender, contractType: row.contractType,
                     country: row.country || null,
                     employeeCount: row.employeeCount,
@@ -196,7 +197,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
                 await prisma.fS1WorkforceDiversity.create({
                   data: {
                     ...base,
-                    year: row.year, quarter: row.quarter || null,
+                    year: reportingYear, quarter: row.quarter || null,
                     gender: row.gender,
                     disabilityStatus: row.disabilityStatus,
                     disabilityType: row.disabilityType || null,
@@ -209,7 +210,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
                 await prisma.fS1EmployeeTraining.create({
                   data: {
                     ...base,
-                    year: row.year, quarter: row.quarter || null,
+                    year: reportingYear, quarter: row.quarter || null,
                     gender: row.gender,
                     trainingHours: row.trainingHours,
                     employeeCount: row.employeeCount,
@@ -221,7 +222,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
                 await prisma.fS1EmployeeTurnover.create({
                   data: {
                     ...base,
-                    year: row.year, quarter: row.quarter || null,
+                    year: reportingYear, quarter: row.quarter || null,
                     gender: row.gender,
                     turnoverType: row.turnoverType,
                     count: row.count,
@@ -233,7 +234,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId) {
                 await prisma.fS1WorkplaceInjuries.create({
                   data: {
                     ...base,
-                    year: row.year, quarter: row.quarter || null,
+                    year: reportingYear, quarter: row.quarter || null,
                     injuryType: row.injuryType,
                     injuryStatus: row.injuryStatus,
                     gender: row.gender || null,
