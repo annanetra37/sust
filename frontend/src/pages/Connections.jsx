@@ -94,8 +94,14 @@ export default function Connections() {
   const [form, setForm] = useState({ name: '', type: '', config: {} });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loaded, setLoaded] = useState(false);
 
-  const load = () => api.getConnections().then(setConnections).catch(() => {});
+  const load = () => {
+    api.getConnections()
+      .then(setConnections)
+      .catch(() => setConnections([]))
+      .finally(() => setLoaded(true));
+  };
   useEffect(load, []);
 
   const startSetup = (type) => {

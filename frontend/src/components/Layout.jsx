@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
-  History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target
+  History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
+  Sun, Moon
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -47,6 +49,7 @@ const NAV = [
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { dark, toggle: toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -63,10 +66,10 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className={clsx(
-        'bg-white border-r border-gray-200 flex flex-col transition-all duration-200',
+        'bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-200',
         sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
       )}>
-        <div className="p-4 border-b border-gray-100">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <Globe className="w-8 h-8 text-brand-600" />
             <div>
@@ -137,7 +140,7 @@ export default function Layout() {
         </nav>
 
         {/* User info */}
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
               {user?.firstName?.[0]}{user?.lastName?.[0]}
@@ -155,20 +158,27 @@ export default function Layout() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 shrink-0">
-          <button onClick={() => setSidebarOpen((v) => !v)} className="text-gray-500 hover:text-gray-700">
+        <header className="h-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-4 shrink-0">
+          <button onClick={() => setSidebarOpen((v) => !v)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3 text-sm">
-            <span className="badge bg-brand-50 text-brand-700">
+            <button
+              onClick={toggleTheme}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
               {user?.company?.creditBalance ?? 0} credits
             </span>
-            <span className="badge bg-gray-100 text-gray-600">{user?.role}</span>
+            <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{user?.role}</span>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-950">
           <Outlet />
         </main>
       </div>

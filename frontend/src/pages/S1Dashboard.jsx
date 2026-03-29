@@ -31,7 +31,7 @@ export default function S1Dashboard() {
           <p className="text-gray-500">Workforce composition, diversity, training, and turnover analytics</p>
         </div>
         <Link to="/platform/S/social-1" className="btn-primary flex items-center gap-2">
-          <Upload className="w-4 h-4" /> Upload Data
+          <Upload className="w-4 h-4" /> Connect Data
         </Link>
       </div>
 

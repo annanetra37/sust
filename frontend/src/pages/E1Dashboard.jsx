@@ -36,7 +36,7 @@ export default function E1Dashboard() {
           <p className="text-gray-500">GHG emissions, carbon footprint analysis, and SBTi targets</p>
         </div>
         <Link to="/platform/E/environmental-1" className="btn-primary flex items-center gap-2">
-          <Upload className="w-4 h-4" /> Upload Data
+          <Upload className="w-4 h-4" /> Connect Data
         </Link>
       </div>
 

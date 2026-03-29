@@ -78,8 +78,8 @@ export default function E1Upload() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">E1 — Upload Emissions Data</h1>
-        <p className="text-gray-500">Upload spreadsheets or scan invoices — AI extracts and structures everything</p>
+        <h1 className="text-2xl font-bold text-gray-900">E1 — Connect Emissions Data</h1>
+        <p className="text-gray-500">Upload spreadsheets, scan invoices, or connect a data source — AI handles the rest</p>
       </div>
 
       {/* AI badge */}
@@ -100,7 +100,7 @@ export default function E1Upload() {
 
       <HelpBanner
         id="e1-upload-guide"
-        title="Two Ways to Upload Emissions Data"
+        title="Two Ways to Connect Emissions Data"
         variant="info"
         steps={[
           'Spreadsheet: Upload Excel/CSV with energy, travel, or fuel data — AI maps columns and assigns scopes automatically',

@@ -52,8 +52,8 @@ export default function S1Upload() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">S1 — Upload Workforce Data</h1>
-        <p className="text-gray-500">Upload any spreadsheet with workforce data — our AI handles the rest</p>
+        <h1 className="text-2xl font-bold text-gray-900">S1 — Connect Workforce Data</h1>
+        <p className="text-gray-500">Upload any spreadsheet or connect a data source — our AI handles the rest</p>
       </div>
 
       {/* AI-powered badge */}
