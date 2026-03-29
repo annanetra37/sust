@@ -6,6 +6,7 @@ import {
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield
 } from 'lucide-react';
 import clsx from 'clsx';
+import AssistantChat from './AssistantChat';
 
 const NAV = [
   { label: 'Home', path: '/', icon: LayoutDashboard },
@@ -169,6 +170,9 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* AI Assistant — available on all pages */}
+      <AssistantChat />
     </div>
   );
 }

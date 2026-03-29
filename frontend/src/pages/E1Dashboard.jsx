@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Factory, TrendingUp, Users, Target, Upload } from 'lucide-react';
+import { InfoTip } from '../components/HelpSystem';
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Treemap,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -45,12 +46,18 @@ export default function E1Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card">
           <Factory className="w-5 h-5 text-emerald-500" />
-          <span className="text-sm text-gray-500">Total GHG Emissions</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Total GHG Emissions</span>
+            <InfoTip title="GHG Emissions">Total greenhouse gas emissions in tonnes of CO2 equivalent (tCO2e) across all scopes (1, 2, 3) for the selected year.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.totalEmissions.toFixed(1)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
         </div>
         <div className="stat-card">
           <TrendingUp className="w-5 h-5 text-amber-500" />
-          <span className="text-sm text-gray-500">GHG Intensity</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">GHG Intensity</span>
+            <InfoTip title="Emissions Intensity">Emissions per employee (tCO2e / headcount). Lower is better. Used to benchmark against industry peers and track decoupling of growth from emissions.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.intensity} <span className="text-sm font-normal text-gray-400">tCO2e/emp</span></span>
         </div>
         <div className="stat-card">
@@ -60,7 +67,10 @@ export default function E1Dashboard() {
         </div>
         <div className="stat-card">
           <Target className="w-5 h-5 text-purple-500" />
-          <span className="text-sm text-gray-500">SBTi Progress</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">SBTi Progress</span>
+            <InfoTip title="Science Based Targets">Progress toward your SBTi decarbonization target. Set targets in the SBTi section below. "On Track" means you're meeting the required reduction pace.</InfoTip>
+          </div>
           {sbti ? (
             <div>
               <span className="text-2xl font-bold">{sbti.progress}%</span>

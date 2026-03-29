@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { Upload, FileSpreadsheet, CheckCircle, XCircle, Loader2, Sparkles } from 'lucide-react';
+import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 
 export default function S1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -76,9 +77,21 @@ export default function S1Upload() {
         </div>
       </div>
 
+      <HelpBanner
+        id="s1-upload-guide"
+        title="Getting Started with Workforce Data"
+        variant="info"
+        steps={[
+          'Select the organizational unit this data belongs to',
+          'Upload any spreadsheet containing workforce data (Excel or CSV)',
+          'Our AI will automatically identify columns, clean data, and load it into the correct tables',
+          'Check the S1 Dashboard to see your results',
+        ]}
+      />
+
       <div className="card space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Organizational Unit</label>
+          <FieldLabel label="Organizational Unit" required info="Select which business unit or office this workforce data belongs to. Data is tracked separately per org unit for accurate reporting." />
           <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
             {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.country})</option>)}
           </select>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { Upload, FileSpreadsheet, FileImage, CheckCircle, XCircle, Loader2, ScanSearch, Sparkles } from 'lucide-react';
+import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -97,6 +98,18 @@ export default function E1Upload() {
         </div>
       </div>
 
+      <HelpBanner
+        id="e1-upload-guide"
+        title="Two Ways to Upload Emissions Data"
+        variant="info"
+        steps={[
+          'Spreadsheet: Upload Excel/CSV with energy, travel, or fuel data — AI maps columns and assigns scopes automatically',
+          'Invoices & Receipts: Upload PDF/JPG/PNG documents — AI reads and extracts emission-relevant data using OCR',
+          'Both methods auto-calculate tCO2e emissions using verified emission factors',
+          'Results appear on the E1 Dashboard with scope breakdowns and trend charts',
+        ]}
+      />
+
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
         <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`} onClick={() => setTab('excel')}>
@@ -110,7 +123,7 @@ export default function E1Upload() {
       {tab === 'excel' ? (
         <div className="card space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Organizational Unit</label>
+            <FieldLabel label="Organizational Unit" required info="The business unit or office this emissions data belongs to." />
             <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
               {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>

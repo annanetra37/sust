@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, AlertTriangle } from 'lucide-react';
+import { InfoTip } from '../components/HelpSystem';
 
 const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
 
@@ -53,10 +54,10 @@ export default function SettingsPage() {
   const loadCredits = () => api.getCredits(dateRange).then(setCredits);
 
   const tabs = [
-    { key: 'org-units', label: 'Organizational Units' },
-    { key: 'standards', label: 'ESG Standards' },
-    { key: 'reset', label: 'Data Reset' },
-    { key: 'credits', label: 'Credit Transactions' },
+    { key: 'org-units', label: 'Organizational Units', tip: 'Business units, offices, or subsidiaries that data is tracked under' },
+    { key: 'standards', label: 'ESG Standards', tip: 'The reporting framework used for compliance reports' },
+    { key: 'reset', label: 'Data Reset', tip: 'Permanently delete uploaded data by year' },
+    { key: 'credits', label: 'Credit Transactions', tip: 'View credit usage history and remaining balance' },
   ];
 
   return (
@@ -65,8 +66,9 @@ export default function SettingsPage() {
 
       <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
         {tabs.map((t) => (
-          <button key={t.key} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === t.key ? 'bg-white shadow-sm' : 'text-gray-500'}`} onClick={() => setTab(t.key)}>
+          <button key={t.key} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${tab === t.key ? 'bg-white shadow-sm' : 'text-gray-500'}`} onClick={() => setTab(t.key)}>
             {t.label}
+            {t.tip && <InfoTip>{t.tip}</InfoTip>}
           </button>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Leaf, Users2, Shield, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
+import { HelpBanner, InfoTip } from '../components/HelpSystem';
 
 const PILLARS = [
   {
@@ -46,18 +47,37 @@ export default function Home() {
         <p className="text-gray-500 mt-1">ESG Data Management & Reporting Platform</p>
       </div>
 
+      <HelpBanner
+        id="home-welcome"
+        title="Welcome to the Triple I ESG Portal"
+        variant="tip"
+      >
+        Start by uploading workforce data (S1) or emissions data (E1) using the modules below.
+        Our AI will automatically clean and structure your data, no matter the format or language.
+        Click the chat bubble in the bottom-right corner anytime to ask your AI assistant for help.
+      </HelpBanner>
+
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="stat-card">
-          <span className="text-sm text-gray-500">Credits Available</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Credits Available</span>
+            <InfoTip title="What are credits?">Credits are consumed when you process data. Excel uploads cost 1 credit per row. Document extractions cost 2 credits per document. Your balance is shown here.</InfoTip>
+          </div>
           <span className="text-2xl font-bold text-brand-700">{user?.company?.creditBalance ?? 0}</span>
         </div>
         <div className="stat-card">
-          <span className="text-sm text-gray-500">Active Modules</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Active Modules</span>
+            <InfoTip title="ESG Modules">Currently E1 (Climate Change) and S1 (Own Workforce) are active. Other modules (E2-E5, S2-S4, G1) are coming soon or available with Enterprise.</InfoTip>
+          </div>
           <span className="text-2xl font-bold text-esg-e">2 of 10</span>
         </div>
         <div className="stat-card">
-          <span className="text-sm text-gray-500">Reporting Standard</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Reporting Standard</span>
+            <InfoTip title="Reporting Standard">The ESG standard used for compliance reports. ESRS (European Sustainability Reporting Standards) is the default for CSRD. Change this in Settings.</InfoTip>
+          </div>
           <span className="text-2xl font-bold text-gray-700">ESRS</span>
         </div>
       </div>

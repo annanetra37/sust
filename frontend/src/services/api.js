@@ -131,6 +131,9 @@ const api = {
   testConnection: (id) => request(`/connections/${id}/test`, { method: 'POST' }),
   deleteConnection: (id) => request(`/connections/${id}`, { method: 'DELETE' }),
 
+  // Assistant
+  chatAssistant: (message, history) => request('/assistant/chat', { method: 'POST', body: JSON.stringify({ message, history }) }),
+
   setTokens,
   clearTokens,
   getAccessToken: () => accessToken,

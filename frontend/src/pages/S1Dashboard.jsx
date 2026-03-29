@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Users, TrendingDown, Clock, Heart, Upload } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { InfoTip } from '../components/HelpSystem';
 import OrgYearFilter from '../components/OrgYearFilter';
 
 const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#64748b'];
@@ -40,22 +41,34 @@ export default function S1Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card">
           <Users className="w-5 h-5 text-indigo-500" />
-          <span className="text-sm text-gray-500">Total Employees</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Total Employees</span>
+            <InfoTip>Total headcount across all contract types and genders for the selected year and org units.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.totalEmployees.toLocaleString()}</span>
         </div>
         <div className="stat-card">
           <Heart className="w-5 h-5 text-pink-500" />
-          <span className="text-sm text-gray-500">Disability Count</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Disability Count</span>
+            <InfoTip>Number of employees who have disclosed a disability. Required for ESRS S1 diversity disclosures.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.disabilityCount}</span>
         </div>
         <div className="stat-card">
           <Clock className="w-5 h-5 text-purple-500" />
-          <span className="text-sm text-gray-500">Training Hours</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Training Hours</span>
+            <InfoTip>Total hours of training delivered to employees. Tracked per gender for ESRS S1 reporting.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.totalTrainingHours.toLocaleString()}</span>
         </div>
         <div className="stat-card">
           <TrendingDown className="w-5 h-5 text-red-500" />
-          <span className="text-sm text-gray-500">Turnover Rate</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Turnover Rate</span>
+            <InfoTip>Percentage of employees who left the company (voluntary + involuntary) divided by total employees.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.turnoverRate}%</span>
         </div>
       </div>

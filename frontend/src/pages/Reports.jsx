@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { FileText, Download, Loader2 } from 'lucide-react';
+import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 
 export default function Reports() {
   const [languages, setLanguages] = useState({});
@@ -33,23 +34,33 @@ export default function Reports() {
         <p className="text-gray-500">Generate ESRS (CSRD) compliant ESG compliance reports</p>
       </div>
 
+      <HelpBanner
+        id="reports-guide"
+        title="ESG Compliance Reports"
+        variant="info"
+      >
+        Generate reports based on your uploaded E1 (Climate) and S1 (Workforce) data.
+        Reports follow the ESRS standard under CSRD and can be downloaded in PDF or Word format in 7 languages.
+        Make sure you've uploaded data for the selected year before generating.
+      </HelpBanner>
+
       <div className="card space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+            <FieldLabel label="Year" required info="The reporting year. Only data uploaded for this year will be included in the report." />
             <select className="input" value={year} onChange={(e) => setYear(parseInt(e.target.value))}>
               {years.map((y) => <option key={y}>{y}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Format</label>
+            <FieldLabel label="Format" info="PDF is best for sharing. DOCX allows editing the report content before finalizing." />
             <select className="input" value={format} onChange={(e) => setFormat(e.target.value)}>
               <option value="pdf">PDF</option>
               <option value="docx">Word (DOCX)</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+            <FieldLabel label="Language" info="The language for report headers and labels. Data values remain as uploaded." />
             <select className="input" value={language} onChange={(e) => setLanguage(e.target.value)}>
               {Object.entries(languages).map(([code, name]) => (
                 <option key={code} value={code}>{name}</option>
