@@ -112,6 +112,8 @@ const api = {
 
   // History
   getHistory: (params) => request(`/history?${new URLSearchParams(params || {})}`),
+  getHistoryDetail: (id) => request(`/history/${id}`),
+  getDataYears: () => request('/history/meta/years'),
 
   // Reports
   generateReport: async (data) => {

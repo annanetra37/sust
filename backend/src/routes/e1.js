@@ -276,11 +276,14 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
       });
     }
 
+    // Resolve org unit name for display
+    const orgUnit = orgUnitId ? await prisma.orgUnit.findUnique({ where: { id: orgUnitId } }) : null;
+
     const uploadRecord = await prisma.uploadHistory.create({
       data: {
         companyId: req.user.companyId, userId: req.user.id,
         fileName: `AI Doc Extract — ${mode} (${docCount} files)`,
-        fileType: 'E1', orgUnit: orgUnitId,
+        fileType: 'E1', orgUnit: orgUnit ? orgUnit.name : orgUnitId,
         status: 'PROCESSING', totalRows: docCount,
       },
     });
@@ -327,23 +330,31 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId) {
         const extraction = result.value;
 
         for (const item of extraction.items) {
-          if ((item.quantity > 0 || item.amount > 0) && item.emissions !== undefined) {
+          // Accept any item that has meaningful data
+          const qty = parseFloat(item.quantity) || 0;
+          const amt = parseFloat(item.amount) || 0;
+          const ems = parseFloat(item.emissions) || 0;
+
+          if (qty > 0 || amt > 0 || ems > 0) {
+            const itemYear = item.date ? new Date(item.date).getFullYear() : new Date().getFullYear();
+            const itemMonth = item.date ? new Date(item.date).getMonth() + 1 : new Date().getMonth() + 1;
+
             await prisma.fE1EmissionActivityData.create({
               data: {
                 companyId: user.companyId,
-                orgUnitId: orgUnitId || undefined,
-                year: item.date ? new Date(item.date).getFullYear() : new Date().getFullYear(),
-                month: item.date ? new Date(item.date).getMonth() + 1 : null,
+                orgUnitId,
+                year: itemYear,
+                month: itemMonth,
                 activityCategory: item.activityCategory || mode,
                 activitySubcat: item.subType || mode,
                 calcMethod: 'consumption',
-                quantity: item.quantity || 0,
-                unit: item.unit || 'km',
-                emissionFactor: item.emissionFactor || 0,
-                totalEmissions: item.emissions || 0,
+                quantity: qty,
+                unit: item.unit || (mode === 'Stay' ? 'nights' : mode === 'Energy' ? 'kWh' : 'km'),
+                emissionFactor: parseFloat(item.emissionFactor) || 0,
+                totalEmissions: ems,
                 scope: item.scope || 'Scope 3',
                 currency: item.currency || null,
-                amount: item.amount || null,
+                amount: amt || null,
                 sourceDoc: extraction.sourceFile || null,
               },
             });
