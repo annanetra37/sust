@@ -7,7 +7,7 @@ dotenv.config();
 export default defineConfig({
   earlyAccess: true,
   schema: path.join(__dirname, 'prisma', 'schema.prisma'),
-  migrate: {
+  datasource: {
     async url() {
       return process.env.DATABASE_URL!;
     },
