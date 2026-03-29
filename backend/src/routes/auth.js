@@ -6,6 +6,7 @@ const prisma = require('../config/prisma');
 const { generateOTP, generateToken } = require('../utils/helpers');
 const { sendOTP, sendResetLink, sendInvite } = require('../utils/email');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const { formatError } = require('../utils/errors');
 
 // ─── Sign Up (2-step: personal + company) ────────────────────
 
@@ -19,15 +20,15 @@ router.post('/signup', async (req, res) => {
     } = req.body;
 
     if (!email || !password || !firstName || !lastName || !companyName || !country || !industry || !companySize) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Missing required fields: email, password, first name, last name, company name, country, industry, and company size are all required.' });
     }
 
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      return res.status(400).json({ error: 'Password must be 8+ chars with uppercase, number, and special character' });
+      return res.status(400).json({ error: 'Password must be at least 8 characters and include an uppercase letter, a number, and a special character.' });
     }
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (existing) return res.status(409).json({ error: 'Email already registered' });
+    if (existing) return res.status(409).json({ error: 'An account with this email already exists.' });
 
     const passwordHash = await bcrypt.hash(password, 12);
     const otp = generateOTP();
@@ -48,7 +49,7 @@ router.post('/signup', async (req, res) => {
 
       const user = await tx.user.create({
         data: {
-          email: email.toLowerCase(), passwordHash, firstName, lastName, phone,
+          email: email.toLowerCase(), passwordHash, firstName, lastName, phone: phone || null,
           role: 'ADMIN', companyId: company.id,
           otpCode: otp,
           otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
@@ -56,7 +57,6 @@ router.post('/signup', async (req, res) => {
         },
       });
 
-      // Create default org unit
       await tx.orgUnit.create({
         data: { name: 'Headquarters', country, companyId: company.id },
       });
@@ -71,10 +71,8 @@ router.post('/signup', async (req, res) => {
       userId: result.user.id,
     });
   } catch (err) {
-    console.error('Signup error:', err);
-    const message = err.message || 'Registration failed';
-    const detail = err.meta?.target || err.meta?.cause || undefined;
-    res.status(500).json({ error: message, detail });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -83,22 +81,24 @@ router.post('/signup', async (req, res) => {
 router.post('/verify-email', async (req, res) => {
   try {
     const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ error: 'Email and verification code are required.' });
+
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.emailVerified) return res.json({ message: 'Already verified' });
-    if (!user.otpCode || user.otpCode !== otp) return res.status(400).json({ error: 'Invalid verification code' });
-    if (new Date() > user.otpExpiresAt) return res.status(400).json({ error: 'Code expired. Request a new one.' });
+    if (!user) return res.status(404).json({ error: 'No account found with this email.' });
+    if (user.emailVerified) return res.json({ message: 'Email is already verified.' });
+    if (!user.otpCode || user.otpCode !== otp) return res.status(400).json({ error: 'Invalid verification code. Please check and try again.' });
+    if (new Date() > user.otpExpiresAt) return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
 
     await prisma.user.update({
       where: { id: user.id },
       data: { emailVerified: true, isActive: true, otpCode: null, otpExpiresAt: null },
     });
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({ message: 'Email verified successfully.' });
   } catch (err) {
-    console.error('Verify error:', err);
-    res.status(500).json({ error: 'Verification failed' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -107,13 +107,15 @@ router.post('/verify-email', async (req, res) => {
 router.post('/resend-otp', async (req, res) => {
   try {
     const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.emailVerified) return res.json({ message: 'Already verified' });
+    if (!user) return res.status(404).json({ error: 'No account found with this email.' });
+    if (user.emailVerified) return res.json({ message: 'Email is already verified.' });
 
     if (user.otpLastSentAt && Date.now() - user.otpLastSentAt.getTime() < 60000) {
       const wait = Math.ceil((60000 - (Date.now() - user.otpLastSentAt.getTime())) / 1000);
-      return res.status(429).json({ error: `Wait ${wait}s before resending` });
+      return res.status(429).json({ error: `Please wait ${wait} seconds before requesting a new code.` });
     }
 
     const otp = generateOTP();
@@ -123,9 +125,10 @@ router.post('/resend-otp', async (req, res) => {
     });
 
     await sendOTP(email, otp);
-    res.json({ message: 'New code sent' });
+    res.json({ message: 'A new verification code has been sent to your email.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to resend code' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -134,17 +137,19 @@ router.post('/resend-otp', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
+
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       include: { company: { select: { id: true, name: true, creditBalance: true } } },
     });
 
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-    if (!user.emailVerified) return res.status(403).json({ error: 'Please verify your email first', needsVerification: true });
-    if (!user.isActive) return res.status(403).json({ error: 'Account is deactivated' });
+    if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
+    if (!user.emailVerified) return res.status(403).json({ error: 'Please verify your email before signing in.', needsVerification: true });
+    if (!user.isActive) return res.status(403).json({ error: 'Your account has been deactivated. Contact your administrator.' });
 
     const valid = await bcrypt.compare(password, user.passwordHash);
-    if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!valid) return res.status(401).json({ error: 'Invalid email or password.' });
 
     const accessToken = jwt.sign({ userId: user.id, companyId: user.companyId, role: user.role }, config.jwt.secret, { expiresIn: config.jwt.accessExpiry });
     const refreshToken = jwt.sign({ userId: user.id }, config.jwt.refreshSecret, { expiresIn: config.jwt.refreshExpiry });
@@ -160,8 +165,8 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Login failed' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -170,13 +175,13 @@ router.post('/login', async (req, res) => {
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(401).json({ error: 'Refresh token required' });
+    if (!refreshToken) return res.status(401).json({ error: 'Refresh token is required.' });
 
     const payload = jwt.verify(refreshToken, config.jwt.refreshSecret);
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
 
     if (!user || user.refreshToken !== refreshToken) {
-      return res.status(401).json({ error: 'Invalid refresh token' });
+      return res.status(401).json({ error: 'Invalid or revoked refresh token. Please sign in again.' });
     }
 
     const accessToken = jwt.sign({ userId: user.id, companyId: user.companyId, role: user.role }, config.jwt.secret, { expiresIn: config.jwt.accessExpiry });
@@ -185,8 +190,9 @@ router.post('/refresh', async (req, res) => {
     await prisma.user.update({ where: { id: user.id }, data: { refreshToken: newRefresh } });
 
     res.json({ accessToken, refreshToken: newRefresh });
-  } catch {
-    res.status(401).json({ error: 'Invalid refresh token' });
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -194,7 +200,7 @@ router.post('/refresh', async (req, res) => {
 
 router.post('/logout', authenticate, async (req, res) => {
   await prisma.user.update({ where: { id: req.user.id }, data: { refreshToken: null } });
-  res.json({ message: 'Logged out' });
+  res.json({ message: 'Logged out successfully.' });
 });
 
 // ─── Forgot Password ───────────────────────────────────────
@@ -202,10 +208,12 @@ router.post('/logout', authenticate, async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required.' });
+
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
 
     // Always return success to prevent email enumeration
-    if (!user) return res.json({ message: 'If the email exists, a reset link has been sent.' });
+    if (!user) return res.json({ message: 'If an account with this email exists, a reset link has been sent.' });
 
     const token = generateToken();
     await prisma.user.update({
@@ -214,9 +222,10 @@ router.post('/forgot-password', async (req, res) => {
     });
 
     await sendResetLink(email, token);
-    res.json({ message: 'If the email exists, a reset link has been sent.' });
+    res.json({ message: 'If an account with this email exists, a reset link has been sent.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to process request' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -225,22 +234,24 @@ router.post('/forgot-password', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Reset token and new password are required.' });
 
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      return res.status(400).json({ error: 'Password must be 8+ chars with uppercase, number, and special character' });
+      return res.status(400).json({ error: 'Password must be at least 8 characters and include an uppercase letter, a number, and a special character.' });
     }
 
     const user = await prisma.user.findFirst({ where: { resetToken: token, resetTokenExp: { gt: new Date() } } });
-    if (!user) return res.status(400).json({ error: 'Invalid or expired reset link' });
+    if (!user) return res.status(400).json({ error: 'This reset link is invalid or has expired. Please request a new one.' });
 
     await prisma.user.update({
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(password, 12), resetToken: null, resetTokenExp: null },
     });
 
-    res.json({ message: 'Password reset successfully' });
+    res.json({ message: 'Password has been reset successfully. You can now sign in.' });
   } catch (err) {
-    res.status(500).json({ error: 'Reset failed' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -250,11 +261,11 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
   try {
     const { email, firstName, lastName, phone, jobTitle, role } = req.body;
     if (!email || !firstName || !lastName) {
-      return res.status(400).json({ error: 'Email, first name, and last name required' });
+      return res.status(400).json({ error: 'Email, first name, and last name are required to send an invitation.' });
     }
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (existing) return res.status(409).json({ error: 'Email already registered' });
+    if (existing) return res.status(409).json({ error: 'A user with this email already exists in the system.' });
 
     const token = generateToken();
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
@@ -262,8 +273,8 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
     await prisma.user.create({
       data: {
         email: email.toLowerCase(),
-        passwordHash: '', // Set via invite link
-        firstName, lastName, phone, jobTitle,
+        passwordHash: '',
+        firstName, lastName, phone: phone || null, jobTitle: jobTitle || null,
         role: role === 'ADMIN' ? 'ADMIN' : 'CUSTOM',
         companyId: req.user.companyId,
         emailVerified: true,
@@ -273,10 +284,10 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
     });
 
     await sendInvite(email, token, company.name);
-    res.status(201).json({ message: 'Invitation sent' });
+    res.status(201).json({ message: `Invitation sent to ${email}.` });
   } catch (err) {
-    console.error('Invite error:', err);
-    res.status(500).json({ error: 'Failed to send invitation' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
@@ -285,13 +296,14 @@ router.post('/invite', authenticate, requireAdmin, async (req, res) => {
 router.post('/accept-invite', async (req, res) => {
   try {
     const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Invitation token and password are required.' });
 
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-      return res.status(400).json({ error: 'Password must be 8+ chars with uppercase, number, and special character' });
+      return res.status(400).json({ error: 'Password must be at least 8 characters and include an uppercase letter, a number, and a special character.' });
     }
 
     const user = await prisma.user.findFirst({ where: { inviteToken: token, inviteTokenExp: { gt: new Date() } } });
-    if (!user) return res.status(400).json({ error: 'Invalid or expired invitation' });
+    if (!user) return res.status(400).json({ error: 'This invitation link is invalid or has expired. Please ask your administrator to resend it.' });
 
     await prisma.user.update({
       where: { id: user.id },
@@ -303,25 +315,32 @@ router.post('/accept-invite', async (req, res) => {
       },
     });
 
-    res.json({ message: 'Account activated. You can now sign in.' });
+    res.json({ message: 'Account activated successfully. You can now sign in.' });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to accept invitation' });
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
   }
 });
 
 // ─── Get Current User ───────────────────────────────────────
 
 router.get('/me', authenticate, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    select: {
-      id: true, email: true, firstName: true, lastName: true, phone: true,
-      jobTitle: true, role: true, isActive: true, createdAt: true,
-      company: { select: { id: true, name: true, creditBalance: true, country: true, industry: true } },
-      permissions: { include: { orgUnit: true } },
-    },
-  });
-  res.json(user);
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true, email: true, firstName: true, lastName: true, phone: true,
+        jobTitle: true, role: true, isActive: true, createdAt: true,
+        company: { select: { id: true, name: true, creditBalance: true, country: true, industry: true } },
+        permissions: { include: { orgUnit: true } },
+      },
+    });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    res.json(user);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
 });
 
 module.exports = router;

@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config');
+const { globalErrorHandler } = require('./utils/errors');
 
 const app = express();
 
@@ -30,11 +31,8 @@ app.use('/api/connections', require('./routes/connections'));
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Error handler
-app.use((err, req, res, _next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// Global error handler — returns meaningful messages
+app.use(globalErrorHandler);
 
 app.listen(config.port, () => {
   console.log(`Triple I ESG API running on port ${config.port}`);
