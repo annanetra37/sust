@@ -41,6 +41,11 @@ router.get('/dashboard', async (req, res) => {
     prisma.fE1EmissionActivityData.findMany({ where: { companyId, ...orgFilter }, orderBy: { year: 'asc' } }),
   ]);
 
+  console.log('[E1 Dashboard] Results:', { activitiesForYear: activities.length, allActivities: allActivities.length, years: [...new Set(allActivities.map(a => a.year))] });
+  if (activities.length > 0) {
+    console.log('[E1 Dashboard] Sample activity:', JSON.stringify({ year: activities[0].year, scope: activities[0].scope, totalEmissions: activities[0].totalEmissions, category: activities[0].activityCategory }));
+  }
+
   // Compute stats from activity data (source of truth) — not inventory
   const totalEmissions = activities.reduce((s, r) => s + (r.totalEmissions || 0), 0);
   const inventoryEmployees = inventory.reduce((s, r) => s + (r.employeeCount || 0), 0);
@@ -372,7 +377,15 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           // Accept any item that has meaningful data
           const qty = parseFloat(item.quantity) || 0;
           const amt = parseFloat(item.amount) || 0;
-          const ems = parseFloat(item.emissions) || 0;
+          const ef = parseFloat(item.emissionFactor) || 0;
+          // AI may return emissions as 'emissions', 'totalEmissions', or 'tCO2e'
+          let ems = parseFloat(item.emissions || item.totalEmissions || item.tCO2e) || 0;
+          // If AI didn't calculate emissions but provided quantity + factor, calculate it
+          if (ems === 0 && qty > 0 && ef > 0) {
+            ems = (qty * ef) / 1000; // kg to tonnes
+          }
+
+          console.log('[Doc Extract] Item:', JSON.stringify({ subType: item.subType, qty, ef, ems, amt, scope: item.scope }));
 
           if (qty > 0 || amt > 0 || ems > 0) {
             const itemMonth = item.date ? new Date(item.date).getMonth() + 1 : null;
@@ -474,6 +487,39 @@ router.delete('/sbti/:id', async (req, res) => {
 router.get('/categories', async (_, res) => {
   const categories = await prisma.activityCategory.findMany({ include: { subcategories: true } });
   res.json(categories);
+});
+
+// ─── Debug: Show all raw activity data ──────────────────────
+
+router.get('/debug/data', async (req, res) => {
+  const { companyId } = req.user;
+  const all = await prisma.fE1EmissionActivityData.findMany({
+    where: { companyId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+  const summary = {
+    totalRecords: all.length,
+    years: [...new Set(all.map((a) => a.year))],
+    orgUnits: [...new Set(all.map((a) => a.orgUnitId))],
+    scopes: [...new Set(all.map((a) => a.scope))],
+    totalEmissions: all.reduce((s, r) => s + (r.totalEmissions || 0), 0),
+    records: all.map((r) => ({
+      id: r.id,
+      year: r.year,
+      month: r.month,
+      category: r.activityCategory,
+      subcat: r.activitySubcat,
+      scope: r.scope,
+      qty: r.quantity,
+      unit: r.unit,
+      ef: r.emissionFactor,
+      emissions: r.totalEmissions,
+      orgUnit: r.orgUnitId,
+      created: r.createdAt,
+    })),
+  };
+  res.json(summary);
 });
 
 module.exports = router;
