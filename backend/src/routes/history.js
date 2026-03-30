@@ -141,21 +141,20 @@ router.get('/meta/years', async (req, res) => {
   try {
     const { companyId } = req.user;
 
-    // Get distinct years from both E1 and S1 data
-    const [e1Years, s1Years] = await Promise.all([
-      prisma.fE1EmissionActivityData.findMany({
-        where: { companyId },
-        select: { year: true },
-        distinct: ['year'],
-      }),
-      prisma.fS1WorkforceComposition.findMany({
-        where: { companyId },
-        select: { year: true },
-        distinct: ['year'],
-      }),
+    // Get distinct years from all data tables
+    const [e1Years, s1CompYears, s1TrainYears, s1TurnYears] = await Promise.all([
+      prisma.fE1EmissionActivityData.findMany({ where: { companyId }, select: { year: true }, distinct: ['year'] }),
+      prisma.fS1WorkforceComposition.findMany({ where: { companyId }, select: { year: true }, distinct: ['year'] }),
+      prisma.fS1EmployeeTraining.findMany({ where: { companyId }, select: { year: true }, distinct: ['year'] }),
+      prisma.fS1EmployeeTurnover.findMany({ where: { companyId }, select: { year: true }, distinct: ['year'] }),
     ]);
 
-    const allYears = [...new Set([...e1Years.map((r) => r.year), ...s1Years.map((r) => r.year)])].sort((a, b) => b - a);
+    const allYears = [...new Set([
+      ...e1Years.map((r) => r.year),
+      ...s1CompYears.map((r) => r.year),
+      ...s1TrainYears.map((r) => r.year),
+      ...s1TurnYears.map((r) => r.year),
+    ])].sort((a, b) => b - a);
 
     // If no data yet, return current year as default
     if (allYears.length === 0) allYears.push(new Date().getFullYear());

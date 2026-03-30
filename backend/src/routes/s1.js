@@ -25,6 +25,12 @@ router.get('/dashboard', async (req, res) => {
 
   console.log('[S1 Dashboard] Query:', JSON.stringify({ companyId, year: y, orgList: orgList.length || 'ALL' }));
 
+  // Quick count to check if ANY data exists at all
+  const totalAny = await prisma.fS1WorkforceComposition.count({ where: { companyId } });
+  const totalForYear = await prisma.fS1WorkforceComposition.count({ where: { companyId, year: y } });
+  const distinctYears = await prisma.fS1WorkforceComposition.findMany({ where: { companyId }, select: { year: true }, distinct: ['year'] });
+  console.log('[S1 Dashboard] Data check:', { totalAny, totalForYear, years: distinctYears.map((d) => d.year) });
+
   const [composition, diversity, training, turnover, injuries] = await Promise.all([
     prisma.fS1WorkforceComposition.findMany({ where }),
     prisma.fS1WorkforceDiversity.findMany({ where }),
@@ -178,6 +184,9 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
           console.warn(`S1 ${sheetName}: ${invalid.length} rows failed validation`);
         }
 
+        console.log(`[S1 ETL] Table: ${mapping.targetTable}, confidence: ${mapping.confidence}, cleaned: ${cleanedRows.length}, valid: ${valid.length}, invalid: ${invalid.length}`);
+        if (valid.length > 0) console.log('[S1 ETL] Sample valid row:', JSON.stringify(valid[0]));
+
         // Step 4: Ingest into correct table
         for (const row of valid) {
           try {
@@ -189,9 +198,10 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
                   data: {
                     ...base,
                     year: reportingYear, quarter: row.quarter || null,
-                    gender: row.gender, contractType: row.contractType,
+                    gender: row.gender || 'Not disclosed',
+                    contractType: row.contractType || 'Permanent',
                     country: row.country || null,
-                    employeeCount: row.employeeCount,
+                    employeeCount: parseInt(row.employeeCount) || 1,
                   },
                 });
                 break;
@@ -201,10 +211,10 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
                   data: {
                     ...base,
                     year: reportingYear, quarter: row.quarter || null,
-                    gender: row.gender,
-                    disabilityStatus: row.disabilityStatus,
+                    gender: row.gender || 'Not disclosed',
+                    disabilityStatus: row.disabilityStatus || 'Not disclosed',
                     disabilityType: row.disabilityType || null,
-                    count: row.count,
+                    count: parseInt(row.count) || 1,
                   },
                 });
                 break;
@@ -214,9 +224,9 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
                   data: {
                     ...base,
                     year: reportingYear, quarter: row.quarter || null,
-                    gender: row.gender,
-                    trainingHours: row.trainingHours,
-                    employeeCount: row.employeeCount,
+                    gender: row.gender || 'Not disclosed',
+                    trainingHours: parseFloat(row.trainingHours) || 0,
+                    employeeCount: parseInt(row.employeeCount) || 1,
                   },
                 });
                 break;
@@ -226,9 +236,9 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
                   data: {
                     ...base,
                     year: reportingYear, quarter: row.quarter || null,
-                    gender: row.gender,
-                    turnoverType: row.turnoverType,
-                    count: row.count,
+                    gender: row.gender || 'Not disclosed',
+                    turnoverType: row.turnoverType || 'Voluntary',
+                    count: parseInt(row.count) || 1,
                   },
                 });
                 break;
@@ -238,10 +248,10 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
                   data: {
                     ...base,
                     year: reportingYear, quarter: row.quarter || null,
-                    injuryType: row.injuryType,
-                    injuryStatus: row.injuryStatus,
+                    injuryType: row.injuryType || 'Other',
+                    injuryStatus: row.injuryStatus || 'Non-fatal',
                     gender: row.gender || null,
-                    count: row.count,
+                    count: parseInt(row.count) || 1,
                   },
                 });
                 break;
@@ -267,6 +277,8 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     }
   }
 
+  console.log(`[S1 ETL] Complete: ${insertedRows} rows inserted from ${totalRows} raw rows for year ${reportingYear}`);
+
   await deductCredits(user.companyId, user.id, totalRows, 'EXCEL_S1', `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows`, uploadId);
 
   await prisma.uploadHistory.update({
@@ -289,6 +301,38 @@ router.get('/upload/:id/progress', async (req, res) => {
     processedRows: record.processedRows,
     progress: record.totalRows ? Math.round((record.processedRows / record.totalRows) * 100) : 0,
     error: record.errorMessage,
+  });
+});
+
+// ─── Debug: Show all raw S1 data ────────────────────────────
+
+router.get('/debug/data', async (req, res) => {
+  const { companyId } = req.user;
+  const comp = await prisma.fS1WorkforceComposition.findMany({ where: { companyId }, take: 20, orderBy: { createdAt: 'desc' } });
+  const div = await prisma.fS1WorkforceDiversity.findMany({ where: { companyId }, take: 10, orderBy: { createdAt: 'desc' } });
+  const train = await prisma.fS1EmployeeTraining.findMany({ where: { companyId }, take: 10, orderBy: { createdAt: 'desc' } });
+  const turn = await prisma.fS1EmployeeTurnover.findMany({ where: { companyId }, take: 10, orderBy: { createdAt: 'desc' } });
+
+  const years = [...new Set(comp.map((r) => r.year))];
+  const orgUnits = [...new Set(comp.map((r) => r.orgUnitId))];
+
+  res.json({
+    summary: {
+      composition: comp.length,
+      diversity: div.length,
+      training: train.length,
+      turnover: turn.length,
+      years,
+      orgUnits,
+      totalEmployees: comp.reduce((s, r) => s + r.employeeCount, 0),
+    },
+    sampleComposition: comp.slice(0, 5).map((r) => ({
+      year: r.year, gender: r.gender, contractType: r.contractType,
+      employeeCount: r.employeeCount, orgUnitId: r.orgUnitId, created: r.createdAt,
+    })),
+    sampleTraining: train.slice(0, 5).map((r) => ({
+      year: r.year, gender: r.gender, hours: r.trainingHours, count: r.employeeCount,
+    })),
   });
 });
 
