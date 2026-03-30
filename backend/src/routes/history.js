@@ -166,6 +166,15 @@ router.get('/meta/years', async (req, res) => {
   }
 });
 
+// Parse stored file path entry — supports both "path" and "name::path" formats
+function parseFileEntry(entry) {
+  if (entry.includes('::')) {
+    const [name, storedPath] = entry.split('::');
+    return { name, storedPath };
+  }
+  return { name: null, storedPath: entry };
+}
+
 // Download original file(s)
 router.get('/:id/download/:fileIndex?', async (req, res) => {
   try {
@@ -175,24 +184,34 @@ router.get('/:id/download/:fileIndex?', async (req, res) => {
     if (!record) return res.status(404).json({ error: 'Upload not found.' });
     if (!record.storedFilePath) return res.status(404).json({ error: 'Original file not available for this upload.' });
 
-    // Handle multiple files (stored as "path1||path2||path3")
-    const paths = record.storedFilePath.split('||');
+    const entries = record.storedFilePath.split('||');
     const idx = parseInt(req.params.fileIndex) || 0;
+    if (idx >= entries.length) return res.status(404).json({ error: 'File index out of range.' });
 
-    if (idx >= paths.length) return res.status(404).json({ error: 'File index out of range.' });
+    const { name, storedPath } = parseFileEntry(entries[idx]);
+    const filePath = getFilePath(storedPath);
 
-    const filePath = getFilePath(paths[idx]);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File no longer exists on server.' });
+    if (!fs.existsSync(filePath)) {
+      console.error('[Download] File not found:', filePath);
+      return res.status(404).json({ error: 'File no longer exists on server.', path: storedPath });
+    }
 
     const ext = path.extname(filePath);
-    const downloadName = paths.length > 1
-      ? `${record.fileName}_${idx + 1}${ext}`
-      : record.fileName;
+    const downloadName = name || (entries.length > 1 ? `${record.fileName}_${idx + 1}${ext}` : `${record.fileName}${ext}`);
+
+    // Determine MIME type
+    const mimeMap = {
+      '.pdf': 'application/pdf', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.xls': 'application/vnd.ms-excel', '.csv': 'text/csv',
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+    };
+    const mime = mimeMap[ext.toLowerCase()] || record.storedFileMime || 'application/octet-stream';
 
     res.setHeader('Content-Disposition', `attachment; filename="${downloadName}"`);
-    res.setHeader('Content-Type', record.storedFileMime || 'application/octet-stream');
+    res.setHeader('Content-Type', mime);
     fs.createReadStream(filePath).pipe(res);
   } catch (err) {
+    console.error('[Download] Error:', err);
     const { status, error } = formatError(err);
     res.status(status).json({ error });
   }
@@ -206,17 +225,30 @@ router.get('/:id/view/:fileIndex?', async (req, res) => {
     });
     if (!record || !record.storedFilePath) return res.status(404).json({ error: 'File not available.' });
 
-    const paths = record.storedFilePath.split('||');
+    const entries = record.storedFilePath.split('||');
     const idx = parseInt(req.params.fileIndex) || 0;
-    if (idx >= paths.length) return res.status(404).json({ error: 'File not found.' });
+    if (idx >= entries.length) return res.status(404).json({ error: 'File not found.' });
 
-    const filePath = getFilePath(paths[idx]);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File no longer exists.' });
+    const { storedPath } = parseFileEntry(entries[idx]);
+    const filePath = getFilePath(storedPath);
 
-    res.setHeader('Content-Type', record.storedFileMime || 'application/octet-stream');
+    if (!fs.existsSync(filePath)) {
+      console.error('[View] File not found:', filePath);
+      return res.status(404).json({ error: 'File no longer exists.' });
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap = {
+      '.pdf': 'application/pdf', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.xls': 'application/vnd.ms-excel', '.csv': 'text/csv',
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+    };
+
+    res.setHeader('Content-Type', mimeMap[ext] || record.storedFileMime || 'application/octet-stream');
     res.setHeader('Content-Disposition', 'inline');
     fs.createReadStream(filePath).pipe(res);
   } catch (err) {
+    console.error('[View] Error:', err);
     const { status, error } = formatError(err);
     res.status(status).json({ error });
   }

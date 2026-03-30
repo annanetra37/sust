@@ -148,12 +148,37 @@ export default function HistoryPage() {
           </div>
 
           {upload.errorMessage && (
-            <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{upload.errorMessage}</div>
+            <div className={`mt-4 p-3 rounded-lg text-sm ${upload.status === 'DATA_DELETED' ? 'bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border border-orange-200' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400'}`}>
+              {upload.errorMessage}
+            </div>
           )}
 
           {creditTransaction && (
             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
               <strong>Credits used:</strong> {creditTransaction.creditsUsed} — {creditTransaction.description}
+            </div>
+          )}
+
+          {/* Source file — download/view directly */}
+          {files.length > 0 && (
+            <div className="mt-4 border-t dark:border-gray-700 pt-4">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Source File{files.length > 1 ? 's' : ''}</p>
+              <div className="space-y-2">
+                {files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <FileSpreadsheet className="w-5 h-5 text-brand-500 shrink-0" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 truncate">{f.name}</span>
+                    <a href={f.viewUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-xs px-3 py-1.5 rounded-md bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-800 font-medium transition-colors">
+                      View
+                    </a>
+                    <a href={f.downloadUrl}
+                      className="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors flex items-center gap-1">
+                      <Download className="w-3 h-3" /> Download
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -201,10 +226,40 @@ export default function HistoryPage() {
           )}
         </div>
 
+        {/* ETL Transformation Summary */}
+        {recordCount > 0 && (
+          <div className="card">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">ETL Transformation Pipeline</h3>
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              {[
+                { label: 'Source', desc: files.length > 0 ? `${files.length} file${files.length > 1 ? 's' : ''} uploaded` : 'File uploaded', color: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300', rows: upload.totalRows || '?' },
+                { label: 'AI Mapping', desc: 'Schema auto-detected', color: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' },
+                { label: 'Cleaning', desc: 'Values normalized', color: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300' },
+                { label: 'Validation', desc: 'Types & ranges checked', color: 'bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300' },
+                { label: 'Loaded', desc: `${recordCount} records stored`, color: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300', rows: recordCount },
+              ].map((step, i, arr) => (
+                <div key={step.label} className="flex items-center gap-2 shrink-0">
+                  <div className={`px-3 py-2 rounded-lg ${step.color} text-center min-w-[100px]`}>
+                    <p className="text-xs font-bold">{step.label}</p>
+                    <p className="text-[10px] mt-0.5 opacity-75">{step.desc}</p>
+                    {step.rows && <p className="text-[10px] font-mono mt-0.5">{step.rows} rows</p>}
+                  </div>
+                  {i < arr.length - 1 && <span className="text-gray-300 dark:text-gray-600 text-lg">→</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Transformed data */}
         <div className="card p-0 overflow-hidden">
-          <div className="px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <div className="px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
             <h3 className="font-semibold">Transformed Data ({recordCount} records)</h3>
+            {files.length > 0 && (
+              <a href={files[0].downloadUrl} className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
+                <Download className="w-3 h-3" /> Download source
+              </a>
+            )}
           </div>
           {transformedData.length === 0 ? (
             <div className="p-8 text-center text-gray-400">No transformed records found.</div>
