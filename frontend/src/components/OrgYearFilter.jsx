@@ -12,16 +12,14 @@ export default function OrgYearFilter({ filters, onChange }) {
   useEffect(() => {
     Promise.all([api.getOrgUnits(), api.getDataYears()]).then(([units, yrs]) => {
       setOrgUnits(units);
-      setYears(yrs);
-      // Auto-select the most recent year with data
-      if (yrs.length > 0) {
-        const bestYear = yrs[0]; // years are sorted desc
-        if (bestYear !== filters.year) {
-          onChange({ ...filters, year: bestYear });
-        }
-      }
+      // Include current filter year in the list if not already there
+      const allYears = [...new Set([...(yrs || []), filters.year].filter(Boolean))].sort((a, b) => b - a);
+      setYears(allYears.length > 0 ? allYears : [new Date().getFullYear()]);
       setInitialized(true);
-    }).catch(() => setInitialized(true));
+    }).catch(() => {
+      setYears([filters.year || new Date().getFullYear()]);
+      setInitialized(true);
+    });
   }, []);
 
   const toggleUnit = (id) => {

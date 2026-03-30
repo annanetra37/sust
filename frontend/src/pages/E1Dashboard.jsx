@@ -15,14 +15,25 @@ const TREE_COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ef4444', '#ec
 export default function E1Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ year: null, orgUnits: '' });
+  const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
   const filterKey = `${filters.year}|${filters.orgUnits}`;
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!filters.year) return; // Wait for OrgYearFilter to set the correct year
+    // Fetch available years and use the best one, then load dashboard
+    api.getDataYears().then((years) => {
+      if (years.length > 0 && !years.includes(filters.year)) {
+        setFilters((f) => ({ ...f, year: years[0] }));
+      }
+      setReady(true);
+    }).catch(() => setReady(true));
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
     setLoading(true);
     api.getE1Dashboard(filters).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [filterKey]);
+  }, [filterKey, ready]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
   if (!data) return <div className="text-center text-gray-500 py-12">No data available. Upload emissions data to get started.</div>;
