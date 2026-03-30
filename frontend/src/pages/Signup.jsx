@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { LogoFull } from '../components/Logo';
+import COUNTRIES from '../utils/countries';
 
 const INDUSTRIES = ['Technology', 'Manufacturing', 'Finance', 'Healthcare', 'Energy', 'Retail', 'Transportation', 'Agriculture', 'Construction', 'Other'];
 const SIZES = ['1-50', '51-200', '201-500', '501-1000', '1001-5000', '5000+'];
@@ -90,7 +91,10 @@ export default function Signup() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
-                  <input className="input" required value={form.country} onChange={set('country')} />
+                  <select className="input" required value={form.country} onChange={set('country')}>
+                    <option value="">Select country...</option>
+                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">HQ Location</label>

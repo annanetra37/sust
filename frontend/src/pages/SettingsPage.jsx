@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, AlertTriangle, Search, Loader2 } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
+import COUNTRIES from '../utils/countries';
 
 const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
 
@@ -80,7 +81,10 @@ export default function SettingsPage() {
           {isAdmin && (
             <form onSubmit={addUnit} className="flex gap-3">
               <input className="input flex-1" placeholder="Unit name" required value={newUnit.name} onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })} />
-              <input className="input w-40" placeholder="Country" required value={newUnit.country} onChange={(e) => setNewUnit({ ...newUnit, country: e.target.value })} />
+              <select className="input w-48" required value={newUnit.country} onChange={(e) => setNewUnit({ ...newUnit, country: e.target.value })}>
+                <option value="">Country...</option>
+                {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
               <button type="submit" className="btn-primary flex items-center gap-1"><Plus className="w-4 h-4" /> Add</button>
             </form>
           )}

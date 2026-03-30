@@ -203,7 +203,7 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
     const userName = `${req.user.firstName} ${req.user.lastName}`;
     const deletedAt = new Date().toLocaleString();
 
-    // Mark related upload history records as deleted (don't remove them)
+    // Mark related upload history records as deleted (preserve the record)
     await prisma.uploadHistory.updateMany({
       where: {
         companyId: req.user.companyId,
@@ -212,8 +212,9 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
         ...(orgUnitId ? { orgUnitId } : {}),
       },
       data: {
-        status: 'DATA_DELETED',
-        errorMessage: `Data deleted by ${userName} on ${deletedAt}. ${total} records removed for year ${year}${quarter ? ' Q' + quarter : ''}${orgUnitId ? ' (specific org unit)' : ''}.`,
+        deletedAt: new Date(),
+        deletedBy: userName,
+        deletedNote: `${total} records removed for year ${year}${quarter ? ' Q' + quarter : ''}${orgUnitId ? ' (specific org unit)' : ''}.`,
       },
     });
 
@@ -241,7 +242,7 @@ router.post('/reset/e1', requireAdmin, async (req, res) => {
     const userName = `${req.user.firstName} ${req.user.lastName}`;
     const deletedAt = new Date().toLocaleString();
 
-    // Mark related upload history records as deleted (don't remove them)
+    // Mark related upload history records as deleted (preserve the record)
     await prisma.uploadHistory.updateMany({
       where: {
         companyId: req.user.companyId,
@@ -249,8 +250,9 @@ router.post('/reset/e1', requireAdmin, async (req, res) => {
         status: 'COMPLETED',
       },
       data: {
-        status: 'DATA_DELETED',
-        errorMessage: `Data deleted by ${userName} on ${deletedAt}. ${total} records removed for year ${year}.`,
+        deletedAt: new Date(),
+        deletedBy: userName,
+        deletedNote: `${total} records removed for year ${year}.`,
       },
     });
 

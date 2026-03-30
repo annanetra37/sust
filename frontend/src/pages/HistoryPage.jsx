@@ -41,11 +41,23 @@ export default function HistoryPage() {
       .finally(() => setLoading(false));
   }, [fileType, status, search, page]);
 
-  const statusIcon = (s) => {
+  const statusIcon = (s, r) => {
+    if (r?.deletedAt) return <Trash2 className="w-4 h-4 text-orange-500" />;
     if (s === 'COMPLETED') return <CheckCircle className="w-4 h-4 text-green-500" />;
     if (s === 'FAILED') return <XCircle className="w-4 h-4 text-red-500" />;
-    if (s === 'DATA_DELETED') return <Trash2 className="w-4 h-4 text-orange-500" />;
     return <Loader2 className="w-4 h-4 text-brand-600 animate-spin" />;
+  };
+
+  const statusLabel = (r) => {
+    if (r?.deletedAt) return 'DATA DELETED';
+    return r?.status || 'PROCESSING';
+  };
+
+  const statusBadgeClass = (r) => {
+    if (r?.deletedAt) return 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300';
+    if (r?.status === 'COMPLETED') return 'bg-green-100 text-green-700';
+    if (r?.status === 'FAILED') return 'bg-red-100 text-red-700';
+    return 'bg-blue-100 text-blue-700';
   };
 
   const auditBadge = (s) => {
@@ -120,12 +132,29 @@ export default function HistoryPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Uploaded on {new Date(upload.createdAt).toLocaleString()}</p>
             </div>
             <div className="flex items-center gap-2">
-              {statusIcon(upload.status)}
-              <span className={`badge ${upload.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : upload.status === 'FAILED' ? 'bg-red-100 text-red-700' : upload.status === 'DATA_DELETED' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-                {upload.status}
+              {statusIcon(upload.status, upload)}
+              <span className={`badge ${statusBadgeClass(upload)}`}>
+                {statusLabel(upload)}
               </span>
             </div>
           </div>
+
+          {/* Deletion banner */}
+          {upload.deletedAt && (
+            <div className="p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg mb-4">
+              <div className="flex items-start gap-2">
+                <Trash2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Data Deleted</p>
+                  <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+                    Deleted by <strong>{upload.deletedBy}</strong> on {new Date(upload.deletedAt).toLocaleString()}
+                  </p>
+                  {upload.deletedNote && <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">{upload.deletedNote}</p>}
+                  <p className="text-[10px] text-orange-500 mt-1">The original source file is still available for audit purposes.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
@@ -375,7 +404,6 @@ export default function HistoryPage() {
           <option value="COMPLETED">Completed</option>
           <option value="PROCESSING">Processing</option>
           <option value="FAILED">Failed</option>
-          <option value="DATA_DELETED">Data Deleted</option>
         </select>
       </div>
 
@@ -400,7 +428,7 @@ export default function HistoryPage() {
                 <td className="px-4 py-3 text-sm text-gray-500">{r.orgUnit || '—'}</td>
                 <td className="px-4 py-3 text-sm"><div className="flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-400" />{r.user?.firstName} {r.user?.lastName}</div></td>
                 <td className="px-4 py-3 text-sm">{r.processedRows ?? '—'} / {r.totalRows ?? '—'}</td>
-                <td className="px-4 py-3"><div className="flex items-center gap-1.5">{statusIcon(r.status)}<span className="text-sm">{r.status}</span></div></td>
+                <td className="px-4 py-3"><div className="flex items-center gap-1.5">{statusIcon(r.status, r)}<span className="text-sm">{statusLabel(r)}</span></div></td>
                 <td className="px-4 py-3">{auditBadge(r.auditStatus)}</td>
                 <td className="px-4 py-3 text-sm text-gray-500">{new Date(r.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3"><ChevronRight className="w-4 h-4 text-gray-300" /></td>

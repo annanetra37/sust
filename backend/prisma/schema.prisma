@@ -165,6 +165,9 @@ model UploadHistory {
   auditNote      String?
   auditedBy      String?
   auditedAt      DateTime?
+  deletedAt      DateTime?     // when the underlying data was deleted
+  deletedBy      String?       // who deleted it
+  deletedNote    String?       // deletion details
   createdAt      DateTime     @default(now())
   completedAt    DateTime?
 }
@@ -173,7 +176,6 @@ enum UploadStatus {
   PROCESSING
   COMPLETED
   FAILED
-  DATA_DELETED
 }
 
 // ─── S1: Own Workforce ──────────────────────────────────────────
