@@ -141,35 +141,6 @@ export default function HistoryPage() {
           )}
         </div>
 
-        {/* Original files */}
-        {files.length > 0 && (
-          <div className="card">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4" /> Original Source Files
-            </h3>
-            <div className="space-y-2">
-              {files.map((f, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm font-medium">{f.label}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a href={f.viewUrl} target="_blank" rel="noopener noreferrer"
-                      className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> View
-                    </a>
-                    <a href={f.downloadUrl}
-                      className="btn-secondary text-xs py-1 px-2 flex items-center gap-1">
-                      <Download className="w-3 h-3" /> Download
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Audit Trail */}
         <div className="card">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
@@ -243,7 +214,29 @@ export default function HistoryPage() {
                       <td className="px-3 py-2 text-right font-mono font-semibold">{r.totalEmissions?.toFixed(4)}</td>
                       <td className="px-3 py-2 text-gray-500">{r.calcMethod}</td>
                       <td className="px-3 py-2 text-right">{r.amount ? `${r.currency || ''} ${r.amount.toLocaleString()}` : '—'}</td>
-                      <td className="px-3 py-2 text-gray-400 text-xs truncate max-w-[100px]">{r.sourceDoc || '—'}</td>
+                      <td className="px-3 py-2">
+                        {r.sourceDoc && files.length > 0 ? (
+                          <div className="relative group">
+                            <a
+                              href={files[0].viewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-600 hover:text-brand-700 dark:text-brand-400 text-xs font-medium underline decoration-dotted underline-offset-2 flex items-center gap-1"
+                            >
+                              <FileText className="w-3 h-3" />
+                              {r.sourceDoc}
+                            </a>
+                            {/* Hover preview */}
+                            <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-50 pointer-events-none">
+                              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-1 w-48 h-64 overflow-hidden">
+                                <iframe src={files[0].viewUrl} className="w-full h-full rounded" title="Preview" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">{r.sourceDoc || '—'}</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
