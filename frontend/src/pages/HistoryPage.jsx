@@ -3,7 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
   FileSpreadsheet, Search, CheckCircle, XCircle, Loader2, ArrowLeft, ChevronRight,
-  User, Download, Eye, Shield, FileText, AlertTriangle, CheckCircle2
+  User, Download, Eye, Shield, FileText, AlertTriangle, CheckCircle2, Trash2
 } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
 
@@ -44,6 +44,7 @@ export default function HistoryPage() {
   const statusIcon = (s) => {
     if (s === 'COMPLETED') return <CheckCircle className="w-4 h-4 text-green-500" />;
     if (s === 'FAILED') return <XCircle className="w-4 h-4 text-red-500" />;
+    if (s === 'DATA_DELETED') return <Trash2 className="w-4 h-4 text-orange-500" />;
     return <Loader2 className="w-4 h-4 text-brand-600 animate-spin" />;
   };
 
@@ -120,7 +121,7 @@ export default function HistoryPage() {
             </div>
             <div className="flex items-center gap-2">
               {statusIcon(upload.status)}
-              <span className={`badge ${upload.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : upload.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+              <span className={`badge ${upload.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : upload.status === 'FAILED' ? 'bg-red-100 text-red-700' : upload.status === 'DATA_DELETED' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
                 {upload.status}
               </span>
             </div>
@@ -319,6 +320,7 @@ export default function HistoryPage() {
           <option value="COMPLETED">Completed</option>
           <option value="PROCESSING">Processing</option>
           <option value="FAILED">Failed</option>
+          <option value="DATA_DELETED">Data Deleted</option>
         </select>
       </div>
 

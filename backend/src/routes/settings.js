@@ -200,6 +200,23 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
     ]);
 
     const total = c1.count + c2.count + c3.count + c4.count + c5.count;
+    const userName = `${req.user.firstName} ${req.user.lastName}`;
+    const deletedAt = new Date().toLocaleString();
+
+    // Mark related upload history records as deleted (don't remove them)
+    await prisma.uploadHistory.updateMany({
+      where: {
+        companyId: req.user.companyId,
+        fileType: 'S1',
+        status: 'COMPLETED',
+        ...(orgUnitId ? { orgUnitId } : {}),
+      },
+      data: {
+        status: 'DATA_DELETED',
+        errorMessage: `Data deleted by ${userName} on ${deletedAt}. ${total} records removed for year ${year}${quarter ? ' Q' + quarter : ''}${orgUnitId ? ' (specific org unit)' : ''}.`,
+      },
+    });
+
     logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} S1 records for year ${year}`, { type: 's1', year, total }, req.ip);
     res.json({ message: `Successfully deleted ${total} S1 records for year ${year}.` });
   } catch (err) {
@@ -220,8 +237,25 @@ router.post('/reset/e1', requireAdmin, async (req, res) => {
       prisma.fE1GHGInventory.deleteMany({ where }),
     ]);
 
-    logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${c1.count + c2.count} E1 records for year ${year}`, { type: 'e1', year, total: c1.count + c2.count }, req.ip);
-    res.json({ message: `Successfully deleted ${c1.count + c2.count} E1 records for year ${year}.` });
+    const total = c1.count + c2.count;
+    const userName = `${req.user.firstName} ${req.user.lastName}`;
+    const deletedAt = new Date().toLocaleString();
+
+    // Mark related upload history records as deleted (don't remove them)
+    await prisma.uploadHistory.updateMany({
+      where: {
+        companyId: req.user.companyId,
+        fileType: 'E1',
+        status: 'COMPLETED',
+      },
+      data: {
+        status: 'DATA_DELETED',
+        errorMessage: `Data deleted by ${userName} on ${deletedAt}. ${total} records removed for year ${year}.`,
+      },
+    });
+
+    logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} E1 records for year ${year}`, { type: 'e1', year, total }, req.ip);
+    res.json({ message: `Successfully deleted ${total} E1 records for year ${year}.` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

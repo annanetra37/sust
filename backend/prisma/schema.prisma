@@ -173,6 +173,7 @@ enum UploadStatus {
   PROCESSING
   COMPLETED
   FAILED
+  DATA_DELETED
 }
 
 // ─── S1: Own Workforce ──────────────────────────────────────────
