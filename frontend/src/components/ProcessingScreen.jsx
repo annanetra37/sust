@@ -109,10 +109,23 @@ export default function ProcessingScreen({ progress, status, type }) {
             <CheckCircle className="w-10 h-10 text-green-500 animate-scale-in" />
           </div>
           <h3 className="text-xl font-bold text-green-700 dark:text-green-400">Processing Complete!</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-8">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {progress?.processedRows || 0} records processed and loaded into the data model.
           </p>
-          <div className="flex gap-3">
+          {/* Year mismatch warning */}
+          {progress?.error && status === 'COMPLETED' && (
+            <div className="mt-4 mb-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-left max-w-lg">
+              <div className="flex items-start gap-2">
+                <span className="text-amber-500 text-lg shrink-0">!</span>
+                <div>
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Year Mismatch Detected</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{progress.error}</p>
+                  <p className="text-[10px] text-amber-500 dark:text-amber-500 mt-1">The data was still assigned to your selected reporting year. Review in History if needed.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3 mt-4">
             <Link to={dashboardPath} className="btn-primary flex items-center gap-2 px-6 py-2.5">
               <BarChart3 className="w-4 h-4" /> Go to {dashboardLabel} <ArrowRight className="w-4 h-4" />
             </Link>

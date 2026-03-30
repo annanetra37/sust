@@ -355,6 +355,7 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
   const MAX_CONCURRENT = 3;
   let processed = 0;
   let succeeded = 0;
+  const yearWarnings = [];
 
   for (let i = 0; i < files.length; i += MAX_CONCURRENT) {
     const batch = files.slice(i, i + MAX_CONCURRENT);
@@ -391,13 +392,20 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           console.log('[Doc Extract] Item:', JSON.stringify({ subType: item.subType, qty, ef, ems, amt, scope: item.scope }));
 
           if (qty > 0 || amt > 0 || ems > 0) {
-            const itemMonth = item.date ? new Date(item.date).getMonth() + 1 : null;
+            const itemDate = item.date ? new Date(item.date) : null;
+            const itemMonth = itemDate ? itemDate.getMonth() + 1 : null;
+            const docYear = itemDate ? itemDate.getFullYear() : null;
+
+            // Track year mismatches for warnings
+            if (docYear && docYear !== reportingYear) {
+              yearWarnings.push({ file: extraction.sourceFile, docDate: item.date, docYear, reportingYear });
+            }
 
             await prisma.fE1EmissionActivityData.create({
               data: {
                 companyId: user.companyId,
                 orgUnitId,
-                year: reportingYear,
+                year: reportingYear, // ALWAYS use reporting year, not document year
                 month: itemMonth,
                 activityCategory: item.activityCategory || mode,
                 activitySubcat: item.subType || mode,
@@ -429,9 +437,22 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
     await aggregateGHGInventory(user.companyId, orgUnitId);
   }
 
+  // Build warning message if documents have dates from different years
+  let warningMsg = null;
+  if (yearWarnings.length > 0) {
+    const uniqueFiles = [...new Set(yearWarnings.map((w) => w.file))];
+    const uniqueYears = [...new Set(yearWarnings.map((w) => w.docYear))];
+    warningMsg = `Note: ${uniqueFiles.length} document(s) contain dates from year(s) ${uniqueYears.join(', ')}, but data was mapped to reporting year ${reportingYear} as requested. Documents: ${uniqueFiles.join(', ')}`;
+  }
+
   await prisma.uploadHistory.update({
     where: { id: uploadId },
-    data: { status: 'COMPLETED', processedRows: processed, completedAt: new Date() },
+    data: {
+      status: 'COMPLETED',
+      processedRows: processed,
+      completedAt: new Date(),
+      errorMessage: warningMsg, // reused for warnings on completed uploads
+    },
   });
 }
 
