@@ -136,6 +136,9 @@ const api = {
   createConnection: (data) => request('/connections', { method: 'POST', body: JSON.stringify(data) }),
   testConnection: (id) => request(`/connections/${id}/test`, { method: 'POST' }),
   deleteConnection: (id) => request(`/connections/${id}`, { method: 'DELETE' }),
+  listTables: (id) => request(`/connections/${id}/tables`),
+  listColumns: (id, table) => request(`/connections/${id}/tables/${table}/columns`),
+  pullData: (id, data) => request(`/connections/${id}/pull`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Activity Log
   getActivityLog: (params) => request(`/activity-log?${new URLSearchParams(params || {})}`),

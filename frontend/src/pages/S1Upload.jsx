@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Upload, FileSpreadsheet, Loader2, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, Loader2, Sparkles, Database } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
+import DatabaseImport from '../components/DatabaseImport';
 
 export default function S1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
   const [orgUnitId, setOrgUnitId] = useState('');
   const [reportingYear, setReportingYear] = useState(new Date().getFullYear());
+  const [tab, setTab] = useState('excel');
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadId, setUploadId] = useState(null);
@@ -91,10 +93,12 @@ export default function S1Upload() {
       </div>
 
       {!uploadId ? (
-        <div className="card space-y-4">
+        <>
+        {/* Year + Org Unit shared card */}
+        <div className="card">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <FieldLabel label="Reporting Year" required info="The ESG reporting year this data represents. All records will be assigned to this year regardless of dates in the spreadsheet." />
+              <FieldLabel label="Reporting Year" required info="The ESG reporting year this data represents." />
               <select className="input" value={reportingYear} onChange={(e) => setReportingYear(parseInt(e.target.value))}>
                 {years.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
@@ -106,7 +110,20 @@ export default function S1Upload() {
               </select>
             </div>
           </div>
+        </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+          <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('excel')}>
+            <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Spreadsheet
+          </button>
+          <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'database' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('database')}>
+            <Database className="w-4 h-4 inline mr-1" /> Database
+          </button>
+        </div>
+
+        {tab === 'excel' ? (
+        <div className="card space-y-4">
           {/* Drop zone */}
           <div
             className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-purple-400 dark:hover:border-purple-500 transition-colors cursor-pointer"
@@ -139,6 +156,15 @@ export default function S1Upload() {
             {uploading ? 'Starting AI processing...' : `Process with AI for ${reportingYear}`}
           </button>
         </div>
+        ) : tab === 'database' ? (
+          <DatabaseImport
+            orgUnitId={orgUnitId}
+            reportingYear={reportingYear}
+            type="S1"
+            onProcessingStarted={(id) => setUploadId(id)}
+          />
+        ) : null}
+        </>
       ) : (
         /* Processing screen */
         <ProcessingScreen progress={progress} status={progress?.status || 'PROCESSING'} type="S1" />

@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { Pool } = require('pg');
 const prisma = require('../config/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { formatError } = require('../utils/errors');
@@ -88,6 +89,128 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });
+  }
+});
+
+// ─── Browse: List tables in a connection ────────────────────
+
+router.get('/:id/tables', async (req, res) => {
+  try {
+    const conn = await prisma.dataConnection.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+
+    const cfg = conn.config;
+    const schema = cfg.schema || 'public';
+
+    if (!['postgresql', 'aws_rds'].includes(conn.type)) {
+      return res.status(400).json({ error: `Table browsing supported for PostgreSQL/RDS. ${conn.type} coming soon.` });
+    }
+
+    const pool = new Pool({
+      host: cfg.host, port: cfg.port || 5432,
+      database: cfg.database, user: cfg.username, password: cfg.password,
+      ssl: cfg.ssl ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+    });
+
+    try {
+      const result = await pool.query(
+        `SELECT table_name,
+                (SELECT count(*) FROM information_schema.columns c WHERE c.table_name = t.table_name AND c.table_schema = $1) as column_count
+         FROM information_schema.tables t
+         WHERE t.table_schema = $1 AND t.table_type = 'BASE TABLE'
+         ORDER BY table_name`, [schema]
+      );
+
+      const tables = [];
+      for (const row of result.rows) {
+        try {
+          const cnt = await pool.query(`SELECT count(*) FROM "${schema}"."${row.table_name}"`);
+          tables.push({ name: row.table_name, columns: parseInt(row.column_count), rows: parseInt(cnt.rows[0].count) });
+        } catch {
+          tables.push({ name: row.table_name, columns: parseInt(row.column_count), rows: '?' });
+        }
+      }
+      res.json({ schema, tables });
+    } finally {
+      await pool.end();
+    }
+  } catch (err) {
+    console.error('[Connections] Table list error:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to list tables.' });
+  }
+});
+
+// ─── Browse: List columns + sample data ─────────────────────
+
+router.get('/:id/tables/:tableName/columns', async (req, res) => {
+  try {
+    const conn = await prisma.dataConnection.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+
+    const cfg = conn.config;
+    const schema = cfg.schema || 'public';
+    const pool = new Pool({
+      host: cfg.host, port: cfg.port || 5432,
+      database: cfg.database, user: cfg.username, password: cfg.password,
+      ssl: cfg.ssl ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+    });
+
+    try {
+      const cols = await pool.query(
+        `SELECT column_name, data_type, is_nullable FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position`, [schema, req.params.tableName]
+      );
+      const sample = await pool.query(`SELECT * FROM "${schema}"."${req.params.tableName}" LIMIT 5`);
+      res.json({
+        table: req.params.tableName,
+        columns: cols.rows.map((c) => ({ name: c.column_name, type: c.data_type, nullable: c.is_nullable === 'YES' })),
+        sampleRows: sample.rows,
+      });
+    } finally {
+      await pool.end();
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to list columns.' });
+  }
+});
+
+// ─── Pull: Import data from a table ─────────────────────────
+
+router.post('/:id/pull', async (req, res) => {
+  try {
+    const conn = await prisma.dataConnection.findFirst({
+      where: { id: req.params.id, companyId: req.user.companyId },
+    });
+    if (!conn) return res.status(404).json({ error: 'Connection not found.' });
+
+    const { tableName, limit } = req.body;
+    if (!tableName) return res.status(400).json({ error: 'Table name is required.' });
+
+    const cfg = conn.config;
+    const schema = cfg.schema || 'public';
+    const rowLimit = Math.min(parseInt(limit) || 1000, 10000);
+
+    const pool = new Pool({
+      host: cfg.host, port: cfg.port || 5432,
+      database: cfg.database, user: cfg.username, password: cfg.password,
+      ssl: cfg.ssl ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+    });
+
+    try {
+      const result = await pool.query(`SELECT * FROM "${schema}"."${tableName}" LIMIT $1`, [rowLimit]);
+      res.json({ table: tableName, columns: result.fields.map((f) => f.name), rows: result.rows, totalPulled: result.rows.length });
+    } finally {
+      await pool.end();
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to pull data.' });
   }
 });
 

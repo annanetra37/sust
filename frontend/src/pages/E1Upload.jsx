@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles, Database } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
+import DatabaseImport from '../components/DatabaseImport';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -154,6 +155,9 @@ export default function E1Upload() {
         <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'doc-extract' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('doc-extract')}>
           <ScanSearch className="w-4 h-4 inline mr-1" /> Invoices & Receipts
         </button>
+        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'database' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('database')}>
+          <Database className="w-4 h-4 inline mr-1" /> Database
+        </button>
       </div>
 
       {tab === 'excel' ? (
@@ -235,7 +239,14 @@ export default function E1Upload() {
             {uploading ? 'AI is reading documents...' : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
           </button>
         </div>
-      )}
+      ) : tab === 'database' ? (
+        <DatabaseImport
+          orgUnitId={orgUnitId}
+          reportingYear={reportingYear}
+          type="E1"
+          onProcessingStarted={(id) => setUploadId(id)}
+        />
+      ) : null}
     </div>
   );
 }
