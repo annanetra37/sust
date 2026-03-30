@@ -192,7 +192,7 @@ export default function E1Upload() {
             {uploading ? 'Starting AI processing...' : `Process with AI for ${reportingYear}`}
           </button>
         </div>
-      ) : (
+      ) : tab === 'doc-extract' ? (
         <div className="card space-y-4">
           <div>
             <FieldLabel label="Document Type" info="Select the type of documents you're uploading for better extraction accuracy." />
