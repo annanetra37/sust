@@ -140,7 +140,7 @@ export default function E1Upload() {
           <div>
             <FieldLabel label="Organizational Unit" required info="The business unit this data belongs to." />
             <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
-              {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.country})</option>)}
             </select>
           </div>
         </div>

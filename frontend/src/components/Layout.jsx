@@ -15,9 +15,11 @@ const NAV = [
   { label: 'Home', path: '/', icon: LayoutDashboard },
   { label: 'Analytics', path: '/analytics', icon: BarChart3 },
   {
-    label: 'Environmental', icon: Leaf, color: 'text-esg-e',
+    label: 'Environmental', icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/50', activeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900',
     children: [
-      { label: 'Climate & Emissions', path: '/dashboard/E/environmental-1', tag: 'GHG · Carbon' },
+      { label: 'Climate & Emissions', path: '/dashboard/E/environmental-1' },
       { label: 'Pollution & Waste', path: '/coming-soon', badge: 'Soon' },
       { label: 'Water Resources', path: '/coming-soon', badge: 'Soon' },
       { label: 'Biodiversity', path: '/coming-soon', badge: 'Soon' },
@@ -25,16 +27,20 @@ const NAV = [
     ],
   },
   {
-    label: 'Social', icon: Users2, color: 'text-esg-s',
+    label: 'Social', icon: Users2, color: 'text-indigo-600 dark:text-indigo-400',
+    bg: 'bg-indigo-50 dark:bg-indigo-950/50', activeBg: 'bg-indigo-100 dark:bg-indigo-900/50',
+    iconBg: 'bg-indigo-100 dark:bg-indigo-900',
     children: [
-      { label: 'Workforce & Employees', path: '/dashboard/S/social-1', tag: 'DEI · HR' },
+      { label: 'Workforce & Employees', path: '/dashboard/S/social-1' },
       { label: 'Supply Chain Labor', path: '/coming-soon', badge: 'Soon' },
       { label: 'Community Impact', path: '/coming-soon', badge: 'Soon' },
       { label: 'Consumer Protection', path: '/coming-soon', badge: 'Soon' },
     ],
   },
   {
-    label: 'Governance', icon: Shield, color: 'text-esg-g',
+    label: 'Governance', icon: Shield, color: 'text-amber-600 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-950/50', activeBg: 'bg-amber-100 dark:bg-amber-900/50',
+    iconBg: 'bg-amber-100 dark:bg-amber-900',
     children: [
       { label: 'Board & Leadership', path: '/coming-soon', badge: 'Enterprise' },
       { label: 'Ethics & Compliance', path: '/coming-soon', badge: 'Enterprise' },
@@ -85,32 +91,36 @@ export default function Layout() {
               const isActive = item.children.some((c) => location.pathname === c.path);
 
               return (
-                <div key={item.label}>
+                <div key={item.label} className="mt-1">
                   <button
                     onClick={() => toggle(item.label)}
                     className={clsx(
-                      'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                      isActive ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                      'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                      isActive || isExpanded ? item.activeBg || 'bg-gray-100' : `hover:${item.bg || 'bg-gray-50'} text-gray-700 dark:text-gray-300`,
                     )}
                   >
-                    <item.icon className={clsx('w-4 h-4', item.color)} />
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
+                      <item.icon className={clsx('w-4 h-4', item.color)} />
+                    </div>
+                    <span className={clsx('flex-1 text-left', isActive ? 'text-gray-900 dark:text-white' : '')}>{item.label}</span>
+                    {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                   </button>
                   {isExpanded && (
-                    <div className="ml-6 mt-1 space-y-0.5">
+                    <div className="ml-5 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
                       {item.children.map((child) => (
                         <Link
                           key={child.path + child.label}
                           to={child.path}
                           className={clsx(
                             'block px-3 py-1.5 rounded-lg text-sm transition-colors',
-                            location.pathname === child.path ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-50'
+                            location.pathname === child.path
+                              ? `${item.activeBg || 'bg-brand-50'} ${item.color} font-medium`
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                           )}
                         >
                           {child.label}
                           {child.badge && (
-                            <span className="ml-2 badge bg-gray-100 text-gray-500">{child.badge}</span>
+                            <span className="ml-2 badge bg-gray-100 dark:bg-gray-700 text-gray-400 text-[10px]">{child.badge}</span>
                           )}
                         </Link>
                       ))}
