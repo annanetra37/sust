@@ -75,20 +75,36 @@ export default function HistoryPage() {
     }
   };
 
-  const getFileLinks = (upload) => {
-    if (!upload.storedFilePath) return [];
-    const paths = upload.storedFilePath.split('||');
-    return paths.map((_, i) => ({
-      downloadUrl: authUrl(`/history/${upload.id}/download/${i}`),
-      viewUrl: authUrl(`/history/${upload.id}/view/${i}`),
-      label: paths.length > 1 ? `File ${i + 1}` : upload.fileName,
-    }));
+  // Parse stored file paths — supports both "path" and "name::path" formats
+  const getFileMap = (upload) => {
+    if (!upload.storedFilePath) return { files: [], byName: {} };
+    const entries = upload.storedFilePath.split('||');
+    const files = [];
+    const byName = {};
+    entries.forEach((entry, i) => {
+      let name, path;
+      if (entry.includes('::')) {
+        [name, path] = entry.split('::');
+      } else {
+        name = `File ${i + 1}`;
+        path = entry;
+      }
+      const f = {
+        name,
+        downloadUrl: authUrl(`/history/${upload.id}/download/${i}`),
+        viewUrl: authUrl(`/history/${upload.id}/view/${i}`),
+        index: i,
+      };
+      files.push(f);
+      byName[name] = f;
+    });
+    return { files, byName };
   };
 
   // ─── Detail View ────────────────────────────────
   if (detail) {
     const { upload, transformedData, creditTransaction, recordCount } = detail;
-    const files = getFileLinks(upload);
+    const { files, byName: filesByName } = getFileMap(upload);
 
     return (
       <div className="space-y-6 max-w-6xl mx-auto">
@@ -215,27 +231,39 @@ export default function HistoryPage() {
                       <td className="px-3 py-2 text-gray-500">{r.calcMethod}</td>
                       <td className="px-3 py-2 text-right">{r.amount ? `${r.currency || ''} ${r.amount.toLocaleString()}` : '—'}</td>
                       <td className="px-3 py-2">
-                        {r.sourceDoc && files.length > 0 ? (
-                          <div className="relative group">
-                            <a
-                              href={files[0].viewUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-brand-600 hover:text-brand-700 dark:text-brand-400 text-xs font-medium underline decoration-dotted underline-offset-2 flex items-center gap-1"
-                            >
-                              <FileText className="w-3 h-3" />
-                              {r.sourceDoc}
-                            </a>
-                            {/* Hover preview */}
-                            <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-50 pointer-events-none">
-                              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-1 w-48 h-64 overflow-hidden">
-                                <iframe src={files[0].viewUrl} className="w-full h-full rounded" title="Preview" />
+                        {(() => {
+                          const file = r.sourceDoc ? (filesByName[r.sourceDoc] || files[0]) : null;
+                          if (!file || !r.sourceDoc) return <span className="text-gray-400 text-xs">{r.sourceDoc || '—'}</span>;
+                          return (
+                            <div className="relative group">
+                              <a href={file.viewUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-brand-600 hover:text-brand-700 dark:text-brand-400 text-xs font-medium underline decoration-dotted underline-offset-2 flex items-center gap-1">
+                                <FileText className="w-3 h-3" />{r.sourceDoc}
+                              </a>
+                              <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-50">
+                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 w-72">
+                                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2 truncate">{r.sourceDoc}</p>
+                                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2 text-[10px] text-gray-500 dark:text-gray-400 space-y-0.5">
+                                    <p>Category: <span className="font-medium text-gray-700 dark:text-gray-300">{r.activityCategory}</span></p>
+                                    <p>Scope: <span className="font-medium text-gray-700 dark:text-gray-300">{r.scope}</span></p>
+                                    <p>Emissions: <span className="font-medium text-gray-700 dark:text-gray-300">{r.totalEmissions?.toFixed(4)} tCO2e</span></p>
+                                    {r.amount && <p>Amount: <span className="font-medium text-gray-700 dark:text-gray-300">{r.currency} {r.amount}</span></p>}
+                                  </div>
+                                  <div className="flex gap-2 mt-2">
+                                    <a href={file.viewUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                                      className="flex-1 text-center text-[10px] px-2 py-1 rounded bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 font-medium">
+                                      Open Document
+                                    </a>
+                                    <a href={file.downloadUrl} onClick={(e) => e.stopPropagation()}
+                                      className="flex-1 text-center text-[10px] px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 font-medium">
+                                      Download
+                                    </a>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">{r.sourceDoc || '—'}</span>
-                        )}
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}

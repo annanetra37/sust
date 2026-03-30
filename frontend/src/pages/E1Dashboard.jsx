@@ -104,7 +104,8 @@ export default function E1Dashboard() {
           <h3 className="font-semibold mb-4">Emissions by Scope</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={charts.byScope} dataKey="value" nameKey="scope" cx="50%" cy="50%" innerRadius={60} outerRadius={100} label>
+              <Pie data={charts.byScope} dataKey="value" nameKey="scope" cx="50%" cy="50%" innerRadius={60} outerRadius={100}
+                label={({ value }) => `${value.toFixed(2)}`}>
                 {charts.byScope.map((entry) => (
                   <Cell key={entry.scope} fill={SCOPE_COLORS[entry.scope] || '#94a3b8'} />
                 ))}

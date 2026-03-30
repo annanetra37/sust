@@ -274,10 +274,26 @@ ${modeInstructions[mode]}
 - Vehicle petrol: 0.171/km or 2.31/litre
 - Vehicle diesel: 0.168/km or 2.68/litre
 
+## CRITICAL ACCURACY RULES
+1. **Distances must be realistic**:
+   - Short-haul flights: 200-1500 km (e.g., London-Paris ≈ 340km, Vienna-Nuremberg ≈ 460km)
+   - Medium-haul flights: 1500-4000 km (e.g., London-Istanbul ≈ 2500km)
+   - Long-haul flights: 4000-18000 km (e.g., London-NYC ≈ 5500km, London-Tokyo ≈ 9500km)
+   - Train journeys in Europe: typically 100-1500 km (Vienna-Nuremberg ≈ 460km by train)
+   - If the document mentions specific cities, calculate the REAL geographic distance between them
+   - NEVER estimate a European train journey over 2000km or a short-haul flight over 1500km
+2. **Verify calculations**: emissions = (quantity × emissionFactor) / 1000 for tCO2e
+3. **Use the correct emission factor** based on transport/energy type — don't guess
+4. **Hotel nights**: count from check-in to check-out dates; don't confuse room count with nights
+5. **Energy**: if meter readings are given, usage = new_reading - old_reading
+6. **Currency**: extract the actual currency shown, don't assume USD
+7. **Passengers**: default to 1 unless explicitly stated otherwise
+
 ## Instructions
-Extract ALL emission-relevant data points from this document. Calculate emissions in tCO2e.
-Convert any non-metric units (miles→km, gallons→litres).
-Determine the correct GHG Protocol scope (Scope 1/2/3).
+Extract ALL emission-relevant data points. Calculate emissions in tCO2e.
+Convert non-metric units (miles→km, gallons→litres).
+Determine GHG Protocol scope (Scope 1/2/3).
+Double-check your distance calculations against known geography.
 
 Return ONLY valid JSON:
 {
@@ -285,19 +301,19 @@ Return ONLY valid JSON:
     {
       "subType": "Short-haul Flight",
       "activityCategory": "Business Travel",
-      "quantity": 1200,
-      "unit": "km",
+      "quantity": 340,
+      "unit": "passenger-km",
       "emissionFactor": 0.156,
-      "emissions": 0.1872,
+      "emissions": 0.053,
       "scope": "Scope 3",
       "currency": "EUR",
-      "amount": 340.50,
+      "amount": 149.50,
       "date": "2024-03-15",
-      "details": {"departure": "London", "arrival": "Paris", "passengers": 1}
+      "details": {"departure": "Vienna", "arrival": "Nuremberg", "passengers": 1, "distanceKm": 340}
     }
   ],
   "confidence": 0.85,
-  "notes": "Invoice is in German, amounts include VAT"
+  "notes": "Invoice is in German, distance verified: Vienna-Nuremberg ≈ 340km"
 }
 
 If you cannot extract meaningful data, return {"items": [], "confidence": 0, "notes": "reason"}.`;

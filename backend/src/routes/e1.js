@@ -101,20 +101,22 @@ router.get('/dashboard', async (req, res) => {
     };
   }
 
+  const round4 = (n) => Math.round(n * 10000) / 10000;
+
   res.json({
     stats: {
-      totalEmissions,
-      intensity: parseFloat(intensity),
+      totalEmissions: round4(totalEmissions),
+      intensity: round4(parseFloat(intensity)),
       totalEmployees: inventoryEmployees,
       activityCount: activities.length,
       totalAmount: activities.reduce((s, r) => s + (r.amount || 0), 0),
       sbtiProgress,
     },
     charts: {
-      byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value })),
-      byActivity: Object.entries(byActivity).map(([activity, value]) => ({ activity, value })),
+      byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value: Math.round(value * 10000) / 10000 })),
+      byActivity: Object.entries(byActivity).map(([activity, value]) => ({ activity, value: Math.round(value * 10000) / 10000 })),
       byOrgUnit,
-      emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value })),
+      emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value: Math.round(value * 10000) / 10000 })),
     },
     raw: { activities, inventory },
   });
@@ -325,7 +327,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
         fileName: `AI Doc Extract — ${mode} (${docCount} files)`,
         fileType: 'E1', orgUnit: orgUnit ? orgUnit.name : orgUnitId, orgUnitId,
         status: 'PROCESSING', totalRows: docCount,
-        storedFilePath: storedFiles.map((f) => f.storedFilePath).join('||'),
+        storedFilePath: storedFiles.map((f) => `${f.originalName}::${f.storedFilePath}`).join('||'),
         storedFileSize: storedFiles.reduce((s, f) => s + (f.storedFileSize || 0), 0),
         storedFileMime: firstFile.storedFileMime,
       },
