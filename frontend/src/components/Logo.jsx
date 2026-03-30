@@ -1,6 +1,6 @@
 import { useTheme } from '../context/ThemeContext';
 
-export function LogoMark({ className = 'w-10 h-10' }) {
+export function LogoMark({ className = 'w-12 h-12' }) {
   const { dark } = useTheme();
   return <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className={className} />;
 }
@@ -8,8 +8,8 @@ export function LogoMark({ className = 'w-10 h-10' }) {
 export function LogoFull({ className = '' }) {
   const { dark } = useTheme();
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className="w-11 h-11" />
+    <div className={`flex items-center gap-2 ${className}`}>
+      <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className="w-14 h-14" />
       <div className="flex flex-col">
         <span className="font-bold text-[17px] tracking-[0.2em] leading-tight text-gray-900 dark:text-white">
           TRIPLE I
@@ -22,7 +22,7 @@ export function LogoFull({ className = '' }) {
   );
 }
 
-export function LogoIcon({ className = 'w-8 h-8' }) {
+export function LogoIcon({ className = 'w-10 h-10' }) {
   const { dark } = useTheme();
   return <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className={className} />;
 }
