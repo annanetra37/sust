@@ -23,10 +23,16 @@ export default function OrgYearFilter({ filters, onChange }) {
   }, []);
 
   const toggleUnit = (id) => {
-    const next = selected.includes(id) ? selected.filter((u) => u !== id) : [...selected, id];
+    let next;
+    if (selected.includes(id)) {
+      next = selected.filter((u) => u !== id);
+    } else {
+      next = [...selected, id];
+    }
     setSelected(next);
     setAllSelected(next.length === 0);
-    onChange({ ...filters, orgUnits: next.join(',') });
+    // Pass empty string when no specific units selected (= all units)
+    onChange({ ...filters, orgUnits: next.length > 0 ? next.join(',') : '' });
   };
 
   const selectAll = () => {

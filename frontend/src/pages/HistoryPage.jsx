@@ -193,20 +193,29 @@ export default function HistoryPage() {
             <div className="mt-4 border-t dark:border-gray-700 pt-4">
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Source File{files.length > 1 ? 's' : ''}</p>
               <div className="space-y-2">
-                {files.map((f, i) => (
+                {files.map((f, i) => {
+                  const ext = (f.name || '').split('.').pop()?.toLowerCase();
+                  const isViewable = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext);
+                  // For Excel/CSV, use Google Docs Viewer for inline preview
+                  const viewHref = isViewable
+                    ? f.viewUrl
+                    : `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + f.downloadUrl)}&embedded=true`;
+
+                  return (
                   <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <FileSpreadsheet className="w-5 h-5 text-brand-500 shrink-0" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 truncate">{f.name}</span>
-                    <a href={f.viewUrl} target="_blank" rel="noopener noreferrer"
+                    <a href={isViewable ? f.viewUrl : viewHref} target="_blank" rel="noopener noreferrer"
                       className="text-xs px-3 py-1.5 rounded-md bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-800 font-medium transition-colors">
-                      View
+                      {isViewable ? 'View' : 'Preview'}
                     </a>
                     <a href={f.downloadUrl}
                       className="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors flex items-center gap-1">
                       <Download className="w-3 h-3" /> Download
                     </a>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -293,7 +302,7 @@ export default function HistoryPage() {
           {transformedData.length === 0 ? (
             <div className="p-8 text-center text-gray-400">No transformed records found.</div>
           ) : upload.fileType === 'E1' ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" style={{ overflow: 'visible' }}>
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
                   <tr>
@@ -325,22 +334,26 @@ export default function HistoryPage() {
                                 className="text-brand-600 hover:text-brand-700 dark:text-brand-400 text-xs font-medium underline decoration-dotted underline-offset-2 flex items-center gap-1">
                                 <FileText className="w-3 h-3" />{r.sourceDoc}
                               </a>
-                              <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-50">
-                                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-3 w-72">
-                                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2 truncate">{r.sourceDoc}</p>
-                                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-2 text-[10px] text-gray-500 dark:text-gray-400 space-y-0.5">
-                                    <p>Category: <span className="font-medium text-gray-700 dark:text-gray-300">{r.activityCategory}</span></p>
-                                    <p>Scope: <span className="font-medium text-gray-700 dark:text-gray-300">{r.scope}</span></p>
-                                    <p>Emissions: <span className="font-medium text-gray-700 dark:text-gray-300">{r.totalEmissions?.toFixed(4)} tCO2e</span></p>
-                                    {r.amount && <p>Amount: <span className="font-medium text-gray-700 dark:text-gray-300">{r.currency} {r.amount}</span></p>}
+                              {/* Tooltip — positioned to the left to avoid overflow clipping */}
+                              <div className="fixed-tooltip hidden group-hover:block">
+                                <div className="absolute bottom-full right-0 mb-2 z-[100] w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4">
+                                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">{r.sourceDoc}</p>
+                                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
+                                    <div className="flex justify-between"><span className="text-gray-400">Category</span><span className="font-medium">{r.activityCategory}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Subcategory</span><span className="font-medium">{r.activitySubcat}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Scope</span><span className={`badge text-[10px] ${r.scope === 'Scope 1' ? 'bg-red-100 text-red-700' : r.scope === 'Scope 2' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{r.scope}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Quantity</span><span className="font-medium">{r.quantity} {r.unit}</span></div>
+                                    <div className="flex justify-between"><span className="text-gray-400">Emissions</span><span className="font-bold text-gray-900 dark:text-white">{r.totalEmissions?.toFixed(4)} tCO2e</span></div>
+                                    {r.amount > 0 && <div className="flex justify-between"><span className="text-gray-400">Amount</span><span className="font-medium">{r.currency} {r.amount?.toLocaleString()}</span></div>}
+                                    <div className="flex justify-between"><span className="text-gray-400">EF</span><span className="font-medium">{r.emissionFactor} kg CO2e/{r.unit}</span></div>
                                   </div>
-                                  <div className="flex gap-2 mt-2">
+                                  <div className="flex gap-2 mt-3">
                                     <a href={file.viewUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
-                                      className="flex-1 text-center text-[10px] px-2 py-1 rounded bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 font-medium">
-                                      Open Document
+                                      className="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 font-medium transition-colors">
+                                      View Document
                                     </a>
                                     <a href={file.downloadUrl} onClick={(e) => e.stopPropagation()}
-                                      className="flex-1 text-center text-[10px] px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 font-medium">
+                                      className="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 font-medium transition-colors">
                                       Download
                                     </a>
                                   </div>
