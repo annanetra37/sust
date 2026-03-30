@@ -45,7 +45,7 @@ export default function Login() {
 
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <LogoFull className="mb-3" />
+          <LogoFull className="mb-3" size="large" />
           <p className="text-gray-500 dark:text-gray-400 mt-2">Sign in to your account</p>
         </div>
 

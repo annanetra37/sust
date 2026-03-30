@@ -1,26 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 400 400">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="140 95 105 100">
   <defs>
     <style>
-      .cls-1 {
-        fill: url(#linear-gradient);
-      }
-
-      .cls-1, .cls-2, .cls-3, .cls-4 {
-        stroke-width: 0px;
-      }
-
-      .cls-2 {
-        fill: url(#linear-gradient-2);
-      }
-
-      .cls-3 {
-        fill: #003700;
-      }
-
-      .cls-4 {
-        fill: url(#linear-gradient-3);
-      }
+      .cls-1 { fill: url(#linear-gradient); }
+      .cls-1, .cls-2, .cls-3, .cls-4 { stroke-width: 0px; }
+      .cls-2 { fill: url(#linear-gradient-2); }
+      .cls-3 { fill: #003700; }
+      .cls-4 { fill: url(#linear-gradient-3); }
     </style>
     <linearGradient id="linear-gradient" x1="183.37" y1="128.86" x2="167.3" y2="157.2" gradientTransform="translate(130.42 366.52) rotate(-118.34)" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#003700"/>

@@ -41,7 +41,7 @@ export default function Signup() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-gray-100 px-4 py-8">
       <div className="w-full max-w-lg">
         <div className="flex flex-col items-center mb-6">
-          <LogoFull className="mb-3" />
+          <LogoFull className="mb-3" size="large" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">Create Account</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Step {step} of 2 — {step === 1 ? 'Personal Information' : 'Company Details'}</p>
         </div>
