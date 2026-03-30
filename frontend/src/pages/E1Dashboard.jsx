@@ -15,10 +15,11 @@ const TREE_COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ef4444', '#ec
 export default function E1Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
+  const [filters, setFilters] = useState({ year: null, orgUnits: '' });
   const filterKey = `${filters.year}|${filters.orgUnits}`;
 
   useEffect(() => {
+    if (!filters.year) return; // Wait for OrgYearFilter to set the correct year
     setLoading(true);
     api.getE1Dashboard(filters).then(setData).catch(console.error).finally(() => setLoading(false));
   }, [filterKey]);

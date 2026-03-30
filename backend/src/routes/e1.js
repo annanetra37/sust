@@ -340,6 +340,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
         });
       });
 
+    logActivity(req.user.id, req.user.companyId, 'DOC_EXTRACT', `Extracted ${docCount} document(s) — ${mode} for ${orgUnit ? orgUnit.name : orgUnitId} (${docYear})`, { mode, docCount, year: docYear }, req.ip);
     res.status(202).json({ message: 'AI document extraction started', uploadId: uploadRecord.id, documents: docCount });
   } catch (err) {
     console.error('Doc extract upload error:', err);

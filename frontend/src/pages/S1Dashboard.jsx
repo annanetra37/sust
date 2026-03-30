@@ -11,10 +11,11 @@ const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#64748b'];
 export default function S1Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
+  const [filters, setFilters] = useState({ year: null, orgUnits: '' });
   const filterKey = `${filters.year}|${filters.orgUnits}`;
 
   useEffect(() => {
+    if (!filters.year) return; // Wait for OrgYearFilter to set the correct year
     setLoading(true);
     api.getS1Dashboard(filters).then(setData).catch(console.error).finally(() => setLoading(false));
   }, [filterKey]);

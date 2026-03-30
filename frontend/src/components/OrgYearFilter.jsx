@@ -7,16 +7,21 @@ export default function OrgYearFilter({ filters, onChange }) {
   const [years, setYears] = useState([]);
   const [selected, setSelected] = useState([]);
   const [allSelected, setAllSelected] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getOrgUnits(), api.getDataYears()]).then(([units, yrs]) => {
       setOrgUnits(units);
       setYears(yrs);
-      // Default to most recent year with data
-      if (yrs.length > 0 && !filters.year) {
-        onChange({ ...filters, year: yrs[0] });
+      // Auto-select the most recent year with data
+      if (yrs.length > 0) {
+        const bestYear = yrs[0]; // years are sorted desc
+        if (bestYear !== filters.year) {
+          onChange({ ...filters, year: bestYear });
+        }
       }
-    }).catch(() => {});
+      setInitialized(true);
+    }).catch(() => setInitialized(true));
   }, []);
 
   const toggleUnit = (id) => {
@@ -32,6 +37,8 @@ export default function OrgYearFilter({ filters, onChange }) {
     onChange({ ...filters, orgUnits: '' });
   };
 
+  if (!initialized) return null;
+
   return (
     <div className="flex flex-wrap gap-3 items-center">
       <div className="flex items-center gap-1.5">
@@ -41,6 +48,7 @@ export default function OrgYearFilter({ filters, onChange }) {
           onChange={(e) => onChange({ ...filters, year: parseInt(e.target.value) })}
         >
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          {years.length === 0 && <option value={filters.year}>{filters.year}</option>}
         </select>
         <InfoTip>Only years with uploaded data are shown.</InfoTip>
       </div>
@@ -51,7 +59,7 @@ export default function OrgYearFilter({ filters, onChange }) {
           className={`px-3 py-1 rounded-full text-sm border transition-colors ${
             allSelected
               ? 'bg-brand-600 text-white border-brand-600'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-brand-300'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-brand-300'
           }`}
         >
           All Units
@@ -63,7 +71,7 @@ export default function OrgYearFilter({ filters, onChange }) {
             className={`px-3 py-1 rounded-full text-sm border transition-colors ${
               selected.includes(unit.id)
                 ? 'bg-brand-600 text-white border-brand-600'
-                : 'bg-white text-gray-600 border-gray-300 hover:border-brand-300'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-brand-300'
             }`}
           >
             {unit.name}
