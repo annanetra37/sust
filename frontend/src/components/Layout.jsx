@@ -78,9 +78,9 @@ export default function Layout() {
         'bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-all duration-200',
         sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'
       )}>
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+        <Link to="/" className="block p-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
           <LogoFull />
-        </div>
+        </Link>
 
         <nav className="flex-1 overflow-y-auto py-2 px-2">
           {NAV.map((item) => {
