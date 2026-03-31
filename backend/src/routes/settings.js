@@ -201,15 +201,13 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
 
     const total = c1.count + c2.count + c3.count + c4.count + c5.count;
     const userName = `${req.user.firstName} ${req.user.lastName}`;
-    const deletedAt = new Date().toLocaleString();
 
     // Mark related upload history records as deleted (preserve the record)
-    await prisma.uploadHistory.updateMany({
+    const updateResult = await prisma.uploadHistory.updateMany({
       where: {
         companyId: req.user.companyId,
         fileType: 'S1',
-        status: 'COMPLETED',
-        ...(orgUnitId ? { orgUnitId } : {}),
+        deletedAt: null, // only mark records not already deleted
       },
       data: {
         deletedAt: new Date(),
@@ -217,9 +215,10 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
         deletedNote: `${total} records removed for year ${year}${quarter ? ' Q' + quarter : ''}${orgUnitId ? ' (specific org unit)' : ''}.`,
       },
     });
+    console.log(`[Reset S1] Marked ${updateResult.count} history records as deleted`);
 
     logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} S1 records for year ${year}`, { type: 's1', year, total }, req.ip);
-    res.json({ message: `Successfully deleted ${total} S1 records for year ${year}.` });
+    res.json({ message: `Successfully deleted ${total} S1 records for year ${year}. ${updateResult.count} history records marked.` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });
@@ -240,14 +239,13 @@ router.post('/reset/e1', requireAdmin, async (req, res) => {
 
     const total = c1.count + c2.count;
     const userName = `${req.user.firstName} ${req.user.lastName}`;
-    const deletedAt = new Date().toLocaleString();
 
     // Mark related upload history records as deleted (preserve the record)
-    await prisma.uploadHistory.updateMany({
+    const updateResult = await prisma.uploadHistory.updateMany({
       where: {
         companyId: req.user.companyId,
         fileType: 'E1',
-        status: 'COMPLETED',
+        deletedAt: null,
       },
       data: {
         deletedAt: new Date(),
@@ -255,9 +253,10 @@ router.post('/reset/e1', requireAdmin, async (req, res) => {
         deletedNote: `${total} records removed for year ${year}.`,
       },
     });
+    console.log(`[Reset E1] Marked ${updateResult.count} history records as deleted`);
 
     logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} E1 records for year ${year}`, { type: 'e1', year, total }, req.ip);
-    res.json({ message: `Successfully deleted ${total} E1 records for year ${year}.` });
+    res.json({ message: `Successfully deleted ${total} E1 records for year ${year}. ${updateResult.count} history records marked.` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

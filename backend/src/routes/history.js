@@ -47,7 +47,14 @@ router.get('/', async (req, res) => {
 
     const where = { companyId: req.user.companyId };
     if (fileType) where.fileType = fileType;
-    if (status) where.status = status;
+    if (status) {
+      if (status === 'DELETED') {
+        where.deletedAt = { not: null };
+      } else {
+        where.status = status;
+        // Don't filter out deleted records when viewing all
+      }
+    }
     if (search) where.fileName = { contains: search, mode: 'insensitive' };
 
     const [records, total] = await Promise.all([

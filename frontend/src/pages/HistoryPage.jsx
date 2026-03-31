@@ -417,6 +417,7 @@ export default function HistoryPage() {
           <option value="COMPLETED">Completed</option>
           <option value="PROCESSING">Processing</option>
           <option value="FAILED">Failed</option>
+          <option value="DELETED">Data Deleted</option>
         </select>
       </div>
 
