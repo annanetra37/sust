@@ -247,7 +247,16 @@ async function extractDocumentWithAI(text, mode) {
   const modeInstructions = {
     Travel: `Extract travel/transport data: transport type (flight/train/bus/taxi/car rental), departure city/airport, arrival city/airport, distance in km, number of passengers, ticket fare/cost, currency, date. For flights determine if short-haul (<1500km), medium-haul (1500-4000km), or long-haul (>4000km).`,
     Stay: `Extract accommodation data: hotel/property name, city/location, number of nights, number of rooms, nightly rate, total cost, currency, check-in date, check-out date.`,
-    Energy: `Extract energy consumption data: energy type (electricity/natural gas/diesel/petrol/LPG/heating oil), quantity consumed, unit (kWh/litres/m³/therms/gallons), meter readings (old and new if available), billing period, total cost, currency, supplier name.`,
+    Energy: `Extract energy consumption data from utility bills/invoices. Look for:
+- Energy type: electricity, natural gas, diesel, petrol, LPG, heating oil, district heating
+- Quantity consumed: look for kWh, MWh, litres, m³, therms, gallons, units
+- If meter readings are given: usage = new_reading - old_reading
+- If only cost is shown: still extract the amount, our system will estimate usage
+- Total cost/amount paid, currency
+- Billing period dates, supplier name
+- For electricity: use activityCategory="Purchased Electricity", scope="Scope 2"
+- For gas/heating/fuel: use activityCategory="Stationary Combustion", scope="Scope 1"
+IMPORTANT: Always extract the quantity even if approximate. If the bill shows MWh, convert to kWh (1 MWh = 1000 kWh). If it shows therms, convert (1 therm = 29.3 kWh). Always provide a non-zero quantity or amount.`,
     'Company Vehicle': `Extract company vehicle/service vehicle data: vehicle type, fuel type (petrol/diesel/hybrid/electric), distance driven (km or miles), fuel quantity (litres or gallons), vehicle registration/plate number, date, cost, currency. IMPORTANT: For company vehicles, always use activityCategory="Mobile Combustion" and subType="Service Vehicles".`,
   };
 

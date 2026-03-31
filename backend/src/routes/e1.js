@@ -374,10 +374,20 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
     for (const result of batchResults) {
       processed++;
 
-      if (result.status === 'fulfilled' && result.value?.items?.length > 0) {
+      if (result.status === 'fulfilled' && result.value) {
         const extraction = result.value;
+        console.log('[Doc Extract] Extraction result:', JSON.stringify({
+          file: extraction.sourceFile,
+          itemCount: extraction.items?.length || 0,
+          confidence: extraction.confidence,
+          notes: extraction.notes,
+        }));
 
-        for (const item of extraction.items) {
+        if (!extraction.items || extraction.items.length === 0) {
+          console.warn('[Doc Extract] No items extracted from:', extraction.sourceFile, '— Notes:', extraction.notes);
+        }
+
+        for (const item of (extraction.items || [])) {
           // Accept any item that has meaningful data
           const qty = parseFloat(item.quantity) || 0;
           const amt = parseFloat(item.amount) || 0;
@@ -389,7 +399,7 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
             ems = (qty * ef) / 1000; // kg to tonnes
           }
 
-          console.log('[Doc Extract] Item:', JSON.stringify({ subType: item.subType, qty, ef, ems, amt, scope: item.scope }));
+          console.log('[Doc Extract] Item:', JSON.stringify({ subType: item.subType, qty, ef, ems, amt, scope: item.scope, unit: item.unit }));
 
           if (qty > 0 || amt > 0 || ems > 0) {
             const itemDate = item.date ? new Date(item.date) : null;
@@ -401,10 +411,26 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
               yearWarnings.push({ file: extraction.sourceFile, docDate: item.date, docYear, reportingYear });
             }
 
-            // Enforce standard category names for specific modes
+            // Enforce standard ESG category names for specific modes
             let category = item.activityCategory || mode;
             let subcat = item.subType || mode;
-            if (mode === 'Company Vehicle') {
+            if (mode === 'Energy') {
+              // Map energy types to standard categories
+              const sub = (item.subType || '').toLowerCase();
+              if (sub.includes('electric') || sub.includes('grid') || sub.includes('power')) {
+                category = 'Purchased Electricity';
+                subcat = item.subType || 'Grid Electricity';
+              } else if (sub.includes('gas') || sub.includes('natural')) {
+                category = 'Stationary Combustion';
+                subcat = item.subType || 'Natural Gas';
+              } else if (sub.includes('diesel') || sub.includes('heating') || sub.includes('oil') || sub.includes('fuel')) {
+                category = 'Stationary Combustion';
+                subcat = item.subType || 'Heating Oil';
+              } else {
+                category = item.activityCategory || 'Purchased Electricity';
+                subcat = item.subType || 'Grid Electricity';
+              }
+            } else if (mode === 'Company Vehicle') {
               category = 'Mobile Combustion';
               subcat = item.subType || 'Service Vehicles';
               // Ensure subcat includes "Service Vehicles" if AI used a different name
@@ -436,7 +462,10 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           }
         }
       } else if (result.status === 'rejected') {
-        console.error(`AI extraction failed: ${result.reason?.message || result.reason}`);
+        console.error(`[Doc Extract] FAILED for document:`, result.reason?.message || result.reason);
+        console.error(`[Doc Extract] Full error:`, result.reason);
+      } else if (result.status === 'fulfilled' && !result.value) {
+        console.warn('[Doc Extract] Fulfilled but no result value returned');
       }
 
       await prisma.uploadHistory.update({ where: { id: uploadId }, data: { processedRows: processed } });
