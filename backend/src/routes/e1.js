@@ -46,10 +46,15 @@ router.get('/dashboard', async (req, res) => {
     console.log('[E1 Dashboard] Sample activity:', JSON.stringify({ year: activities[0].year, scope: activities[0].scope, totalEmissions: activities[0].totalEmissions, category: activities[0].activityCategory }));
   }
 
-  // Compute stats from activity data (source of truth) — not inventory
+  // Compute stats from activity data (source of truth)
   const totalEmissions = activities.reduce((s, r) => s + (r.totalEmissions || 0), 0);
-  const inventoryEmployees = inventory.reduce((s, r) => s + (r.employeeCount || 0), 0);
-  const intensity = inventoryEmployees > 0 ? (totalEmissions / inventoryEmployees).toFixed(2) : 0;
+
+  // Get employee count from S1 workforce data for the same year (for intensity calculation)
+  const s1Composition = await prisma.fS1WorkforceComposition.findMany({
+    where: { companyId, year: y, ...orgFilter },
+  });
+  const totalEmployees = s1Composition.reduce((s, r) => s + (r.employeeCount || 0), 0);
+  const intensity = totalEmployees > 0 ? (totalEmissions / totalEmployees).toFixed(4) : 0;
 
   // By scope — from activity data
   const byScope = {};
@@ -107,7 +112,7 @@ router.get('/dashboard', async (req, res) => {
     stats: {
       totalEmissions: round4(totalEmissions),
       intensity: round4(parseFloat(intensity)),
-      totalEmployees: inventoryEmployees,
+      totalEmployees,
       activityCount: activities.length,
       totalAmount: activities.reduce((s, r) => s + (r.amount || 0), 0),
       sbtiProgress,
