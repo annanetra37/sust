@@ -99,37 +99,45 @@ export default function E1Upload() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">E1 — Connect Emissions Data</h1>
-        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets, scan invoices, or connect a data source</p>
+        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets, scan invoices, or pull from a connected database</p>
       </div>
 
-      <HelpBanner
-        id="e1-upload-guide"
-        title="Two Ways to Connect Emissions Data"
-        variant="info"
-        steps={[
-          'Select the reporting year and organizational unit first',
-          'Spreadsheet: Upload Excel/CSV — AI maps columns and assigns scopes automatically',
-          'Invoices & Receipts: Upload documents — AI reads and extracts emission data',
-          'All data is assigned to your selected reporting year for consistent reporting',
-        ]}
-      />
+      {/* Three ways to connect — visual cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl border border-brand-200 dark:border-brand-800 bg-gradient-to-b from-brand-50 to-white dark:from-brand-950 dark:to-gray-900 p-4 text-center">
+          <FileSpreadsheet className="w-7 h-7 text-brand-600 dark:text-brand-400 mx-auto mb-2" />
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Spreadsheets</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Upload Excel or CSV files with emissions data</p>
+        </div>
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950 dark:to-gray-900 p-4 text-center">
+          <ScanSearch className="w-7 h-7 text-amber-600 dark:text-amber-400 mx-auto mb-2" />
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Invoices & Bills</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scan travel, hotel, energy, or vehicle invoices</p>
+        </div>
+        <a href="/connections" className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900 p-4 text-center hover:shadow-md transition-shadow group">
+          <Database className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-indigo-700">Source Systems</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Pull directly from connected databases</p>
+        </a>
+      </div>
 
-      {/* AI badge */}
-      <div className="p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950 dark:to-teal-950 rounded-xl border border-emerald-200 dark:border-emerald-800">
+      {/* Smart processing badge */}
+      <div className="p-4 bg-gradient-to-r from-brand-50/80 to-emerald-50/80 dark:from-brand-950/50 dark:to-emerald-950/50 rounded-xl border border-brand-200/60 dark:border-brand-800/60">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-emerald-900 dark:text-emerald-200">AI-Powered Emissions ETL</h3>
-            <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
-              No templates required. Upload raw emissions data — AI identifies categories, maps columns, and calculates tCO2e.
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Smart Data Processing</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              No rigid templates or specific column names needed. Our algorithms automatically recognize your data structure,
+              map it to the correct emission categories and GHG scopes, and calculate tCO2e — regardless of format or language.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Reporting year + org unit — shared across both tabs */}
+      {/* Reporting year + org unit */}
       <div className="card">
         <div className="grid grid-cols-2 gap-4">
           <div>

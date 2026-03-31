@@ -60,33 +60,35 @@ export default function S1Upload() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">S1 — Connect Workforce Data</h1>
-        <p className="text-gray-500 dark:text-gray-400">Upload any spreadsheet or connect a data source — our AI handles the rest</p>
+        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets or pull from a connected database</p>
       </div>
 
-      <HelpBanner
-        id="s1-upload-guide"
-        title="Getting Started with Workforce Data"
-        variant="info"
-        steps={[
-          'Select the reporting year for which this data applies',
-          'Select the organizational unit this data belongs to',
-          'Upload any spreadsheet containing workforce data (Excel or CSV)',
-          'Our AI will automatically identify columns, clean data, and load it',
-          'Check the S1 Dashboard to see your results',
-        ]}
-      />
+      {/* Two ways to connect — visual cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900 p-4 text-center">
+          <FileSpreadsheet className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Spreadsheets</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Upload Excel or CSV files with HR / workforce data</p>
+        </div>
+        <a href="/connections" className="rounded-xl border border-purple-200 dark:border-purple-800 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950 dark:to-gray-900 p-4 text-center hover:shadow-md transition-shadow group">
+          <Database className="w-7 h-7 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-purple-700">Source Systems</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Pull directly from connected HR databases</p>
+        </a>
+      </div>
 
-      {/* AI badge */}
-      <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950 dark:to-indigo-950 rounded-xl border border-purple-200 dark:border-purple-800">
+      {/* Smart processing badge */}
+      <div className="p-4 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/50 dark:to-purple-950/50 rounded-xl border border-indigo-200/60 dark:border-indigo-800/60">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-purple-900 dark:text-purple-200">AI-Powered Data Ingestion</h3>
-            <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">
-              Upload your workforce data in <strong>any format, any language, any structure</strong>. Our AI maps columns,
-              cleans values, and loads everything into the correct data model automatically.
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Smart Data Processing</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Upload your workforce data in <strong>any format, any language, any structure</strong>. Our algorithms
+              automatically recognize columns, clean values, normalize gender codes, contract types, and more — then
+              load everything into the correct data model.
             </p>
           </div>
         </div>
