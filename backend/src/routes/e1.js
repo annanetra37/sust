@@ -401,14 +401,26 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
               yearWarnings.push({ file: extraction.sourceFile, docDate: item.date, docYear, reportingYear });
             }
 
+            // Enforce standard category names for specific modes
+            let category = item.activityCategory || mode;
+            let subcat = item.subType || mode;
+            if (mode === 'Company Vehicle') {
+              category = 'Mobile Combustion';
+              subcat = item.subType || 'Service Vehicles';
+              // Ensure subcat includes "Service Vehicles" if AI used a different name
+              if (!subcat.toLowerCase().includes('service') && !subcat.toLowerCase().includes('mobile')) {
+                subcat = 'Service Vehicles';
+              }
+            }
+
             await prisma.fE1EmissionActivityData.create({
               data: {
                 companyId: user.companyId,
                 orgUnitId,
-                year: reportingYear, // ALWAYS use reporting year, not document year
+                year: reportingYear,
                 month: itemMonth,
-                activityCategory: item.activityCategory || mode,
-                activitySubcat: item.subType || mode,
+                activityCategory: category,
+                activitySubcat: subcat,
                 calcMethod: 'consumption',
                 quantity: qty,
                 unit: item.unit || (mode === 'Stay' ? 'nights' : mode === 'Energy' ? 'kWh' : 'km'),
