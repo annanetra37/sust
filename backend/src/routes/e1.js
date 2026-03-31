@@ -356,15 +356,20 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
   let processed = 0;
   let succeeded = 0;
   const yearWarnings = [];
+  const docErrors = [];
 
   for (let i = 0; i < files.length; i += MAX_CONCURRENT) {
     const batch = files.slice(i, i + MAX_CONCURRENT);
     const batchResults = await Promise.allSettled(
       batch.map(async (file) => {
         // Step 1: Extract raw text (PDF parse or OCR)
+        console.log(`[Doc Extract] Starting text extraction for: ${file.originalname}`);
         const rawText = await extractText(file);
-        if (!rawText || rawText.trim().length < 10) {
-          throw new Error(`No readable text from ${file.originalname}`);
+        const textLen = (rawText || '').trim().length;
+        console.log(`[Doc Extract] Text extracted: ${textLen} chars from ${file.originalname}`);
+
+        if (textLen < 10) {
+          throw new Error(`Could not extract readable text from "${file.originalname}" (${textLen} chars). The file may be a scanned image that OCR couldn't process, or the PDF may be empty/corrupted.`);
         }
         // Step 2: AI extraction
         return { ...await extractDocumentWithAI(rawText, mode), sourceFile: file.originalname };
@@ -462,10 +467,13 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           }
         }
       } else if (result.status === 'rejected') {
-        console.error(`[Doc Extract] FAILED for document:`, result.reason?.message || result.reason);
-        console.error(`[Doc Extract] Full error:`, result.reason);
-      } else if (result.status === 'fulfilled' && !result.value) {
-        console.warn('[Doc Extract] Fulfilled but no result value returned');
+        const errMsg = result.reason?.message || String(result.reason);
+        console.error(`[Doc Extract] FAILED:`, errMsg);
+        docErrors.push(errMsg);
+      } else if (result.status === 'fulfilled' && (!result.value || !result.value.items?.length)) {
+        const notes = result.value?.notes || 'No data extracted';
+        console.warn('[Doc Extract] No items from:', result.value?.sourceFile, '—', notes);
+        docErrors.push(`${result.value?.sourceFile || 'Unknown file'}: ${notes}`);
       }
 
       await prisma.uploadHistory.update({ where: { id: uploadId }, data: { processedRows: processed } });
@@ -478,21 +486,32 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
     await aggregateGHGInventory(user.companyId, orgUnitId);
   }
 
-  // Build warning message if documents have dates from different years
-  let warningMsg = null;
+  // Build status message with warnings and errors
+  const messages = [];
+
+  if (docErrors.length > 0) {
+    messages.push(`${docErrors.length} document(s) could not be processed:\n${docErrors.join('\n')}`);
+  }
+
   if (yearWarnings.length > 0) {
     const uniqueFiles = [...new Set(yearWarnings.map((w) => w.file))];
     const uniqueYears = [...new Set(yearWarnings.map((w) => w.docYear))];
-    warningMsg = `Note: ${uniqueFiles.length} document(s) contain dates from year(s) ${uniqueYears.join(', ')}, but data was mapped to reporting year ${reportingYear} as requested. Documents: ${uniqueFiles.join(', ')}`;
+    messages.push(`${uniqueFiles.length} document(s) contain dates from year(s) ${uniqueYears.join(', ')}, mapped to reporting year ${reportingYear}.`);
   }
+
+  // Determine final status
+  const finalStatus = succeeded === 0 && files.length > 0 ? 'FAILED' : 'COMPLETED';
+  const errorMessage = messages.length > 0 ? messages.join('\n\n') : null;
+
+  console.log(`[Doc Extract] Final: ${succeeded} records from ${files.length} files. Status: ${finalStatus}. Errors: ${docErrors.length}`);
 
   await prisma.uploadHistory.update({
     where: { id: uploadId },
     data: {
-      status: 'COMPLETED',
+      status: finalStatus,
       processedRows: processed,
       completedAt: new Date(),
-      errorMessage: warningMsg, // reused for warnings on completed uploads
+      errorMessage,
     },
   });
 }
