@@ -46,11 +46,27 @@ export default function ProcessingScreen({ progress, status, type }) {
   const [fadeIn, setFadeIn] = useState(true);
   const [particles, setParticles] = useState([]);
   const [elapsed, setElapsed] = useState(0);
+  const [simulatedPct, setSimulatedPct] = useState(0);
 
   // Timer
   useEffect(() => {
     if (status !== 'PROCESSING') return;
     const t = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [status]);
+
+  // Simulated smooth progress — gradually increases to ~90% while real progress is 0
+  useEffect(() => {
+    if (status !== 'PROCESSING') return;
+    const t = setInterval(() => {
+      setSimulatedPct((prev) => {
+        if (prev >= 90) return 90; // cap at 90%, real completion handles the rest
+        // Slow down as it approaches 90%: fast at start, slower later
+        const remaining = 90 - prev;
+        const increment = Math.max(0.3, remaining * 0.04);
+        return Math.min(90, prev + increment);
+      });
+    }, 500);
     return () => clearInterval(t);
   }, [status]);
 
@@ -156,7 +172,9 @@ export default function ProcessingScreen({ progress, status, type }) {
   const fact = ESG_FACTS[factIndex];
   const tip = TIPS[tipIndex];
   const TipIcon = tip.icon;
-  const pct = progress?.progress || 0;
+  // Use real progress when available, otherwise use simulated smooth progress
+  const realPct = progress?.progress || 0;
+  const pct = status === 'COMPLETED' ? 100 : Math.max(realPct, Math.round(simulatedPct));
 
   return (
     <div className="card overflow-hidden relative">
