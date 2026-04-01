@@ -170,21 +170,6 @@ export default function E1Dashboard() {
         </div>
       )}
 
-      {/* Energy Consumption Breakdown */}
-      {charts.energyBySource?.length > 0 && (
-        <CopyableChart title="Energy Consumption by Source (MWh)">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={charts.energyBySource} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis dataKey="source" type="category" width={120} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => `${v.toFixed(2)} MWh`} />
-              <Bar dataKey="mwh" fill="#f59e0b" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CopyableChart>
-      )}
-
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Emissions by Scope - Doughnut */}
@@ -233,6 +218,19 @@ export default function E1Dashboard() {
               <Tooltip formatter={(v) => `${v.toFixed(1)} tCO2e`} />
               <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
+          </ResponsiveContainer>
+        </CopyableChart>
+
+        {/* Energy Consumption by Source */}
+        <CopyableChart title="Energy Consumption by Source (MWh)">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={charts.energyBySource || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="source" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={60} />
+              <YAxis />
+              <Tooltip formatter={(v) => `${v.toFixed(2)} MWh`} />
+              <Bar dataKey="mwh" name="MWh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            </BarChart>
           </ResponsiveContainer>
         </CopyableChart>
 
