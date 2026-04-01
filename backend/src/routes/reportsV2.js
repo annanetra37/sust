@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { formatError } = require('../utils/errors');
@@ -129,19 +131,33 @@ router.post('/generate', async (req, res) => {
     doc.pipe(res);
 
     // ═══════════════ COVER PAGE ═══════════════
-    doc.moveDown(6);
-    doc.fontSize(32).font('Helvetica-Bold').text(company.name, { align: 'center' });
+
+    // Company logo
+    const logoPath = path.join(__dirname, '../../..', 'frontend', 'public', 'logo.svg');
+    try {
+      if (fs.existsSync(logoPath)) {
+        // SVG can't be embedded in PDFKit directly, so we use a placeholder approach
+        // For proper logo, the company should upload a PNG/JPG
+      }
+    } catch {}
+
+    doc.moveDown(4);
+    doc.fontSize(28).font('Helvetica-Bold').fillColor('#003700').text('Sustainability Management Report', { align: 'center' });
     doc.moveDown(0.5);
-    doc.fontSize(14).font('Helvetica').fillColor('#666').text(companyDescription || `${company.industry} | ${company.country}`, { align: 'center' });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#333').text(`(${standard})`, { align: 'center' });
     doc.moveDown(3);
-    doc.fontSize(24).font('Helvetica-Bold').fillColor('#003700').text('ESG Sustainability Report', { align: 'center' });
+    doc.fontSize(24).font('Helvetica').fillColor('#333').text(company.name, { align: 'center' });
     doc.moveDown(0.5);
-    doc.fontSize(16).font('Helvetica').fillColor('#333').text(`Reporting Year: ${y}`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica').fillColor('#666').text(companyDescription || `${company.industry} | ${company.country}`, { align: 'center' });
+    doc.moveDown(3);
+    doc.fontSize(16).font('Helvetica').fillColor('#333').text(`Reporting Year: ${y || 'All Years'}`, { align: 'center' });
     doc.moveDown(1);
-    doc.fontSize(13).fillColor('#666').text(`Prepared in accordance with: ${std.name}`, { align: 'center' });
-    doc.text(`(${std.framework} ${std.version})`, { align: 'center' });
+    doc.fontSize(11).fillColor('#666').text(`Prepared in accordance with:`, { align: 'center' });
+    doc.fontSize(12).font('Helvetica-Bold').fillColor('#003700').text(`${std.name}`, { align: 'center' });
+    doc.fontSize(10).font('Helvetica').fillColor('#888').text(`${std.framework} ${std.version}`, { align: 'center' });
     doc.moveDown(5);
-    doc.fontSize(10).fillColor('#999').text(`Generated on ${new Date().toLocaleDateString()} by Triple I ESG Portal`, { align: 'center' });
+    doc.fontSize(9).fillColor('#aaa').text(`Generated on ${new Date().toLocaleDateString()} | Confidential`, { align: 'center' });
+    doc.text(`Triple I ESG Portal — www.triplei.io`, { align: 'center' });
 
     // ═══════════════ TABLE OF CONTENTS ═══════════════
     doc.addPage();

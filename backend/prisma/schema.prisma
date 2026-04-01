@@ -203,7 +203,7 @@ model FS1WorkforceComposition {
   companyId     String
   company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId     String
-  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year          Int
   quarter       Int?
   gender        String  // Male, Female, Non-binary, Not disclosed
@@ -218,7 +218,7 @@ model FS1WorkforceDiversity {
   companyId        String
   company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId        String
-  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year             Int
   quarter          Int?
   gender           String
@@ -233,7 +233,7 @@ model FS1WorkplaceInjuries {
   companyId    String
   company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId    String
-  orgUnit      OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit      OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year         Int
   quarter      Int?
   injuryType   String
@@ -248,7 +248,7 @@ model FS1EmployeeTraining {
   companyId      String
   company        Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId      String
-  orgUnit        OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit        OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year           Int
   quarter        Int?
   gender         String
@@ -262,7 +262,7 @@ model FS1EmployeeTurnover {
   companyId     String
   company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId     String
-  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year          Int
   quarter       Int?
   gender        String
@@ -298,7 +298,7 @@ model FE1EmissionActivityData {
   companyId         String
   company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId         String
-  orgUnit           OrgUnit  @relation(fields: [orgUnitId], references: [id])
+  orgUnit           OrgUnit  @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year              Int
   month             Int?
   activityCategory  String
@@ -320,7 +320,7 @@ model FE1GHGInventory {
   companyId        String
   company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   orgUnitId        String
-  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id])
+  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
   year             Int
   scope            String
   totalEmissions   Float   // tCO2e

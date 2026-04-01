@@ -43,9 +43,15 @@ router.post('/org-units', requireAdmin, async (req, res) => {
 
 router.delete('/org-units/:id', requireAdmin, async (req, res) => {
   try {
-    const result = await prisma.orgUnit.deleteMany({ where: { id: req.params.id, companyId: req.user.companyId } });
-    if (result.count === 0) return res.status(404).json({ error: 'Org unit not found.' });
-    res.json({ message: 'Org unit deleted successfully.' });
+    // Verify the org unit belongs to this company
+    const unit = await prisma.orgUnit.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!unit) return res.status(404).json({ error: 'Org unit not found.' });
+
+    // Delete the org unit — cascade will remove all related data
+    await prisma.orgUnit.delete({ where: { id: req.params.id } });
+
+    logActivity(req.user.id, req.user.companyId, 'DELETE_ORG_UNIT', `Deleted org unit "${unit.name}" (${unit.country}) and all associated data`, { orgUnitId: unit.id, name: unit.name }, req.ip);
+    res.json({ message: `Org unit "${unit.name}" and all associated data deleted successfully.` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });
