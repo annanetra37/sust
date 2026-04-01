@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Factory, TrendingUp, Users, Target, Upload, Download, Copy } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
+import CopyableChart from '../components/CopyableChart';
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Treemap,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -52,7 +53,7 @@ export default function E1Dashboard() {
           <Upload className="w-4 h-4" /> Connect Data
         </Link>
         <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
-          <Download className="w-4 h-4" /> Export Excel
+          <Download className="w-4 h-4" /> Export KPIs
         </button>
       </div>
 
@@ -164,8 +165,7 @@ export default function E1Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Emissions by Scope - Doughnut */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Emissions by Scope</h3>
+        <CopyableChart title="Emissions by Scope">
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie data={charts.byScope} dataKey="value" nameKey="scope" cx="50%" cy="50%" innerRadius={60} outerRadius={100}
@@ -178,11 +178,10 @@ export default function E1Dashboard() {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Emissions by Activity - Treemap */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Emissions by Activity</h3>
+        <CopyableChart title="Emissions by Activity">
           <ResponsiveContainer width="100%" height={280}>
             <Treemap
               data={charts.byActivity.map((a, i) => ({ name: a.activity, size: a.value, fill: TREE_COLORS[i % TREE_COLORS.length] }))}
@@ -199,11 +198,10 @@ export default function E1Dashboard() {
               )}
             />
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Emissions Trend */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Emissions Trend (Year-over-Year)</h3>
+        <CopyableChart title="Emissions Trend (Year-over-Year)">
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={charts.emissionsTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -213,12 +211,11 @@ export default function E1Dashboard() {
               <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* SBTi Gauge */}
         {sbti && (
-          <div className="card">
-            <h3 className="font-semibold mb-4">SBTi Target Progress</h3>
+          <CopyableChart title="SBTi Target Progress">
             <div className="flex flex-col items-center justify-center h-[250px]">
               <div className="relative w-48 h-48">
                 <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
@@ -236,7 +233,7 @@ export default function E1Dashboard() {
                 <p>Base year: {sbti.baseYear} | Current: {sbti.currentEmissions.toFixed(1)} tCO2e</p>
               </div>
             </div>
-          </div>
+          </CopyableChart>
         )}
       </div>
     </div>

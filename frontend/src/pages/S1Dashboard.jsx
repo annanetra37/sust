@@ -4,6 +4,7 @@ import api from '../services/api';
 import { Users, TrendingDown, Clock, Heart, Upload, Download } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { InfoTip } from '../components/HelpSystem';
+import CopyableChart from '../components/CopyableChart';
 import OrgYearFilter from '../components/OrgYearFilter';
 
 const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#64748b'];
@@ -46,7 +47,7 @@ export default function S1Dashboard() {
           <Upload className="w-4 h-4" /> Connect Data
         </Link>
         <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
-          <Download className="w-4 h-4" /> Export Excel
+          <Download className="w-4 h-4" /> Export KPIs
         </button>
       </div>
 
@@ -153,8 +154,7 @@ export default function S1Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employees by Gender */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Employees by Gender</h3>
+        <CopyableChart title="Employees by Gender">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.employeesByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -164,11 +164,10 @@ export default function S1Dashboard() {
               <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Gender Distribution Pie */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Gender Distribution</h3>
+        <CopyableChart title="Gender Distribution">
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie data={charts.employeesByGender} dataKey="count" nameKey="gender" cx="50%" cy="50%" outerRadius={100} label>
@@ -180,11 +179,10 @@ export default function S1Dashboard() {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Training by Gender */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Training Hours by Gender</h3>
+        <CopyableChart title="Training Hours by Gender">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.trainingByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -194,11 +192,10 @@ export default function S1Dashboard() {
               <Bar dataKey="hours" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Diversity by Gender */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Disability by Gender</h3>
+        <CopyableChart title="Disability by Gender">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.diversityByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -210,12 +207,11 @@ export default function S1Dashboard() {
               <Bar dataKey="without" name="Without" fill="#94a3b8" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </CopyableChart>
 
         {/* Contract Type Breakdown */}
         {charts.byContractType?.length > 0 && (
-          <div className="card">
-            <h3 className="font-semibold mb-4">Employees by Contract Type</h3>
+          <CopyableChart title="Employees by Contract Type">
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie data={charts.byContractType} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={100}
@@ -228,13 +224,12 @@ export default function S1Dashboard() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </CopyableChart>
         )}
 
         {/* Turnover by Gender */}
         {charts.turnoverByGender?.length > 0 && (
-          <div className="card">
-            <h3 className="font-semibold mb-4">Turnover by Gender</h3>
+          <CopyableChart title="Turnover by Gender">
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={charts.turnoverByGender}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -246,7 +241,7 @@ export default function S1Dashboard() {
                 <Bar dataKey="involuntary" name="Involuntary" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </CopyableChart>
         )}
       </div>
     </div>
