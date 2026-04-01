@@ -17,11 +17,12 @@ router.use(authenticate);
 router.get('/dashboard', async (req, res) => {
   const { companyId } = req.user;
   const { orgUnits, year } = req.query;
-  const y = parseInt(year) || new Date().getFullYear();
+  const y = year && year !== 'null' ? parseInt(year) : null;
 
   const orgList = orgUnits ? orgUnits.split(',').filter(Boolean) : [];
   const orgFilter = orgList.length > 0 ? { orgUnitId: { in: orgList } } : {};
-  const where = { companyId, year: y, ...orgFilter };
+  const where = { companyId, ...orgFilter };
+  if (y) where.year = y;
 
   console.log('[S1 Dashboard] Query:', JSON.stringify({ companyId, year: y, orgList: orgList.length || 'ALL' }));
 

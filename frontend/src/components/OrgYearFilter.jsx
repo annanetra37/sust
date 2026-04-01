@@ -48,11 +48,11 @@ export default function OrgYearFilter({ filters, onChange }) {
       <div className="flex items-center gap-1.5">
         <select
           className="input w-auto"
-          value={filters.year}
-          onChange={(e) => onChange({ ...filters, year: parseInt(e.target.value) })}
+          value={filters.year || 'all'}
+          onChange={(e) => onChange({ ...filters, year: e.target.value === 'all' ? null : parseInt(e.target.value) })}
         >
+          <option value="all">All Years</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          {years.length === 0 && <option value={filters.year}>{filters.year}</option>}
         </select>
         <InfoTip>Only years with uploaded data are shown.</InfoTip>
       </div>

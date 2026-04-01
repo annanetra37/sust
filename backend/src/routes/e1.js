@@ -26,11 +26,12 @@ router.use(authenticate);
 router.get('/dashboard', async (req, res) => {
   const { companyId } = req.user;
   const { orgUnits, year } = req.query;
-  const y = parseInt(year) || new Date().getFullYear();
+  const y = year && year !== 'null' ? parseInt(year) : null;
 
   const orgList = orgUnits ? orgUnits.split(',').filter(Boolean) : [];
   const orgFilter = orgList.length > 0 ? { orgUnitId: { in: orgList } } : {};
-  const where = { companyId, year: y, ...orgFilter };
+  const where = { companyId, ...orgFilter };
+  if (y) where.year = y;
 
   console.log('[E1 Dashboard] Query:', JSON.stringify({ companyId, year: y, orgList: orgList.length || 'ALL' }));
 
@@ -50,9 +51,9 @@ router.get('/dashboard', async (req, res) => {
   const totalEmissions = activities.reduce((s, r) => s + (r.totalEmissions || 0), 0);
 
   // Get employee count from S1 workforce data for the same year (for intensity calculation)
-  const s1Composition = await prisma.fS1WorkforceComposition.findMany({
-    where: { companyId, year: y, ...orgFilter },
-  });
+  const s1Where = { companyId, ...orgFilter };
+  if (y) s1Where.year = y;
+  const s1Composition = await prisma.fS1WorkforceComposition.findMany({ where: s1Where });
   const totalEmployees = s1Composition.reduce((s, r) => s + (r.employeeCount || 0), 0);
   const intensity = totalEmployees > 0 ? (totalEmissions / totalEmployees).toFixed(4) : 0;
 
