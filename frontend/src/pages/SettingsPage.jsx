@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Trash2, AlertTriangle, Search, Loader2 } from 'lucide-react';
+import { Plus, Trash2, AlertTriangle, Search, Loader2, Upload } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
 import COUNTRIES from '../utils/countries';
 
@@ -56,8 +56,44 @@ export default function SettingsPage() {
 
   const loadCredits = () => api.getCredits(dateRange).then(setCredits);
 
+  const [logoUrl, setLogoUrl] = useState(null);
+  const [logoLoading, setLogoLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if company has a logo
+    fetch('/api/settings/logo', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } })
+      .then(r => { if (r.ok) setLogoUrl(`/api/settings/logo?t=${Date.now()}`); })
+      .catch(() => {});
+  }, []);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLogoLoading(true);
+    try {
+      const fd = new FormData();
+      fd.append('logo', file);
+      await api.uploadLogo(fd);
+      setLogoUrl(`/api/settings/logo?t=${Date.now()}`);
+    } catch (err) {
+      alert(err.error || 'Logo upload failed');
+    } finally {
+      setLogoLoading(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    try {
+      await api.deleteLogo();
+      setLogoUrl(null);
+    } catch (err) {
+      alert(err.error || 'Failed to remove logo');
+    }
+  };
+
   const tabs = [
-    { key: 'org-units', label: 'Organizational Units', tip: 'Business units, offices, or subsidiaries that data is tracked under' },
+    { key: 'org-units', label: 'Organizational Units', tip: 'Business units, offices, or subsidiaries' },
+    { key: 'branding', label: 'Company Branding', tip: 'Upload company logo for reports' },
     { key: 'standards', label: 'ESG Standards', tip: 'The reporting framework used for compliance reports' },
     { key: 'reset', label: 'Data Reset', tip: 'Permanently delete uploaded data by year' },
     { key: 'credits', label: 'Credit Transactions', tip: 'View credit usage history and remaining balance' },
@@ -102,6 +138,47 @@ export default function SettingsPage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'branding' && (
+        <div className="card space-y-6">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Company Logo</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Upload your company logo. It will appear on the cover page of generated reports.</p>
+          </div>
+
+          <div className="flex items-start gap-6">
+            {/* Preview */}
+            <div className="w-40 h-40 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Company logo" className="max-w-full max-h-full object-contain p-2" />
+              ) : (
+                <div className="text-center text-gray-400">
+                  <Upload className="w-8 h-8 mx-auto mb-1" />
+                  <p className="text-xs">No logo</p>
+                </div>
+              )}
+            </div>
+
+            {/* Upload controls */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <label className="btn-primary inline-flex items-center gap-2 cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  {logoLoading ? 'Uploading...' : logoUrl ? 'Change Logo' : 'Upload Logo'}
+                  <input type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp" onChange={handleLogoUpload} disabled={logoLoading} />
+                </label>
+              </div>
+              {logoUrl && (
+                <button onClick={handleLogoDelete} className="text-sm text-red-500 hover:text-red-700 hover:underline">
+                  Remove logo
+                </button>
+              )}
+              <p className="text-xs text-gray-400 dark:text-gray-500">PNG, JPG, or WebP. Max 5MB. Recommended: square, at least 200x200px.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">The logo will be displayed on the first page of all generated reports.</p>
+            </div>
           </div>
         </div>
       )}

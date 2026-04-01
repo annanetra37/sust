@@ -23,6 +23,7 @@ model Company {
   regionsOfOp      String[] @default([])
   stockExchange    String?
   tickerSymbol     String?
+  logoPath         String?      // path to uploaded company logo (PNG/JPG)
   creditBalance    Int      @default(100)
   esgStandard      String   @default("ESRS")
   createdAt        DateTime @default(now())

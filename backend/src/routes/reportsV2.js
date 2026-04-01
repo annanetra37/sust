@@ -132,20 +132,29 @@ router.post('/generate', async (req, res) => {
 
     // ═══════════════ COVER PAGE ═══════════════
 
-    // Company logo
-    const logoPath = path.join(__dirname, '../../..', 'frontend', 'public', 'logo.svg');
-    try {
-      if (fs.existsSync(logoPath)) {
-        // SVG can't be embedded in PDFKit directly, so we use a placeholder approach
-        // For proper logo, the company should upload a PNG/JPG
+    // Company logo — embed if uploaded (PNG/JPG only)
+    let hasLogo = false;
+    if (company.logoPath) {
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      const logoFilePath = path.join(uploadsDir, company.logoPath);
+      try {
+        if (fs.existsSync(logoFilePath)) {
+          doc.moveDown(2);
+          doc.image(logoFilePath, { fit: [150, 150], align: 'center' });
+          doc.moveDown(1);
+          hasLogo = true;
+        }
+      } catch (logoErr) {
+        console.warn('[Report] Could not embed logo:', logoErr.message);
       }
-    } catch {}
+    }
 
-    doc.moveDown(4);
+    if (!hasLogo) doc.moveDown(4);
+
     doc.fontSize(28).font('Helvetica-Bold').fillColor('#003700').text('Sustainability Management Report', { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(16).font('Helvetica-Bold').fillColor('#333').text(`(${standard})`, { align: 'center' });
-    doc.moveDown(3);
+    doc.moveDown(2);
     doc.fontSize(24).font('Helvetica').fillColor('#333').text(company.name, { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(12).font('Helvetica').fillColor('#666').text(companyDescription || `${company.industry} | ${company.country}`, { align: 'center' });

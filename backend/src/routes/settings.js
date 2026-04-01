@@ -1,8 +1,20 @@
 const router = require('express').Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const prisma = require('../config/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { formatError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLog');
+
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (_, file, cb) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 router.use(authenticate);
 
@@ -326,6 +338,67 @@ router.put('/company', requireAdmin, async (req, res) => {
 
     const company = await prisma.company.update({ where: { id: req.user.companyId }, data });
     res.json(company);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// ─── Company Logo ───────────────────────────────────────────
+
+router.post('/logo', requireAdmin, logoUpload.single('logo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image file provided. Supported: PNG, JPG, WebP (max 5MB).' });
+
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    const logoDir = path.join(uploadsDir, req.user.companyId);
+    if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
+
+    const ext = path.extname(req.file.originalname) || '.png';
+    const logoFile = `company_logo${ext}`;
+    const logoPath = path.join(logoDir, logoFile);
+    fs.writeFileSync(logoPath, req.file.buffer);
+
+    const relativePath = `${req.user.companyId}/${logoFile}`;
+    await prisma.company.update({ where: { id: req.user.companyId }, data: { logoPath: relativePath } });
+
+    res.json({ message: 'Logo uploaded successfully.', logoPath: relativePath });
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+router.get('/logo', async (req, res) => {
+  try {
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { logoPath: true } });
+    if (!company?.logoPath) return res.status(404).json({ error: 'No logo uploaded.' });
+
+    const uploadsDir = path.join(__dirname, '../../uploads');
+    const filePath = path.join(uploadsDir, company.logoPath);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Logo file not found.' });
+
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
+    res.setHeader('Content-Type', mimeMap[ext] || 'image/png');
+    res.setHeader('Content-Disposition', 'inline');
+    fs.createReadStream(filePath).pipe(res);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+router.delete('/logo', requireAdmin, async (req, res) => {
+  try {
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { logoPath: true } });
+    if (company?.logoPath) {
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      const filePath = path.join(uploadsDir, company.logoPath);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    }
+    await prisma.company.update({ where: { id: req.user.companyId }, data: { logoPath: null } });
+    res.json({ message: 'Logo removed.' });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

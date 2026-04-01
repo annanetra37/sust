@@ -25,17 +25,15 @@ async function logCost({ companyId, userId, operation, model, inputTokens, outpu
 
     estimatedCost = Math.round(estimatedCost * 1_000_000) / 1_000_000; // 6 decimal places
 
-    // Safety check — CostLog table may not exist if prisma db push hasn't been run
-    if (prisma.costLog) {
-      await prisma.costLog.create({
-        data: {
-          companyId, userId, operation, model,
-          inputTokens, outputTokens, totalTokens,
-          estimatedCost, durationMs,
-          relatedId, metadata,
-        },
-      });
-    }
+    // Try to create — if CostLog table doesn't exist, the catch will handle it
+    await prisma.costLog.create({
+      data: {
+        companyId, userId, operation, model,
+        inputTokens, outputTokens, totalTokens,
+        estimatedCost, durationMs,
+        relatedId, metadata,
+      },
+    });
 
     console.log(`[Cost] ${operation} | ${model || 'n/a'} | ${totalTokens} tokens | $${estimatedCost.toFixed(6)} | ${durationMs || 0}ms`);
   } catch (err) {

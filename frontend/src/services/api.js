@@ -109,6 +109,9 @@ const api = {
   resetE1: (data) => request('/settings/reset/e1', { method: 'POST', body: JSON.stringify(data) }),
   getCredits: (params) => request(`/settings/credits?${new URLSearchParams(params || {})}`),
   getCompany: () => request('/settings/company'),
+  uploadLogo: (formData) => request('/settings/logo', { method: 'POST', body: formData }),
+  getLogoUrl: () => '/api/settings/logo',
+  deleteLogo: () => request('/settings/logo', { method: 'DELETE' }),
   updateCompany: (data) => request('/settings/company', { method: 'PUT', body: JSON.stringify(data) }),
 
   // History
