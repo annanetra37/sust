@@ -131,6 +131,19 @@ const api = {
   },
   getLanguages: () => request('/reports/languages'),
 
+  // Reports v2
+  getStandards: () => request('/reports/v2/standards'),
+  validateReport: (data) => request('/reports/v2/validate', { method: 'POST', body: JSON.stringify(data) }),
+  generateReportV2: async (data) => {
+    const blob = await request('/reports/v2/generate', { method: 'POST', body: JSON.stringify(data) });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${data.standard}_Report_${data.year}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Connections
   getConnections: () => request('/connections'),
   createConnection: (data) => request('/connections', { method: 'POST', body: JSON.stringify(data) }),

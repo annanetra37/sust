@@ -47,9 +47,14 @@ export default function S1Dashboard() {
           <Link to="/platform/S/social-1" className="btn-primary flex items-center justify-center gap-2">
             <Upload className="w-4 h-4" /> Connect Data
           </Link>
-          <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-2 text-sm">
-            <Download className="w-4 h-4" /> Export KPIs
-          </button>
+          <div className="flex gap-1.5">
+            <button onClick={() => window.print()} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Export dashboard with visuals as PDF">
+              <Download className="w-3.5 h-3.5" /> PDF
+            </button>
+            <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Export raw data as Excel">
+              <Download className="w-3.5 h-3.5" /> Excel
+            </button>
+          </div>
         </div>
       </div>
 

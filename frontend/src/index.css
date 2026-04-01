@@ -34,3 +34,47 @@
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 }
+
+/* Print styles — for dashboard PDF export */
+@media print {
+  /* Hide sidebar, header, chat widget, and navigation */
+  aside, header, .fixed, nav, button {
+    display: none !important;
+  }
+
+  /* Make main content full width */
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .flex.h-screen {
+    display: block !important;
+  }
+
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Keep charts visible with colors */
+  .card, .stat-card {
+    break-inside: avoid;
+    border: 1px solid #e5e7eb !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+
+  /* Show chart copy buttons as hidden in print */
+  .group-hover\:flex {
+    display: none !important;
+  }
+
+  /* Ensure recharts SVGs print with colors */
+  svg {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

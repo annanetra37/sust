@@ -26,6 +26,7 @@ app.use('/api/e1', require('./routes/e1'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/history', require('./routes/history'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/reports/v2', require('./routes/reportsV2'));
 app.use('/api/connections', require('./routes/connections'));
 app.use('/api/assistant', require('./routes/assistant'));
 app.use('/api/lineage', require('./routes/lineage'));
