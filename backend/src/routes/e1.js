@@ -108,20 +108,72 @@ router.get('/dashboard', async (req, res) => {
 
   const round4 = (n) => Math.round(n * 10000) / 10000;
 
+  // Scope breakdown
+  const scope1 = round4(byScope['Scope 1'] || 0);
+  const scope2 = round4(byScope['Scope 2'] || 0);
+  const scope3 = round4(byScope['Scope 3'] || 0);
+
+  // Year-over-year change
+  const prevYearActivities = allActivities.filter((a) => a.year === y - 1);
+  const prevYearEmissions = prevYearActivities.reduce((s, r) => s + (r.totalEmissions || 0), 0);
+  const yoyChange = prevYearEmissions > 0
+    ? round4(((totalEmissions - prevYearEmissions) / prevYearEmissions) * 100)
+    : null;
+
+  // Top emission sources (top 5 subcategories)
+  const bySubcat = {};
+  activities.forEach((r) => {
+    const key = r.activitySubcat || 'Other';
+    bySubcat[key] = (bySubcat[key] || 0) + (r.totalEmissions || 0);
+  });
+  const topSources = Object.entries(bySubcat)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([source, value]) => ({ source, value: round4(value) }));
+
+  // Monthly distribution for the selected year
+  const byMonth = {};
+  activities.forEach((r) => {
+    if (r.month) {
+      byMonth[r.month] = (byMonth[r.month] || 0) + (r.totalEmissions || 0);
+    }
+  });
+
+  // Calculation method split
+  const consumptionBased = activities.filter((r) => r.calcMethod === 'consumption').length;
+  const expenditureBased = activities.filter((r) => r.calcMethod === 'expenditure').length;
+
+  // Total spend
+  const totalSpend = round4(activities.reduce((s, r) => s + (r.amount || 0), 0));
+
+  // Emission factor coverage (% of records with non-zero EF)
+  const withEF = activities.filter((r) => r.emissionFactor && r.emissionFactor > 0).length;
+  const efCoverage = activities.length > 0 ? Math.round((withEF / activities.length) * 100) : 0;
+
   res.json({
     stats: {
       totalEmissions: round4(totalEmissions),
+      scope1,
+      scope2,
+      scope3,
       intensity: round4(parseFloat(intensity)),
       totalEmployees,
       activityCount: activities.length,
-      totalAmount: activities.reduce((s, r) => s + (r.amount || 0), 0),
+      yoyChange,
+      prevYearEmissions: round4(prevYearEmissions),
+      totalSpend,
+      efCoverage,
+      consumptionBased,
+      expenditureBased,
       sbtiProgress,
     },
     charts: {
-      byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value: Math.round(value * 10000) / 10000 })),
-      byActivity: Object.entries(byActivity).map(([activity, value]) => ({ activity, value: Math.round(value * 10000) / 10000 })),
+      byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value: round4(value) })),
+      byActivity: Object.entries(byActivity).map(([activity, value]) => ({ activity, value: round4(value) })),
       byOrgUnit,
-      emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value: Math.round(value * 10000) / 10000 })),
+      emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value: round4(value) })),
+      topSources,
+      byMonth: Object.entries(byMonth).map(([month, value]) => ({ month: parseInt(month), value: round4(value) })).sort((a, b) => a.month - b.month),
     },
     raw: { activities, inventory },
   });

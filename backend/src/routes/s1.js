@@ -67,11 +67,85 @@ router.get('/dashboard', async (req, res) => {
     else diversityByGender[r.gender].without += r.count;
   });
 
+  // ─── Additional KPIs ─────────────────────────────────────
+
+  // Gender percentages
+  const femaleCount = (byGender['Female'] || 0);
+  const maleCount = (byGender['Male'] || 0);
+  const femalePct = totalEmployees > 0 ? Math.round((femaleCount / totalEmployees) * 100) : 0;
+  const genderDiversityRatio = totalEmployees > 0 ? Math.round(Math.min(femaleCount, maleCount) / Math.max(femaleCount, maleCount, 1) * 100) : 0;
+
+  // Contract type breakdown
+  const byContractType = {};
+  composition.forEach((r) => { byContractType[r.contractType] = (byContractType[r.contractType] || 0) + r.employeeCount; });
+  const permanentCount = byContractType['Permanent'] || byContractType['Full-time'] || 0;
+  const temporaryCount = byContractType['Temporary'] || byContractType['Part-time'] || byContractType['Contract'] || 0;
+  const permanentPct = totalEmployees > 0 ? Math.round((permanentCount / totalEmployees) * 100) : 0;
+
+  // Average training hours per employee
+  const trainedEmployees = training.reduce((s, r) => s + (r.employeeCount || 0), 0);
+  const avgTrainingHours = trainedEmployees > 0 ? Math.round((totalTrainingHours / trainedEmployees) * 10) / 10 : 0;
+
+  // Turnover split (voluntary vs involuntary)
+  const voluntaryTurnover = turnover.filter((r) => r.turnoverType === 'Voluntary').reduce((s, r) => s + r.count, 0);
+  const involuntaryTurnover = turnover.filter((r) => r.turnoverType === 'Involuntary').reduce((s, r) => s + r.count, 0);
+  const voluntaryRate = totalEmployees > 0 ? Math.round((voluntaryTurnover / totalEmployees) * 1000) / 10 : 0;
+  const involuntaryRate = totalEmployees > 0 ? Math.round((involuntaryTurnover / totalEmployees) * 1000) / 10 : 0;
+
+  // Disability rate
+  const disabilityRate = totalEmployees > 0 ? Math.round((disabilityCount / totalEmployees) * 1000) / 10 : 0;
+
+  // Injury stats
+  const totalInjuries = injuries.reduce((s, r) => s + r.count, 0);
+  const fatalInjuries = injuries.filter((r) => r.injuryStatus === 'Fatal').reduce((s, r) => s + r.count, 0);
+  const lostTimeInjuries = injuries.filter((r) => r.injuryStatus === 'Lost-time').reduce((s, r) => s + r.count, 0);
+  // LTIR (Lost Time Injury Rate) per 200,000 hours (OSHA standard)
+  const estimatedHours = totalEmployees * 2000; // ~2000 hours/employee/year
+  const ltir = estimatedHours > 0 ? Math.round((lostTimeInjuries * 200000 / estimatedHours) * 100) / 100 : 0;
+
+  // Country distribution
+  const byCountry = {};
+  composition.forEach((r) => { if (r.country) byCountry[r.country] = (byCountry[r.country] || 0) + r.employeeCount; });
+
+  // Turnover by gender
+  const turnoverByGender = {};
+  turnover.forEach((r) => {
+    if (!turnoverByGender[r.gender]) turnoverByGender[r.gender] = { voluntary: 0, involuntary: 0, total: 0 };
+    turnoverByGender[r.gender][r.turnoverType.toLowerCase()] += r.count;
+    turnoverByGender[r.gender].total += r.count;
+  });
+
   res.json({
-    stats: { totalEmployees, byGender, totalTrainingHours, totalTurnover, turnoverRate: parseFloat(turnoverRate), disabilityCount },
+    stats: {
+      totalEmployees,
+      byGender,
+      femalePct,
+      genderDiversityRatio,
+      totalTrainingHours,
+      avgTrainingHours,
+      trainedEmployees,
+      totalTurnover,
+      turnoverRate: parseFloat(turnoverRate),
+      voluntaryTurnover,
+      involuntaryTurnover,
+      voluntaryRate,
+      involuntaryRate,
+      disabilityCount,
+      disabilityRate,
+      totalInjuries,
+      fatalInjuries,
+      lostTimeInjuries,
+      ltir,
+      permanentCount,
+      temporaryCount,
+      permanentPct,
+    },
     charts: {
       employeesByGender: Object.entries(byGender).map(([gender, count]) => ({ gender, count })),
+      byContractType: Object.entries(byContractType).map(([type, count]) => ({ type, count })),
+      byCountry: Object.entries(byCountry).map(([country, count]) => ({ country, count })).sort((a, b) => b.count - a.count),
       turnoverByOrgUnit,
+      turnoverByGender: Object.entries(turnoverByGender).map(([gender, data]) => ({ gender, ...data })),
       trainingByGender: Object.entries(trainingByGender).map(([gender, hours]) => ({ gender, hours })),
       diversityByGender: Object.entries(diversityByGender).map(([gender, data]) => ({ gender, ...data })),
       injuries: injuries.map((i) => ({ type: i.injuryType, status: i.injuryStatus, count: i.count })),

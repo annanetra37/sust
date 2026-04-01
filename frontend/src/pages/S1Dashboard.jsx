@@ -49,31 +49,31 @@ export default function S1Dashboard() {
 
       <OrgYearFilter filters={filters} onChange={setFilters} />
 
-      {/* Stat cards */}
+      {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card">
           <Users className="w-5 h-5 text-indigo-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">Total Employees</span>
-            <InfoTip>Total headcount across all contract types and genders for the selected year and org units.</InfoTip>
+            <InfoTip>Total headcount for the selected year and org units.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEmployees.toLocaleString()}</span>
         </div>
         <div className="stat-card">
-          <Heart className="w-5 h-5 text-pink-500" />
+          <span className="text-lg">{'♀'}</span>
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Disability Count</span>
-            <InfoTip>Number of employees who have disclosed a disability. Required for ESRS S1 diversity disclosures.</InfoTip>
+            <span className="text-sm text-gray-500">Female %</span>
+            <InfoTip>Percentage of female employees. Key ESRS S1 gender diversity metric.</InfoTip>
           </div>
-          <span className="text-2xl font-bold">{stats.disabilityCount}</span>
+          <span className="text-2xl font-bold">{stats.femalePct}%</span>
         </div>
         <div className="stat-card">
           <Clock className="w-5 h-5 text-purple-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Training Hours</span>
-            <InfoTip>Total hours of training delivered to employees. Tracked per gender for ESRS S1 reporting.</InfoTip>
+            <span className="text-sm text-gray-500">Avg Training Hours</span>
+            <InfoTip>Average training hours per trained employee.</InfoTip>
           </div>
-          <span className="text-2xl font-bold">{stats.totalTrainingHours.toLocaleString()}</span>
+          <span className="text-2xl font-bold">{stats.avgTrainingHours} <span className="text-sm font-normal text-gray-400">hrs/emp</span></span>
         </div>
         <div className="stat-card">
           <TrendingDown className="w-5 h-5 text-red-500" />
@@ -84,6 +84,68 @@ export default function S1Dashboard() {
           <span className="text-2xl font-bold">{stats.turnoverRate}%</span>
         </div>
       </div>
+
+      {/* Secondary KPIs */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Permanent</span>
+          <span className="text-lg font-bold">{stats.permanentCount?.toLocaleString() || 0}</span>
+          <span className="text-[10px] text-gray-400">{stats.permanentPct || 0}% of total</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">Temporary</span>
+          <span className="text-lg font-bold">{stats.temporaryCount?.toLocaleString() || 0}</span>
+          <span className="text-[10px] text-gray-400">{100 - (stats.permanentPct || 0)}% of total</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide">Voluntary</span>
+          <span className="text-lg font-bold">{stats.voluntaryTurnover || 0}</span>
+          <span className="text-[10px] text-gray-400">{stats.voluntaryRate || 0}% rate</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">Involuntary</span>
+          <span className="text-lg font-bold">{stats.involuntaryTurnover || 0}</span>
+          <span className="text-[10px] text-gray-400">{stats.involuntaryRate || 0}% rate</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-pink-500 uppercase tracking-wide">Disability</span>
+          <span className="text-lg font-bold">{stats.disabilityCount || 0}</span>
+          <span className="text-[10px] text-gray-400">{stats.disabilityRate || 0}% rate</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">LTIR</span>
+          <span className="text-lg font-bold">{stats.ltir || 0}</span>
+          <span className="text-[10px] text-gray-400">per 200K hours</span>
+        </div>
+      </div>
+
+      {/* Injury summary */}
+      {(stats.totalInjuries > 0 || stats.fatalInjuries > 0) && (
+        <div className={`card py-4 ${stats.fatalInjuries > 0 ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/30' : ''}`}>
+          <div className="flex items-center gap-6">
+            <div>
+              <span className="text-xs text-gray-500">Total Incidents</span>
+              <p className="text-xl font-bold">{stats.totalInjuries}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">Fatalities</span>
+              <p className={`text-xl font-bold ${stats.fatalInjuries > 0 ? 'text-red-600' : 'text-green-600'}`}>{stats.fatalInjuries}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">Lost-time Injuries</span>
+              <p className="text-xl font-bold">{stats.lostTimeInjuries || 0}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">Training Hours</span>
+              <p className="text-xl font-bold">{stats.totalTrainingHours?.toLocaleString() || 0}</p>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500">Trained Employees</span>
+              <p className="text-xl font-bold">{stats.trainedEmployees?.toLocaleString() || 0}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -146,6 +208,43 @@ export default function S1Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+
+        {/* Contract Type Breakdown */}
+        {charts.byContractType?.length > 0 && (
+          <div className="card">
+            <h3 className="font-semibold mb-4">Employees by Contract Type</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie data={charts.byContractType} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={100}
+                  label={({ type, count }) => `${type}: ${count}`}>
+                  {charts.byContractType.map((_, i) => (
+                    <Cell key={i} fill={['#6366f1', '#f59e0b', '#8b5cf6', '#ec4899', '#64748b'][i % 5]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Turnover by Gender */}
+        {charts.turnoverByGender?.length > 0 && (
+          <div className="card">
+            <h3 className="font-semibold mb-4">Turnover by Gender</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={charts.turnoverByGender}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="gender" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="voluntary" name="Voluntary" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="involuntary" name="Involuntary" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   );

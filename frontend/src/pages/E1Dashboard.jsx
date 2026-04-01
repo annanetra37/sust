@@ -55,13 +55,13 @@ export default function E1Dashboard() {
 
       <OrgYearFilter filters={filters} onChange={setFilters} />
 
-      {/* Stat cards */}
+      {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="stat-card">
           <Factory className="w-5 h-5 text-emerald-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">Total GHG Emissions</span>
-            <InfoTip title="GHG Emissions">Total greenhouse gas emissions in tonnes of CO2 equivalent (tCO2e) across all scopes (1, 2, 3) for the selected year.</InfoTip>
+            <InfoTip>Total across all scopes for the selected year.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEmissions < 0.1 ? stats.totalEmissions.toFixed(4) : stats.totalEmissions.toFixed(2)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
         </div>
@@ -69,20 +69,23 @@ export default function E1Dashboard() {
           <TrendingUp className="w-5 h-5 text-amber-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">GHG Intensity</span>
-            <InfoTip title="Emissions Intensity">Emissions per employee (tCO2e / headcount). Lower is better. Used to benchmark against industry peers and track decoupling of growth from emissions.</InfoTip>
+            <InfoTip>Emissions per employee. Lower is better.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.intensity} <span className="text-sm font-normal text-gray-400">tCO2e/emp</span></span>
         </div>
         <div className="stat-card">
           <Users className="w-5 h-5 text-blue-500" />
-          <span className="text-sm text-gray-500">Employees</span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500">Employees</span>
+            <InfoTip>From S1 workforce data for the same year.</InfoTip>
+          </div>
           <span className="text-2xl font-bold">{stats.totalEmployees.toLocaleString()}</span>
         </div>
         <div className="stat-card">
           <Target className="w-5 h-5 text-purple-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">SBTi Progress</span>
-            <InfoTip title="Science Based Targets">Progress toward your SBTi decarbonization target. Set targets in the SBTi section below. "On Track" means you're meeting the required reduction pace.</InfoTip>
+            <InfoTip>Progress toward your decarbonization target.</InfoTip>
           </div>
           {sbti ? (
             <div>
@@ -96,6 +99,64 @@ export default function E1Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Scope breakdown + secondary KPIs */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">Scope 1</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope1} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
+          <span className="text-[10px] text-gray-400">Direct emissions</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">Scope 2</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope2} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
+          <span className="text-[10px] text-gray-400">Purchased energy</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Scope 3</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope3} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
+          <span className="text-[10px] text-gray-400">Value chain</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">YoY Change</span>
+          <span className={`text-lg font-bold ${stats.yoyChange === null ? 'text-gray-400' : stats.yoyChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {stats.yoyChange === null ? '—' : `${stats.yoyChange > 0 ? '+' : ''}${stats.yoyChange}%`}
+          </span>
+          <span className="text-[10px] text-gray-400">vs previous year</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Activities</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.activityCount}</span>
+          <span className="text-[10px] text-gray-400">data records</span>
+        </div>
+        <div className="stat-card py-3 px-4">
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Total Spend</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.totalSpend > 0 ? stats.totalSpend.toLocaleString() : '—'}</span>
+          <span className="text-[10px] text-gray-400">{stats.efCoverage}% EF coverage</span>
+        </div>
+      </div>
+
+      {/* Top Emission Sources */}
+      {charts.topSources?.length > 0 && (
+        <div className="card">
+          <h3 className="font-semibold mb-3">Top Emission Sources</h3>
+          <div className="space-y-2">
+            {charts.topSources.map((s, i) => {
+              const maxVal = charts.topSources[0]?.value || 1;
+              return (
+                <div key={s.source} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400 w-5">{i + 1}.</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-40 truncate">{s.source}</span>
+                  <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2.5">
+                    <div className="bg-brand-500 h-2.5 rounded-full transition-all" style={{ width: `${(s.value / maxVal) * 100}%` }} />
+                  </div>
+                  <span className="text-xs font-mono text-gray-600 dark:text-gray-400 w-20 text-right">{s.value} tCO2e</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
