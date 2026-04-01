@@ -82,11 +82,29 @@ model ActivityLog {
   companyId   String
   userId      String
   user        User     @relation(fields: [userId], references: [id])
-  action      String   // LOGIN, UPLOAD_S1, UPLOAD_E1, DOC_EXTRACT, INVITE_USER, DELETE_USER, RESET_DATA, GENERATE_REPORT, UPDATE_SETTINGS, CREATE_CONNECTION, SET_SBTI_TARGET, AUDIT_UPDATE
-  detail      String?  // human-readable detail
-  metadata    Json?    // extra structured data
+  action      String
+  detail      String?
+  metadata    Json?
   ipAddress   String?
   createdAt   DateTime @default(now())
+}
+
+// ─── Internal Cost Tracking (admin-only, not user-visible) ──────
+
+model CostLog {
+  id            String   @id @default(uuid())
+  companyId     String
+  userId        String?
+  operation     String   // AI_SCHEMA_MAP, AI_CLEAN, AI_DOC_EXTRACT, AI_ASSISTANT, OCR, PDF_PARSE, REPORT_GEN
+  model         String?  // claude-sonnet-4-20250514, tesseract, etc.
+  inputTokens   Int?
+  outputTokens  Int?
+  totalTokens   Int?
+  estimatedCost Float?   // USD
+  durationMs    Int?     // processing time in milliseconds
+  relatedId     String?  // upload ID or other reference
+  metadata      Json?    // extra details (file name, rows processed, etc.)
+  createdAt     DateTime @default(now())
 }
 
 enum Role {

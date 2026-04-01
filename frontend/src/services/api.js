@@ -140,6 +140,26 @@ const api = {
   listColumns: (id, table) => request(`/connections/${id}/tables/${table}/columns`),
   pullData: (id, data) => request(`/connections/${id}/pull`, { method: 'POST', body: JSON.stringify(data) }),
 
+  // Exports
+  exportE1Dashboard: async (params) => {
+    const blob = await request(`/exports/e1?${new URLSearchParams(params)}`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `E1_Dashboard_${params.year || 'export'}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+  exportS1Dashboard: async (params) => {
+    const blob = await request(`/exports/s1?${new URLSearchParams(params)}`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `S1_Dashboard_${params.year || 'export'}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Activity Log
   getActivityLog: (params) => request(`/activity-log?${new URLSearchParams(params || {})}`),
 

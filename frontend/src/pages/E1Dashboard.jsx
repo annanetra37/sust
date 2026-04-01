@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Factory, TrendingUp, Users, Target, Upload } from 'lucide-react';
+import { Factory, TrendingUp, Users, Target, Upload, Download, Copy } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Treemap,
@@ -51,6 +51,9 @@ export default function E1Dashboard() {
         <Link to="/platform/E/environmental-1" className="btn-primary flex items-center gap-2">
           <Upload className="w-4 h-4" /> Connect Data
         </Link>
+        <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
+          <Download className="w-4 h-4" /> Export Excel
+        </button>
       </div>
 
       <OrgYearFilter filters={filters} onChange={setFilters} />

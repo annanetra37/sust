@@ -242,14 +242,15 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
       const columns = Object.keys(data[0] || {});
 
       // Step 1: AI Schema Mapping
-      const mappingResult = await mapSchema(data, columns, 'S1');
+      const costCtx = { companyId: user.companyId, userId: user.id, relatedId: uploadId, metadata: { sheet: sheetName } };
+      const mappingResult = await mapSchema(data, columns, 'S1', costCtx);
 
       // Step 2+3: For each mapping, clean and ingest
       for (const mapping of mappingResult.mappings) {
         if (mapping.confidence < 0.3) continue; // skip very low confidence mappings
 
         // Step 2: AI Data Cleaning
-        const cleanedRows = await cleanAndTransform(data, mapping, 'S1');
+        const cleanedRows = await cleanAndTransform(data, mapping, 'S1', costCtx);
 
         // Step 3: Validation
         const { valid, invalid } = validateAndCoerce(cleanedRows, mapping.targetTable, 'S1');

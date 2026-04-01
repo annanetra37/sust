@@ -18,6 +18,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk').default;
 const config = require('../config');
+const { trackedAICall, logCost } = require('../utils/costTracker');
 
 let client;
 function getClient() {
@@ -111,7 +112,7 @@ const E1_SCHEMA = {
 
 // ─── Step 1: AI Schema Mapping ──────────────────────────────
 
-async function mapSchema(sampleRows, sourceColumns, targetModule) {
+async function mapSchema(sampleRows, sourceColumns, targetModule, costCtx) {
   const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : E1_SCHEMA;
 
   const prompt = `You are a sustainability data expert. Analyze the uploaded data and map it to the target ESG data model.
@@ -154,11 +155,10 @@ Return ONLY valid JSON in this exact format:
   "dataQualityNotes": ["Row 3 has missing gender value", "Some counts appear to be percentages not absolute numbers"]
 }`;
 
-  const response = await getClient().messages.create({
-    model: config.anthropic.model,
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] };
+  const response = costCtx
+    ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_SCHEMA_MAP' })
+    : await getClient().messages.create(params);
 
   const text = response.content[0].text;
   const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -169,7 +169,7 @@ Return ONLY valid JSON in this exact format:
 
 // ─── Step 2: AI Data Cleaning & Transformation ──────────────
 
-async function cleanAndTransform(rows, mapping, targetModule) {
+async function cleanAndTransform(rows, mapping, targetModule, costCtx) {
   const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : E1_SCHEMA;
   const schema = targetSchemas[mapping.targetTable];
 
@@ -224,11 +224,10 @@ For skipped rows, include them in a separate "skipped" array with the reason.
   ]
 }`;
 
-    const response = await getClient().messages.create({
-      model: config.anthropic.model,
-      max_tokens: 8192,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const params = { model: config.anthropic.model, max_tokens: 8192, messages: [{ role: 'user', content: prompt }] };
+    const response = costCtx
+      ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_CLEAN', metadata: { ...costCtx.metadata, batch: i, batchSize: batch.length } })
+      : await getClient().messages.create(params);
 
     const text = response.content[0].text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -243,7 +242,7 @@ For skipped rows, include them in a separate "skipped" array with the reason.
 
 // ─── Step 3: AI Document Extraction ─────────────────────────
 
-async function extractDocumentWithAI(text, mode) {
+async function extractDocumentWithAI(text, mode, costCtx) {
   const modeInstructions = {
     Travel: `Extract travel/transport data: transport type (flight/train/bus/taxi/car rental), departure city/airport, arrival city/airport, distance in km, number of passengers, ticket fare/cost, currency, date. For flights determine if short-haul (<1500km), medium-haul (1500-4000km), or long-haul (>4000km).`,
     Stay: `Extract accommodation data: hotel/property name, city/location, number of nights, number of rooms, nightly rate, total cost, currency, check-in date, check-out date.`,
@@ -327,11 +326,10 @@ Return ONLY valid JSON:
 
 If you cannot extract meaningful data, return {"items": [], "confidence": 0, "notes": "reason"}.`;
 
-  const response = await getClient().messages.create({
-    model: config.anthropic.model,
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] };
+  const response = costCtx
+    ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_DOC_EXTRACT', metadata: { ...costCtx.metadata, mode } })
+    : await getClient().messages.create(params);
 
   const text2 = response.content[0].text;
   const jsonMatch = text2.match(/\{[\s\S]*\}/);

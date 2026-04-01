@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Users, TrendingDown, Clock, Heart, Upload } from 'lucide-react';
+import { Users, TrendingDown, Clock, Heart, Upload, Download } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { InfoTip } from '../components/HelpSystem';
 import OrgYearFilter from '../components/OrgYearFilter';
@@ -45,6 +45,9 @@ export default function S1Dashboard() {
         <Link to="/platform/S/social-1" className="btn-primary flex items-center gap-2">
           <Upload className="w-4 h-4" /> Connect Data
         </Link>
+        <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
+          <Download className="w-4 h-4" /> Export Excel
+        </button>
       </div>
 
       <OrgYearFilter filters={filters} onChange={setFilters} />

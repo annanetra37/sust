@@ -251,7 +251,8 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
   const columns = Object.keys(data[0] || {});
 
   // Step 1: AI Schema Mapping
-  const mappingResult = await mapSchema(data, columns, 'E1');
+  const costCtx = { companyId: user.companyId, userId: user.id, relatedId: uploadId };
+  const mappingResult = await mapSchema(data, columns, 'E1', costCtx);
 
   let insertedRows = 0;
   let processedRows = 0;
@@ -260,7 +261,7 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     if (mapping.confidence < 0.3) continue;
 
     // Step 2: AI Data Cleaning
-    const cleanedRows = await cleanAndTransform(data, mapping, 'E1');
+    const cleanedRows = await cleanAndTransform(data, mapping, 'E1', costCtx);
 
     // Step 3: Validation
     const { valid, invalid } = validateAndCoerce(cleanedRows, mapping.targetTable, 'E1');
@@ -429,7 +430,8 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           throw new Error(`Could not extract readable text from "${file.originalname}" (${textLen} chars). The file may be a scanned image that OCR couldn't process, or the PDF may be empty/corrupted.`);
         }
         // Step 2: AI extraction
-        return { ...await extractDocumentWithAI(rawText, mode), sourceFile: file.originalname };
+        const costCtx = { companyId: user.companyId, userId: user.id, relatedId: uploadId, metadata: { file: file.originalname, mode } };
+        return { ...await extractDocumentWithAI(rawText, mode, costCtx), sourceFile: file.originalname };
       })
     );
 

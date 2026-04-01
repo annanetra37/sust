@@ -4,6 +4,7 @@ const config = require('../config');
 const { authenticate } = require('../middleware/auth');
 const prisma = require('../config/prisma');
 const { formatError } = require('../utils/errors');
+const { trackedAICall } = require('../utils/costTracker');
 
 router.use(authenticate);
 
@@ -75,11 +76,9 @@ router.post('/chat', async (req, res) => {
     }
     messages.push({ role: 'user', content: message });
 
-    const response = await client.messages.create({
-      model: config.anthropic.model,
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT + contextNote,
-      messages,
+    const params = { model: config.anthropic.model, max_tokens: 1024, system: SYSTEM_PROMPT + contextNote, messages };
+    const response = await trackedAICall(client, params, {
+      companyId: req.user.companyId, userId: req.user.id, operation: 'AI_ASSISTANT',
     });
 
     const reply = response.content[0].text;
