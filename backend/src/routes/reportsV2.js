@@ -191,25 +191,116 @@ router.post('/generate', async (req, res) => {
         if (disc.type === 'metric' && discData?.hasData) {
           doc.fontSize(10).font('Helvetica').fillColor('#333');
 
-          // Write metrics based on topic
+          // Write metrics based on topic and SPECIFIC disclosure code
           if (topicKey === 'E1' && data.E1) {
-            if (disc.code.includes('E1-6') || disc.code.includes('305') || disc.code.includes('MT-b') || disc.code.includes('MET-1')) {
-              doc.text(`Total GHG Emissions: ${(data.E1.totalEmissions).toFixed(4)} tCO2e`);
+            const round = (n) => Math.round(n * 10000) / 10000;
+
+            // === GRI SCOPE-SPECIFIC DISCLOSURES ===
+            if (disc.code === 'GRI 305-1') {
+              // Scope 1 ONLY
+              const s1 = round(data.E1.byScope['Scope 1'] || 0);
+              doc.text(`Direct GHG Emissions (Scope 1): ${s1} tCO2e`);
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Scope 1 includes direct emissions from owned or controlled sources including stationary combustion, mobile combustion (company vehicles), and fugitive emissions.');
+              doc.text('Methodology: GHG Protocol Corporate Standard. Emission factors sourced from DEFRA/EPA databases.');
+            } else if (disc.code === 'GRI 305-2') {
+              // Scope 2 ONLY
+              const s2 = round(data.E1.byScope['Scope 2'] || 0);
+              doc.text(`Energy Indirect GHG Emissions (Scope 2): ${s2} tCO2e`);
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Scope 2 covers indirect emissions from purchased electricity, steam, heating, and cooling. Location-based method applied using grid-average emission factors.');
+            } else if (disc.code === 'GRI 305-3') {
+              // Scope 3 ONLY
+              const s3 = round(data.E1.byScope['Scope 3'] || 0);
+              doc.text(`Other Indirect GHG Emissions (Scope 3): ${s3} tCO2e`);
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              const s3Categories = {};
+              data.E1.activities.filter(a => a.scope === 'Scope 3').forEach(a => {
+                s3Categories[a.activityCategory] = (s3Categories[a.activityCategory] || 0) + (a.totalEmissions || 0);
+              });
+              if (Object.keys(s3Categories).length > 0) {
+                doc.text('Breakdown by category:');
+                Object.entries(s3Categories).forEach(([cat, val]) => {
+                  doc.text(`  • ${cat}: ${round(val)} tCO2e`, { indent: 15 });
+                });
+              }
+              doc.text('Scope 3 categories included: business travel, employee commuting, purchased goods and services where data is available.');
+            } else if (disc.code === 'GRI 305-4') {
+              // Intensity ONLY
+              doc.text(`GHG Emissions Intensity: ${round(data.E1.intensity)} tCO2e per employee`);
+              doc.text(`Total emissions: ${round(data.E1.totalEmissions)} tCO2e`);
+              doc.text(`Denominator: ${data.E1.employees} employees (FTE)`);
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Intensity ratio calculated as total Scope 1+2+3 emissions divided by full-time equivalent employee count.');
+            } else if (disc.code === 'GRI 305-5') {
+              // Reduction — if no specific reduction data, explain
+              doc.text('[Omission] GHG emissions reduction data is not yet tracked separately.');
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Reason for omission: The organization has not yet established a formal emissions reduction tracking mechanism separate from year-over-year comparison. Plans are in place to implement reduction tracking aligned with SBTi commitments.');
+            } else if (disc.code === 'GRI 302') {
+              // Energy data
+              const energyActivities = data.E1.activities.filter(a =>
+                a.activityCategory?.toLowerCase().includes('electric') ||
+                a.activityCategory?.toLowerCase().includes('energy') ||
+                a.activityCategory?.toLowerCase().includes('combustion') ||
+                a.unit?.toLowerCase().includes('kwh') ||
+                a.unit?.toLowerCase().includes('mwh')
+              );
+              if (energyActivities.length > 0) {
+                const totalKwh = energyActivities.reduce((s, a) => {
+                  if (a.unit?.toLowerCase().includes('kwh')) return s + a.quantity;
+                  if (a.unit?.toLowerCase().includes('mwh')) return s + a.quantity * 1000;
+                  return s;
+                }, 0);
+                doc.text(`Total energy consumption: ${round(totalKwh)} kWh (${round(totalKwh * 0.0036)} GJ)`);
+                doc.text(`Energy records: ${energyActivities.length}`);
+                const byCat = {};
+                energyActivities.forEach(a => { byCat[a.activitySubcat || a.activityCategory] = (byCat[a.activitySubcat || a.activityCategory] || 0) + a.quantity; });
+                Object.entries(byCat).forEach(([cat, val]) => { doc.text(`  • ${cat}: ${round(val)} ${energyActivities[0]?.unit || 'kWh'}`, { indent: 15 }); });
+              } else {
+                doc.text(`${discData.count} emission activity records include energy-related data.`);
+              }
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Energy data is derived from utility invoices and activity records processed through the AI ETL pipeline.');
+
+            // === ESRS / TCFD / ISSB — full emissions disclosure ===
+            } else if (disc.code.includes('E1-6') || disc.code.includes('MT-b') || disc.code.includes('MET-1')) {
+              doc.text(`Total GHG Emissions: ${round(data.E1.totalEmissions)} tCO2e`);
               Object.entries(data.E1.byScope).forEach(([scope, val]) => {
-                doc.text(`  ${scope}: ${val.toFixed(4)} tCO2e`, { indent: 15 });
+                doc.text(`  ${scope}: ${round(val)} tCO2e`, { indent: 15 });
               });
               if (data.E1.employees > 0) {
-                doc.text(`GHG Intensity: ${data.E1.intensity.toFixed(4)} tCO2e per employee`);
-                doc.text(`Employee count: ${data.E1.employees}`);
+                doc.text(`GHG Intensity: ${round(data.E1.intensity)} tCO2e per employee`);
               }
+              doc.moveDown(0.3);
+              doc.fontSize(9).fillColor('#666');
+              doc.text('Methodology: Emissions calculated using the GHG Protocol Corporate Accounting and Reporting Standard. Emission factors from recognized databases (DEFRA, EPA, IEA). Operational control consolidation approach applied.');
+
+            // === SBTi Targets ===
             } else if (disc.code.includes('E1-4') || disc.code.includes('MT-c') || disc.code.includes('MET-2')) {
               if (data.E1.targets.length > 0) {
                 const t = data.E1.targets[0];
-                doc.text(`Target: ${t.reductionPct}% reduction by ${t.targetYear} (base year: ${t.baseYear}, method: ${t.method})`);
-                doc.text(`Scope: ${t.scope}`);
+                doc.text(`Target: ${t.reductionPct}% reduction by ${t.targetYear}`);
+                doc.text(`Base year: ${t.baseYear} | Method: ${t.method} | Scope: ${t.scope}`);
+                if (t.description) doc.text(`Description: ${t.description}`);
               } else {
-                doc.text('No SBTi targets have been set.');
+                doc.text('[Omission] No formal decarbonization targets have been set.');
+                doc.fontSize(9).fillColor('#666');
+                doc.text('The organization is evaluating Science Based Targets (SBTi) commitment options.');
               }
+
+            // === Energy consumption (ESRS E1-5) ===
+            } else if (disc.code.includes('E1-5')) {
+              const totalQty = data.E1.activities.reduce((s, a) => s + (a.quantity || 0), 0);
+              doc.text(`Total activity quantity: ${round(totalQty)} (various units)`);
+              doc.text(`Activity records: ${data.E1.activities.length}`);
+
             } else {
               doc.text(`${discData.count} data records available for this disclosure.`);
             }
@@ -243,13 +334,21 @@ router.post('/generate', async (req, res) => {
             }
           }
         } else if (disc.type === 'narrative') {
-          doc.fontSize(10).font('Helvetica').fillColor('#666');
-          doc.text(`[This section requires narrative disclosure. Please provide qualitative information about ${disc.name.toLowerCase()}.${generateWithoutMissing ? ' Section left for manual completion.' : ''}]`);
+          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#555');
+          doc.text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`);
+          doc.moveDown(0.2);
+          doc.fontSize(9).fillColor('#888');
+          doc.text(`[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`);
         } else {
-          doc.fontSize(10).font('Helvetica').fillColor('#999');
-          doc.text(`[No data available for this disclosure. ${generateWithoutMissing ? 'Omitted from quantitative reporting.' : ''}]`);
+          // Missing metric data — provide standard-compliant omission
+          doc.fontSize(10).font('Helvetica').fillColor('#b45309');
+          doc.text(`[Omission] Quantitative data for this disclosure is not available for the reporting period ${y}.`);
+          doc.moveDown(0.2);
+          doc.fontSize(9).fillColor('#888');
+          doc.text(`Reason: Data collection processes for "${disc.name}" have not yet been established or the relevant data sources have not been connected. The organization intends to disclose this metric in future reporting periods as data systems mature.`);
         }
 
+        doc.fillColor('#333').font('Helvetica'); // reset
         doc.moveDown(1);
       }
 

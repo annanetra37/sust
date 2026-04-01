@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
-import { HelpBanner, FieldLabel, InfoTip } from '../components/HelpSystem';
+import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Upload } from 'lucide-react';
+import { HelpBanner, FieldLabel } from '../components/HelpSystem';
+import ProcessingScreen from '../components/ProcessingScreen';
 
 export default function Reports() {
   const [standards, setStandards] = useState([]);
@@ -15,6 +16,7 @@ export default function Reports() {
   const [validation, setValidation] = useState(null);
   const [validating, setValidating] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
   const [companyDescription, setCompanyDescription] = useState('');
   const [showValidation, setShowValidation] = useState(false);
 
@@ -39,6 +41,7 @@ export default function Reports() {
     if (std) setSelectedTopics(std.topics.map((t) => t.key));
     setAllTopics(true);
     setValidation(null);
+    setGenerated(false);
   };
 
   const toggleTopic = (key) => {
@@ -49,13 +52,8 @@ export default function Reports() {
   };
 
   const toggleAll = () => {
-    if (allTopics) {
-      setSelectedTopics([]);
-      setAllTopics(false);
-    } else {
-      setSelectedTopics(currentStandard?.topics.map((t) => t.key) || []);
-      setAllTopics(true);
-    }
+    if (allTopics) { setSelectedTopics([]); setAllTopics(false); }
+    else { setSelectedTopics(currentStandard?.topics.map((t) => t.key) || []); setAllTopics(true); }
     setValidation(null);
   };
 
@@ -65,26 +63,21 @@ export default function Reports() {
       const result = await api.validateReport({ year, standard: selectedStandard, topics: selectedTopics });
       setValidation(result);
       setShowValidation(true);
-    } catch (err) {
-      alert(err.error || 'Validation failed');
-    } finally {
-      setValidating(false);
-    }
+    } catch (err) { alert(err.error || 'Validation failed'); }
+    finally { setValidating(false); }
   };
 
   const handleGenerate = async (withoutMissing = false) => {
     setGenerating(true);
+    setGenerated(false);
     try {
       await api.generateReportV2({
         year, standard: selectedStandard, topics: selectedTopics,
-        language, format: 'pdf', generateWithoutMissing: withoutMissing,
-        companyDescription,
+        language, format: 'pdf', generateWithoutMissing: withoutMissing, companyDescription,
       });
-    } catch (err) {
-      alert(err.error || 'Report generation failed');
-    } finally {
-      setGenerating(false);
-    }
+      setGenerated(true);
+    } catch (err) { alert(err.error || 'Report generation failed'); }
+    finally { setGenerating(false); }
   };
 
   const PILLAR_COLORS = {
@@ -93,6 +86,32 @@ export default function Reports() {
     Governance: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
   };
 
+  // If generating, show processing screen
+  if (generating) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Generating Report...</h1>
+        <div className="card overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-emerald-500/5" />
+          <div className="relative z-10 flex flex-col items-center py-12 text-center">
+            <div className="w-20 h-20 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center mb-6">
+              <Loader2 className="w-10 h-10 text-brand-600 animate-spin" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Building your {selectedStandard} report for {year}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
+              Compiling disclosures, formatting metrics, generating narrative sections, and assembling the final document...
+            </p>
+            <div className="mt-6 flex gap-3 text-xs text-gray-400">
+              <span className="badge bg-brand-50 text-brand-600 dark:bg-brand-900 dark:text-brand-400">{selectedStandard}</span>
+              <span className="badge bg-gray-100 text-gray-500 dark:bg-gray-800">{selectedTopics.length} topics</span>
+              <span className="badge bg-gray-100 text-gray-500 dark:bg-gray-800">{year}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -100,26 +119,29 @@ export default function Reports() {
         <p className="text-gray-500 dark:text-gray-400">Generate standard-compliant sustainability reports from your connected data</p>
       </div>
 
+      {/* Success message */}
+      {generated && (
+        <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+          <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
+          <div>
+            <p className="font-semibold text-green-800 dark:text-green-300">Report generated and downloaded!</p>
+            <p className="text-sm text-green-600 dark:text-green-400">Check your downloads folder for the PDF.</p>
+          </div>
+        </div>
+      )}
+
       <HelpBanner id="reports-v2-guide" title="How Report Generation Works" variant="info">
-        Select a reporting standard, choose the topics you want to include, and the system will validate your data
-        coverage. Missing sections are flagged so you can review before generating. The report includes a cover page,
-        table of contents, all disclosures aligned with the selected standard, and a standard index.
+        Select a standard, choose topics, validate data coverage, then generate. The report includes a cover page,
+        table of contents, standard-aligned disclosures with your data, and a compliance index.
       </HelpBanner>
 
-      {/* Step 1: Standard selection */}
+      {/* Step 1: Standard */}
       <div className="card space-y-4">
-        <FieldLabel label="Reporting Standard" required info="The ESG framework your report will be aligned with. This determines the structure, required disclosures, and index format." />
+        <FieldLabel label="Reporting Standard" required info="Determines the structure, required disclosures, and compliance rules." />
         <div className="grid grid-cols-2 gap-3">
           {standards.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => handleStandardChange(s.key)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${
-                selectedStandard === s.key
-                  ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-              }`}
-            >
+            <button key={s.key} onClick={() => handleStandardChange(s.key)}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${selectedStandard === s.key ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
               <p className="font-semibold text-sm">{s.key}</p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{s.name}</p>
               <p className="text-[10px] text-gray-400 mt-0.5">{s.framework} {s.version}</p>
@@ -128,7 +150,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Step 2: Year + Language */}
+      {/* Step 2: Year + Language + Description */}
       <div className="card">
         <div className="grid grid-cols-3 gap-4">
           <div>
@@ -144,31 +166,29 @@ export default function Reports() {
             </select>
           </div>
           <div>
-            <FieldLabel label="Company Description" info="Optional brief description for the cover page." />
+            <FieldLabel label="Company Description" info="Brief description for the cover page." />
             <input className="input" placeholder="e.g., Leading manufacturer..." value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} />
           </div>
         </div>
       </div>
 
-      {/* Step 3: Topic selection */}
+      {/* Step 3: Topics */}
       {currentStandard && (
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <FieldLabel label="Report Topics" required info="Select which ESG topics to include. Deselected topics won't appear in the report." />
+            <FieldLabel label="Report Topics" required info="Select which topics to include. Deselected topics won't appear." />
             <button onClick={toggleAll} className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
               {allTopics ? 'Deselect All' : 'Select All'}
             </button>
           </div>
           <div className="space-y-2">
             {currentStandard.topics.map((t) => (
-              <label key={t.key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                selectedTopics.includes(t.key) ? 'border-brand-400 bg-brand-50/50 dark:bg-brand-950/30' : 'border-gray-200 dark:border-gray-700'
-              }`}>
+              <label key={t.key} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTopics.includes(t.key) ? 'border-brand-400 bg-brand-50/50 dark:bg-brand-950/30' : 'border-gray-200 dark:border-gray-700'}`}>
                 <input type="checkbox" className="w-4 h-4 rounded accent-brand-600" checked={selectedTopics.includes(t.key)} onChange={() => toggleTopic(t.key)} />
                 <div className="flex-1">
                   <p className="font-medium text-sm">{t.code} — {t.name}</p>
                 </div>
-                <span className={`badge text-[10px] ${PILLAR_COLORS[t.pillar] || 'bg-gray-100 text-gray-600'}`}>{t.pillar}</span>
+                <span className={`badge text-[10px] ${PILLAR_COLORS[t.pillar] || 'bg-gray-100'}`}>{t.pillar}</span>
               </label>
             ))}
           </div>
@@ -186,21 +206,28 @@ export default function Reports() {
         <div className="card space-y-4">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100">Data Coverage Report</h3>
 
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
+            <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" /> Data available</span>
+            <span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-red-500" /> Missing metric data</span>
+            <span className="flex items-center gap-1"><Info className="w-3.5 h-3.5 text-blue-500" /> Narrative (auto-generated)</span>
+          </div>
+
           {/* Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-green-700 dark:text-green-400">{validation.available.length}</p>
-              <p className="text-[10px] text-green-600 dark:text-green-500">Disclosures with data</p>
+              <p className="text-[10px] text-green-600">Data available</p>
             </div>
             <div className="bg-red-50 dark:bg-red-950 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-red-700 dark:text-red-400">{validation.missing.length}</p>
-              <p className="text-[10px] text-red-600 dark:text-red-500">Missing metric data</p>
+              <p className="text-[10px] text-red-600">Missing data</p>
             </div>
-            <div className="bg-amber-50 dark:bg-amber-950 rounded-lg p-3 text-center">
-              <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+            <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
+              <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                 {validation.topics.reduce((s, t) => s + t.disclosures.filter(d => d.isNarrative).length, 0)}
               </p>
-              <p className="text-[10px] text-amber-600 dark:text-amber-500">Narrative sections</p>
+              <p className="text-[10px] text-blue-600">Narrative sections</p>
             </div>
           </div>
 
@@ -217,14 +244,14 @@ export default function Reports() {
                     {disc.hasData ? (
                       <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
                     ) : disc.isNarrative ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <Info className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                     ) : (
                       <XCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
                     )}
                     <span className="font-mono text-gray-400 w-14 shrink-0">{disc.code}</span>
                     <span className="flex-1 text-gray-700 dark:text-gray-300">{disc.name}</span>
-                    {disc.hasData && <span className="text-green-600">{disc.count} records</span>}
-                    {disc.isNarrative && <span className="text-amber-500">Narrative</span>}
+                    {disc.hasData && <span className="text-green-600 font-medium">{disc.count} records</span>}
+                    {disc.isNarrative && <span className="text-blue-400">Auto-generated</span>}
                     {!disc.hasData && !disc.isNarrative && <span className="text-red-500">No data</span>}
                   </div>
                 ))}
@@ -232,48 +259,26 @@ export default function Reports() {
             </div>
           ))}
 
-          {/* Generate buttons */}
+          {/* Generate */}
           <div className="space-y-2 pt-2">
             {validation.missing.length === 0 ? (
               <button onClick={() => handleGenerate(false)} disabled={generating} className="btn-primary w-full flex items-center justify-center gap-2">
-                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {generating ? 'Generating report...' : 'Generate Full Report'}
+                <Download className="w-4 h-4" /> Generate Full Report
               </button>
             ) : (
               <>
                 <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
-                  <strong>{validation.missing.length} disclosure(s)</strong> are missing quantitative data.
-                  You can still generate the report — missing sections will be marked for manual completion.
+                  <strong>{validation.missing.length} disclosure(s)</strong> have no quantitative data.
+                  Missing sections will include an omission explanation as required by the standard.
                 </div>
                 <button onClick={() => handleGenerate(true)} disabled={generating} className="btn-primary w-full flex items-center justify-center gap-2">
-                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  {generating ? 'Generating report...' : `Generate Report (${validation.missing.length} sections incomplete)`}
+                  <Download className="w-4 h-4" /> Generate Report ({validation.missing.length} sections with omission notes)
                 </button>
               </>
             )}
           </div>
         </div>
       )}
-
-      {/* ESRS compliance note */}
-      <div className="card bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-        <div className="flex gap-3">
-          <FileText className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-gray-700 dark:text-gray-300 text-sm">Report Contents</h3>
-            <ul className="text-xs text-gray-500 dark:text-gray-400 mt-1 space-y-0.5 list-disc ml-4">
-              <li>Cover page with company name, standard, and reporting year</li>
-              <li>Table of contents with section numbers</li>
-              <li>About This Report section with company details</li>
-              <li>Standard-specific topic sections with all disclosures</li>
-              <li>Metrics populated from your connected data</li>
-              <li>Narrative placeholders for qualitative disclosures</li>
-              <li>Standard index with data coverage status per disclosure</li>
-              <li>Missing data notice (if applicable)</li>
-            </ul>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
