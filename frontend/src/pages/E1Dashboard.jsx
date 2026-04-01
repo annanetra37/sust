@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import { Factory, TrendingUp, Users, Target, Upload, Download, Copy } from 'lucide-react';
+import { Factory, TrendingUp, Users, Target, Upload, Download, Copy, FileSpreadsheet, FileImage } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
 import CopyableChart from '../components/CopyableChart';
 import {
@@ -54,13 +54,14 @@ export default function E1Dashboard() {
             <Upload className="w-4 h-4" /> Connect Data
           </Link>
           <div className="flex gap-1.5">
-            <button onClick={() => window.print()} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Export dashboard with visuals as PDF">
-              <Download className="w-3.5 h-3.5" /> PDF
+            <button onClick={() => { window.print(); }} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Save dashboard with all visuals as PDF (browser print dialog)">
+              <FileImage className="w-3.5 h-3.5" /> Visuals
             </button>
-            <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Export raw data as Excel">
-              <Download className="w-3.5 h-3.5" /> Excel
+            <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Download raw KPI data as Excel spreadsheet">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Data
             </button>
           </div>
+          <p className="text-[9px] text-gray-400 text-center">Visuals = PDF with charts · Data = Excel with numbers</p>
         </div>
       </div>
 
