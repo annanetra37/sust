@@ -86,12 +86,12 @@ export default function E1Dashboard() {
           <span className="text-2xl font-bold">{stats.intensity} <span className="text-sm font-normal text-gray-400">tCO2e/emp</span></span>
         </div>
         <div className="stat-card">
-          <Users className="w-5 h-5 text-blue-500" />
+          <Factory className="w-5 h-5 text-orange-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Employees</span>
-            <InfoTip>From S1 workforce data for the same year.</InfoTip>
+            <span className="text-sm text-gray-500">Total Energy Consumption</span>
+            <InfoTip>Total energy consumed across all sources (electricity, heating, fuel) converted to MWh.</InfoTip>
           </div>
-          <span className="text-2xl font-bold">{stats.totalEmployees.toLocaleString()}</span>
+          <span className="text-2xl font-bold">{stats.totalEnergyMwh > 0 ? stats.totalEnergyMwh.toFixed(2) : '0'} <span className="text-sm font-normal text-gray-400">MWh</span></span>
         </div>
         <div className="stat-card">
           <Target className="w-5 h-5 text-purple-500" />
@@ -142,11 +142,9 @@ export default function E1Dashboard() {
           <span className="text-[10px] text-gray-400">data records</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">Energy</span>
-          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
-            {stats.totalEnergyMwh > 0 ? `${stats.totalEnergyMwh}` : stats.totalEnergyKwh > 0 ? `${stats.totalEnergyKwh}` : '—'}
-          </span>
-          <span className="text-[10px] text-gray-400">{stats.totalEnergyMwh > 0 ? 'MWh consumed' : stats.totalEnergyKwh > 0 ? 'kWh consumed' : 'No energy data'}</span>
+          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Employees</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.totalEmployees?.toLocaleString() || 0}</span>
+          <span className="text-[10px] text-gray-400">from S1 data</span>
         </div>
       </div>
 
@@ -170,6 +168,21 @@ export default function E1Dashboard() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Energy Consumption Breakdown */}
+      {charts.energyBySource?.length > 0 && (
+        <CopyableChart title="Energy Consumption by Source (MWh)">
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={charts.energyBySource} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis dataKey="source" type="category" width={120} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => `${v.toFixed(2)} MWh`} />
+              <Bar dataKey="mwh" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CopyableChart>
       )}
 
       {/* Charts */}

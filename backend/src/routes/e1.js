@@ -85,35 +85,75 @@ router.get('/dashboard', async (req, res) => {
     emissionsTrend[r.year] += r.totalEmissions || 0;
   });
 
-  // Total energy consumption (convert everything to kWh)
+  // Total energy consumption — convert ALL sources to kWh then to MWh
+  // Conversion factors to kWh:
+  const ENERGY_CONVERSIONS = {
+    'kwh': 1, 'kw.h': 1, 'kilowatt': 1,
+    'mwh': 1000, 'megawatt': 1000,
+    'gj': 277.78, 'gigajoule': 277.78,
+    'litre': 10.0, 'liter': 10.0, 'litres': 10.0, 'liters': 10.0, 'ltr': 10.0, 'l': 10.0,
+    'gallon': 37.85, 'gallons': 37.85,
+    'm3': 10.55, 'm³': 10.55, 'cubic': 10.55,
+    'therm': 29.3, 'therms': 29.3,
+    'km': 0.6, 'kilometer': 0.6, // ~0.6 kWh per km for vehicles
+    'passenger-km': 0.4,
+    'night': 15.0, 'nights': 15.0, 'room-night': 15.0, // ~15 kWh per hotel night
+  };
+
   let totalEnergyKwh = 0;
-  const energyByType = {};
+  const energyBySource = {}; // grouped by meaningful source name
+
   activities.forEach((r) => {
-    const unit = (r.unit || '').toLowerCase();
-    const cat = (r.activityCategory || '').toLowerCase();
-    const sub = (r.activitySubcat || '').toLowerCase();
+    if (!r.quantity || r.quantity <= 0) return;
+    const unit = (r.unit || '').toLowerCase().trim();
+    const cat = (r.activityCategory || '');
+    const sub = (r.activitySubcat || '');
 
-    // Only count energy-related activities
-    const isEnergy = cat.includes('electric') || cat.includes('combustion') || cat.includes('energy') ||
-      sub.includes('electric') || sub.includes('gas') || sub.includes('heating') || sub.includes('diesel') ||
-      unit.includes('kwh') || unit.includes('mwh') || unit.includes('gj') || unit.includes('litre');
-
-    if (isEnergy && r.quantity > 0) {
-      let kwh = r.quantity;
-      if (unit.includes('mwh')) kwh = r.quantity * 1000;
-      else if (unit.includes('gj')) kwh = r.quantity * 277.78;
-      else if (unit.includes('litre') && sub.includes('diesel')) kwh = r.quantity * 10.0;
-      else if (unit.includes('litre') && sub.includes('gas')) kwh = r.quantity * 10.55;
-      else if (unit.includes('litre')) kwh = r.quantity * 9.0;
-      else if (!unit.includes('kwh')) kwh = 0; // unknown unit, skip
-
-      if (kwh > 0) {
-        totalEnergyKwh += kwh;
-        const type = r.activitySubcat || r.activityCategory || 'Other';
-        energyByType[type] = (energyByType[type] || 0) + kwh;
-      }
+    // Find conversion factor
+    let factor = 0;
+    for (const [key, val] of Object.entries(ENERGY_CONVERSIONS)) {
+      if (unit.includes(key)) { factor = val; break; }
     }
+    if (factor === 0) return; // can't convert this unit
+
+    // Refine factor for specific fuel types
+    if (unit.includes('litre') || unit.includes('liter') || unit.includes('ltr')) {
+      if (sub.toLowerCase().includes('diesel')) factor = 10.0;      // diesel: 10 kWh/litre
+      else if (sub.toLowerCase().includes('petrol') || sub.toLowerCase().includes('gasoline')) factor = 9.1;
+      else if (sub.toLowerCase().includes('lpg')) factor = 7.1;
+      else if (sub.toLowerCase().includes('heating oil')) factor = 10.35;
+      else factor = 10.0; // default fuel
+    }
+
+    const kwh = r.quantity * factor;
+    totalEnergyKwh += kwh;
+
+    // Group by meaningful source name
+    let sourceName;
+    if (cat.toLowerCase().includes('electric') || sub.toLowerCase().includes('electric') || sub.toLowerCase().includes('grid')) {
+      sourceName = 'Electricity';
+    } else if (sub.toLowerCase().includes('heating') || sub.toLowerCase().includes('fernwärme') || sub.toLowerCase().includes('district')) {
+      sourceName = 'District Heating';
+    } else if (sub.toLowerCase().includes('gas') || sub.toLowerCase().includes('natural')) {
+      sourceName = 'Natural Gas';
+    } else if (sub.toLowerCase().includes('diesel')) {
+      sourceName = 'Diesel';
+    } else if (sub.toLowerCase().includes('petrol') || sub.toLowerCase().includes('gasoline')) {
+      sourceName = 'Petrol/Gasoline';
+    } else if (cat.toLowerCase().includes('mobile') || sub.toLowerCase().includes('vehicle') || sub.toLowerCase().includes('service')) {
+      sourceName = 'Vehicle Fuel';
+    } else if (cat.toLowerCase().includes('travel') || sub.toLowerCase().includes('flight') || sub.toLowerCase().includes('train')) {
+      sourceName = 'Business Travel';
+    } else if (sub.toLowerCase().includes('hotel') || sub.toLowerCase().includes('stay')) {
+      sourceName = 'Accommodation';
+    } else {
+      sourceName = sub || cat || 'Other';
+    }
+
+    energyBySource[sourceName] = (energyBySource[sourceName] || 0) + kwh;
   });
+
+  const totalEnergyMwh = totalEnergyKwh / 1000;
 
   let sbtiProgress = null;
   if (targets.length > 0) {
@@ -197,7 +237,7 @@ router.get('/dashboard', async (req, res) => {
       expenditureBased,
       sbtiProgress,
       totalEnergyKwh: round4(totalEnergyKwh),
-      totalEnergyMwh: round4(totalEnergyKwh / 1000),
+      totalEnergyMwh: round4(totalEnergyMwh),
     },
     charts: {
       byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value: round4(value) })),
@@ -206,7 +246,7 @@ router.get('/dashboard', async (req, res) => {
       emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value: round4(value) })),
       topSources,
       byMonth: Object.entries(byMonth).map(([month, value]) => ({ month: parseInt(month), value: round4(value) })).sort((a, b) => a.month - b.month),
-      energyByType: Object.entries(energyByType).map(([type, kwh]) => ({ type, kwh: round4(kwh) })).sort((a, b) => b.kwh - a.kwh),
+      energyBySource: Object.entries(energyBySource).map(([source, kwh]) => ({ source, mwh: round4(kwh / 1000), kwh: round4(kwh) })).sort((a, b) => b.kwh - a.kwh),
     },
     raw: { activities, inventory },
   });
