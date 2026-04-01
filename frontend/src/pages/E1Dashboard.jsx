@@ -142,9 +142,11 @@ export default function E1Dashboard() {
           <span className="text-[10px] text-gray-400">data records</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Total Spend</span>
-          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.totalSpend > 0 ? stats.totalSpend.toLocaleString() : '—'}</span>
-          <span className="text-[10px] text-gray-400">{stats.efCoverage}% EF coverage</span>
+          <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">Energy</span>
+          <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            {stats.totalEnergyMwh > 0 ? `${stats.totalEnergyMwh}` : stats.totalEnergyKwh > 0 ? `${stats.totalEnergyKwh}` : '—'}
+          </span>
+          <span className="text-[10px] text-gray-400">{stats.totalEnergyMwh > 0 ? 'MWh consumed' : stats.totalEnergyKwh > 0 ? 'kWh consumed' : 'No energy data'}</span>
         </div>
       </div>
 

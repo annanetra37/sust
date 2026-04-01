@@ -246,16 +246,25 @@ async function extractDocumentWithAI(text, mode, costCtx) {
   const modeInstructions = {
     Travel: `Extract travel/transport data: transport type (flight/train/bus/taxi/car rental), departure city/airport, arrival city/airport, distance in km, number of passengers, ticket fare/cost, currency, date. For flights determine if short-haul (<1500km), medium-haul (1500-4000km), or long-haul (>4000km).`,
     Stay: `Extract accommodation data: hotel/property name, city/location, number of nights, number of rooms, nightly rate, total cost, currency, check-in date, check-out date.`,
-    Energy: `Extract energy consumption data from utility bills/invoices. Look for:
-- Energy type: electricity, natural gas, diesel, petrol, LPG, heating oil, district heating
-- Quantity consumed: look for kWh, MWh, litres, m³, therms, gallons, units
-- If meter readings are given: usage = new_reading - old_reading
-- If only cost is shown: still extract the amount, our system will estimate usage
-- Total cost/amount paid, currency
-- Billing period dates, supplier name
-- For electricity: use activityCategory="Purchased Electricity", scope="Scope 2"
-- For gas/heating/fuel: use activityCategory="Stationary Combustion", scope="Scope 1"
-IMPORTANT: Always extract the quantity even if approximate. If the bill shows MWh, convert to kWh (1 MWh = 1000 kWh). If it shows therms, convert (1 therm = 29.3 kWh). Always provide a non-zero quantity or amount.`,
+    Energy: `Extract energy consumption data from utility bills/invoices. The text may come from OCR and contain errors — work with what you can read.
+
+Look for ANY of these:
+- Energy type: electricity, natural gas, district heating (Fernwärme), diesel, petrol, LPG, heating oil
+- Quantity: kWh, MWh, kW, litres, m³, therms, gallons — look for numbers near these units
+- MWh values: convert to kWh (multiply by 1000)
+- Total amount paid: look for EUR, USD, currency symbols near totals
+- Billing period: date ranges, "Von... bis..." (German for from...to...)
+- Supplier/company name
+
+IMPORTANT RULES:
+- Even if OCR quality is poor, extract whatever you CAN read. Don't reject the whole document.
+- If you see "MWh" anywhere, that IS energy data — extract it
+- German invoices: "Betrag" = amount, "Verbrauch" = consumption, "Grundpreis" = base price, "Arbeitspreis" = usage price, "Energiesteuer" = energy tax, "Fernwärme" = district heating, "Wärmezähler" = heat meter
+- For district heating (Fernwärme): use activityCategory="Stationary Combustion", subType="District Heating", scope="Scope 2"
+- For electricity: activityCategory="Purchased Electricity", scope="Scope 2"
+- For gas/fuel: activityCategory="Stationary Combustion", scope="Scope 1"
+- If you can only extract the total amount (e.g. EUR 148.22), still return it with amount field
+- NEVER return empty items if you can see ANY numbers, amounts, or energy units in the text`,
     'Company Vehicle': `Extract company vehicle/service vehicle data: vehicle type, fuel type (petrol/diesel/hybrid/electric), distance driven (km or miles), fuel quantity (litres or gallons), vehicle registration/plate number, date, cost, currency. IMPORTANT: For company vehicles, always use activityCategory="Mobile Combustion" and subType="Service Vehicles".`,
   };
 
@@ -299,9 +308,14 @@ ${modeInstructions[mode]}
 
 ## Instructions
 Extract ALL emission-relevant data points. Calculate emissions in tCO2e.
-Convert non-metric units (miles→km, gallons→litres).
+Convert non-metric units (miles→km, gallons→litres, MWh→kWh).
 Determine GHG Protocol scope (Scope 1/2/3).
 Double-check your distance calculations against known geography.
+
+CRITICAL: The document text may come from OCR and contain errors, misspellings, or garbled characters.
+Do your BEST to extract data even from imperfect text. If you can identify ANY energy quantity,
+distance, amount, or date — include it. Do NOT return empty items just because the OCR is imperfect.
+A partial extraction is better than no extraction.
 
 Return ONLY valid JSON:
 {

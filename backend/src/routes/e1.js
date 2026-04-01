@@ -85,6 +85,36 @@ router.get('/dashboard', async (req, res) => {
     emissionsTrend[r.year] += r.totalEmissions || 0;
   });
 
+  // Total energy consumption (convert everything to kWh)
+  let totalEnergyKwh = 0;
+  const energyByType = {};
+  activities.forEach((r) => {
+    const unit = (r.unit || '').toLowerCase();
+    const cat = (r.activityCategory || '').toLowerCase();
+    const sub = (r.activitySubcat || '').toLowerCase();
+
+    // Only count energy-related activities
+    const isEnergy = cat.includes('electric') || cat.includes('combustion') || cat.includes('energy') ||
+      sub.includes('electric') || sub.includes('gas') || sub.includes('heating') || sub.includes('diesel') ||
+      unit.includes('kwh') || unit.includes('mwh') || unit.includes('gj') || unit.includes('litre');
+
+    if (isEnergy && r.quantity > 0) {
+      let kwh = r.quantity;
+      if (unit.includes('mwh')) kwh = r.quantity * 1000;
+      else if (unit.includes('gj')) kwh = r.quantity * 277.78;
+      else if (unit.includes('litre') && sub.includes('diesel')) kwh = r.quantity * 10.0;
+      else if (unit.includes('litre') && sub.includes('gas')) kwh = r.quantity * 10.55;
+      else if (unit.includes('litre')) kwh = r.quantity * 9.0;
+      else if (!unit.includes('kwh')) kwh = 0; // unknown unit, skip
+
+      if (kwh > 0) {
+        totalEnergyKwh += kwh;
+        const type = r.activitySubcat || r.activityCategory || 'Other';
+        energyByType[type] = (energyByType[type] || 0) + kwh;
+      }
+    }
+  });
+
   let sbtiProgress = null;
   if (targets.length > 0) {
     const target = targets[0];
@@ -166,6 +196,8 @@ router.get('/dashboard', async (req, res) => {
       consumptionBased,
       expenditureBased,
       sbtiProgress,
+      totalEnergyKwh: round4(totalEnergyKwh),
+      totalEnergyMwh: round4(totalEnergyKwh / 1000),
     },
     charts: {
       byScope: Object.entries(byScope).map(([scope, value]) => ({ scope, value: round4(value) })),
@@ -174,6 +206,7 @@ router.get('/dashboard', async (req, res) => {
       emissionsTrend: Object.entries(emissionsTrend).map(([year, value]) => ({ year: parseInt(year), value: round4(value) })),
       topSources,
       byMonth: Object.entries(byMonth).map(([month, value]) => ({ month: parseInt(month), value: round4(value) })).sort((a, b) => a.month - b.month),
+      energyByType: Object.entries(energyByType).map(([type, kwh]) => ({ type, kwh: round4(kwh) })).sort((a, b) => b.kwh - a.kwh),
     },
     raw: { activities, inventory },
   });
