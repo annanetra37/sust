@@ -49,12 +49,14 @@ export default function E1Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">E1 — Climate Change</h1>
           <p className="text-gray-500">GHG emissions, carbon footprint analysis, and SBTi targets</p>
         </div>
-        <Link to="/platform/E/environmental-1" className="btn-primary flex items-center gap-2">
-          <Upload className="w-4 h-4" /> Connect Data
-        </Link>
-        <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
-          <Download className="w-4 h-4" /> Export KPIs
-        </button>
+        <div className="flex flex-col gap-2">
+          <Link to="/platform/E/environmental-1" className="btn-primary flex items-center justify-center gap-2">
+            <Upload className="w-4 h-4" /> Connect Data
+          </Link>
+          <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-2 text-sm">
+            <Download className="w-4 h-4" /> Export KPIs
+          </button>
+        </div>
       </div>
 
       <OrgYearFilter filters={filters} onChange={setFilters} />

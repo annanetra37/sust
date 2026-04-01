@@ -43,12 +43,14 @@ export default function S1Dashboard() {
           <h1 className="text-2xl font-bold text-gray-900">S1 — Own Workforce</h1>
           <p className="text-gray-500">Workforce composition, diversity, training, and turnover analytics</p>
         </div>
-        <Link to="/platform/S/social-1" className="btn-primary flex items-center gap-2">
-          <Upload className="w-4 h-4" /> Connect Data
-        </Link>
-        <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center gap-2 text-sm">
-          <Download className="w-4 h-4" /> Export KPIs
-        </button>
+        <div className="flex flex-col gap-2">
+          <Link to="/platform/S/social-1" className="btn-primary flex items-center justify-center gap-2">
+            <Upload className="w-4 h-4" /> Connect Data
+          </Link>
+          <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-2 text-sm">
+            <Download className="w-4 h-4" /> Export KPIs
+          </button>
+        </div>
       </div>
 
       <OrgYearFilter filters={filters} onChange={setFilters} />
