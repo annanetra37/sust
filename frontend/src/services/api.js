@@ -24,7 +24,12 @@ async function request(path, options = {}) {
   // Remove Content-Type for FormData
   if (options.body instanceof FormData) delete headers['Content-Type'];
 
-  let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (networkErr) {
+    throw { status: 0, error: 'Network error: Cannot reach the server. Please check your connection.' };
+  }
 
   // Auto-refresh on 401
   if (res.status === 401 && refreshToken && !path.includes('/auth/')) {
@@ -46,13 +51,21 @@ async function request(path, options = {}) {
     }
   }
 
+  const contentType = res.headers.get('content-type') || '';
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw { status: res.status, ...err };
+    if (contentType.includes('application/json')) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw { status: res.status, ...err };
+    }
+    throw { status: res.status, error: `Server error: ${res.status} ${res.statusText}` };
   }
 
-  const contentType = res.headers.get('content-type');
-  if (contentType?.includes('application/json')) return res.json();
+  // Guard against non-JSON responses (e.g., HTML from static server when API is unreachable)
+  if (contentType.includes('application/json')) return res.json();
+  if (contentType.includes('text/html')) {
+    throw { status: 502, error: 'API is unreachable. The server returned HTML instead of JSON. Check that VITE_API_URL is configured correctly.' };
+  }
   return res.blob();
 }
 

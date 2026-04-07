@@ -8,10 +8,16 @@ const { globalErrorHandler } = require('./utils/errors');
 
 const app = express();
 
+// Trust proxy (Railway, Render, etc. run behind a reverse proxy)
+app.set('trust proxy', 1);
+
 // Security & performance
 app.use(helmet());
 app.use(compression());
-app.use(cors({ origin: config.frontend.url, credentials: true }));
+app.use(cors({
+  origin: config.frontend.url ? config.frontend.url.split(',').map(u => u.trim()) : '*',
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Rate limiting
