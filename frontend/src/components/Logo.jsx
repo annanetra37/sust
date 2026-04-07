@@ -1,12 +1,14 @@
 import { useTheme } from '../context/ThemeContext';
 
-export function LogoMark({ className = 'w-10 h-10' }) {
-  const { dark } = useTheme();
+export function LogoMark({ className = 'w-12 h-12' }) {
+  let dark = false;
+  try { const theme = useTheme(); dark = theme.dark; } catch {}
   return <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className={className} />;
 }
 
 export function LogoFull({ className = '', size = 'default' }) {
-  const { dark } = useTheme();
+  let dark = false;
+  try { const theme = useTheme(); dark = theme.dark; } catch {}
   const sizes = {
     default: { img: 'w-10 h-10', title: 'text-[17px]', sub: 'text-[11px]' },
     large: { img: 'w-14 h-14', title: 'text-[24px]', sub: 'text-[13px]' },
@@ -29,6 +31,7 @@ export function LogoFull({ className = '', size = 'default' }) {
 }
 
 export function LogoIcon({ className = 'w-8 h-8' }) {
-  const { dark } = useTheme();
+  let dark = false;
+  try { const theme = useTheme(); dark = theme.dark; } catch {}
   return <img src={dark ? '/logo-white.svg' : '/logo.svg'} alt="Triple I" className={className} />;
 }
