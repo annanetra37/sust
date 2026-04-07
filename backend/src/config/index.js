@@ -11,11 +11,9 @@ module.exports = {
   frontend: {
     url: process.env.FRONTEND_URL || 'http://localhost:5173',
   },
-  smtp: {
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+  resend: {
+    apiKey: process.env.RESEND_API_KEY,
+    from: process.env.RESEND_FROM || 'Triple I ESG <noreply@triplei.io>',
   },
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY,
