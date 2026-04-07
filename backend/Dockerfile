@@ -10,6 +10,6 @@ RUN npx prisma generate
 
 COPY . .
 
-EXPOSE 4000
+EXPOSE ${PORT:-4000}
 
 CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node src/server.js"]
