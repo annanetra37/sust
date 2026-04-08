@@ -494,18 +494,23 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
     const batch = files.slice(i, i + MAX_CONCURRENT);
     const batchResults = await Promise.allSettled(
       batch.map(async (file) => {
-        // Step 1: Extract raw text (PDF parse or OCR)
-        console.log(`[Doc Extract] Starting text extraction for: ${file.originalname}`);
-        const rawText = await extractText(file);
-        const textLen = (rawText || '').trim().length;
-        console.log(`[Doc Extract] Text extracted: ${textLen} chars from ${file.originalname}`);
-
-        if (textLen < 10) {
-          throw new Error(`Could not extract readable text from "${file.originalname}" (${textLen} chars). The file may be a scanned image that OCR couldn't process, or the PDF may be empty/corrupted.`);
-        }
-        // Step 2: AI extraction
+        console.log(`[Doc Extract] Starting extraction for: ${file.originalname}`);
         const costCtx = { companyId: user.companyId, userId: user.id, relatedId: uploadId, metadata: { file: file.originalname, mode } };
-        return { ...await extractDocumentWithAI(rawText, mode, costCtx), sourceFile: file.originalname };
+
+        // Step 1: Try text extraction
+        const result = await extractText(file);
+
+        // Step 2: If text found, use text-based AI extraction
+        if (result.text && result.text.length >= 10) {
+          console.log(`[Doc Extract] Using text mode: ${result.text.length} chars`);
+          return { ...await extractDocumentWithAI(result.text, mode, costCtx, false), sourceFile: file.originalname };
+        }
+
+        // Step 3: No text — use Claude Vision API with raw file buffer
+        console.log(`[Doc Extract] No text found — using Claude Vision API for: ${file.originalname}`);
+        const buffer = result.buffer || file.buffer;
+        const mime = result.mime || file.mimetype || 'application/pdf';
+        return { ...await extractDocumentWithAI(buffer, mode, costCtx, true, mime), sourceFile: file.originalname };
       })
     );
 

@@ -242,7 +242,7 @@ For skipped rows, include them in a separate "skipped" array with the reason.
 
 // ─── Step 3: AI Document Extraction ─────────────────────────
 
-async function extractDocumentWithAI(text, mode, costCtx) {
+async function extractDocumentWithAI(textOrBuffer, mode, costCtx, useVision = false, mimeType = 'application/pdf') {
   const modeInstructions = {
     Travel: `Extract travel/transport data: transport type (flight/train/bus/taxi/car rental), departure city/airport, arrival city/airport, distance in km, number of passengers, ticket fare/cost, currency, date. For flights determine if short-haul (<1500km), medium-haul (1500-4000km), or long-haul (>4000km).`,
     Stay: `Extract accommodation data: hotel/property name, city/location, number of nights, number of rooms, nightly rate, total cost, currency, check-in date, check-out date.`,
@@ -268,10 +268,9 @@ IMPORTANT RULES:
     'Company Vehicle': `Extract company vehicle/service vehicle data: vehicle type, fuel type (petrol/diesel/hybrid/electric), distance driven (km or miles), fuel quantity (litres or gallons), vehicle registration/plate number, date, cost, currency. IMPORTANT: For company vehicles, always use activityCategory="Mobile Combustion" and subType="Service Vehicles".`,
   };
 
-  const prompt = `You are an expert at extracting structured emissions data from invoices, receipts, and bills. The document may be in ANY language.
+  const promptText = `You are an expert at extracting structured emissions data from invoices, receipts, and bills. The document may be in ANY language.
 
-## Document Text
-${text.substring(0, 6000)}
+${useVision ? '## Document\nThe document image is attached. Read ALL text visible in the image.' : `## Document Text\n${textOrBuffer.substring(0, 6000)}`}
 
 ## Extraction Mode: ${mode}
 ${modeInstructions[mode]}
@@ -340,9 +339,23 @@ Return ONLY valid JSON:
 
 If you cannot extract meaningful data, return {"items": [], "confidence": 0, "notes": "reason"}.`;
 
-  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] };
+  // Build message content — text or vision
+  let messageContent;
+  if (useVision && Buffer.isBuffer(textOrBuffer)) {
+    const base64 = textOrBuffer.toString('base64');
+    const mediaType = mimeType === 'application/pdf' ? 'application/pdf' : (mimeType || 'image/jpeg');
+    messageContent = [
+      { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } },
+      { type: 'text', text: promptText },
+    ];
+    console.log(`[DocExtract] Using Claude Vision API (${mediaType}, ${(textOrBuffer.length / 1024).toFixed(0)} KB)`);
+  } else {
+    messageContent = promptText;
+  }
+
+  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: messageContent }] };
   const response = costCtx
-    ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_DOC_EXTRACT', metadata: { ...costCtx.metadata, mode } })
+    ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_DOC_EXTRACT', metadata: { ...costCtx.metadata, mode, useVision } })
     : await getClient().messages.create(params);
 
   const text2 = response.content[0].text;
