@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Leaf, Users2, Shield, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import clsx from 'clsx';
 import { HelpBanner, InfoTip } from '../components/HelpSystem';
+import api from '../services/api';
 
 const PILLARS = [
   {
@@ -40,6 +41,11 @@ const PILLARS = [
 export default function Home() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState({ E: true, S: true, G: false });
+  const [standard, setStandard] = useState('');
+
+  useEffect(() => {
+    api.getEsgStandard().then((d) => setStandard(d.standard)).catch(() => {});
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -79,7 +85,7 @@ export default function Home() {
             <span className="text-sm text-gray-500">Reporting Standard</span>
             <InfoTip title="Reporting Standard">The ESG standard used for compliance reports. ESRS (European Sustainability Reporting Standards) is the default for CSRD. Change this in Settings.</InfoTip>
           </div>
-          <span className="text-2xl font-bold text-gray-700">ESRS</span>
+          <span className="text-2xl font-bold text-gray-700">{standard || '—'}</span>
         </div>
       </div>
 
