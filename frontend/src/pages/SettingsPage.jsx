@@ -60,9 +60,10 @@ export default function SettingsPage() {
   const [logoLoading, setLogoLoading] = useState(false);
 
   useEffect(() => {
-    // Check if company has a logo
-    fetch('/api/settings/logo', { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } })
-      .then(r => { if (r.ok) setLogoUrl(`/api/settings/logo?t=${Date.now()}`); })
+    const token = localStorage.getItem('accessToken');
+    const base = api.getApiBase();
+    fetch(`${base}/settings/logo?token=${token}`)
+      .then(r => { if (r.ok) setLogoUrl(`${base}/settings/logo?token=${token}&t=${Date.now()}`); })
       .catch(() => {});
   }, []);
 
@@ -74,7 +75,8 @@ export default function SettingsPage() {
       const fd = new FormData();
       fd.append('logo', file);
       await api.uploadLogo(fd);
-      setLogoUrl(`/api/settings/logo?t=${Date.now()}`);
+      const token = localStorage.getItem('accessToken');
+      setLogoUrl(`${api.getApiBase()}/settings/logo?token=${token}&t=${Date.now()}`);
     } catch (err) {
       alert(err.error || 'Logo upload failed');
     } finally {

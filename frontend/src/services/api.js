@@ -210,6 +210,7 @@ const api = {
   setTokens,
   clearTokens,
   getAccessToken: () => accessToken,
+  getApiBase: () => API_BASE,
 };
 
 export default api;

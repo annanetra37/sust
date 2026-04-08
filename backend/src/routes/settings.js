@@ -16,7 +16,32 @@ const logoUpload = multer({
   },
 });
 
-router.use(authenticate);
+const jwt = require('jsonwebtoken');
+const configApp = require('../config');
+
+// Auth that also accepts ?token= query param (for logo img tags)
+async function authWithToken(req, res, next) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    return authenticate(req, res, next);
+  }
+  const token = req.query.token;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, configApp.jwt.secret);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, role: true, isActive: true, companyId: true, firstName: true, lastName: true },
+      });
+      if (!user || !user.isActive) return res.status(401).json({ error: 'Unauthorized' });
+      req.user = user;
+      return next();
+    } catch { return res.status(401).json({ error: 'Invalid token' }); }
+  }
+  return authenticate(req, res, next);
+}
+
+router.use(authWithToken);
 
 // ─── Org Units ──────────────────────────────────────────────
 
