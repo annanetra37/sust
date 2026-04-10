@@ -7,6 +7,22 @@ const { formatError } = require('../utils/errors');
 
 router.use(authenticate);
 
+// Strip internal pricing details (USD, model, heuristic flags) from an
+// estimate before returning it to the client.  The USD value is still used
+// internally for CostLog / audit logs — but it must never reach the UI.
+const SAFE_BREAKDOWN_KEYS = new Set([
+  'fileCount', 'rowCount', 'sheetCount', 'batches',
+  'topicCount', 'topicsWithData', 'disclosuresWithData', 'disclosuresMissing',
+  'narrativeCount', 'year', 'standard',
+]);
+function publicEstimate(est) {
+  const safe = {};
+  for (const [k, v] of Object.entries(est.breakdown || {})) {
+    if (SAFE_BREAKDOWN_KEYS.has(k)) safe[k] = v;
+  }
+  return { credits: est.credits, breakdown: safe };
+}
+
 // ─── Current balance ────────────────────────────────────────
 router.get('/balance', async (req, res) => {
   const company = await prisma.company.findUnique({
@@ -15,13 +31,14 @@ router.get('/balance', async (req, res) => {
   });
   res.json({
     balance: company?.creditBalance ?? 0,
-    multiplier: estimator.CREDIT_MULTIPLIER,
   });
 });
 
 // ─── Preview estimate for any supported action ──────────────
 // Body: { action: 'doc-extract'|'excel-e1'|'excel-s1'|'report-gen', params: {...} }
-// Returns: { credits, estimatedCostUSD, breakdown, balance, sufficient }
+// Returns: { credits, breakdown, balance, sufficient, remainingAfter }
+// Internal pricing details (USD, model, heuristics) are scrubbed before
+// responding — the client never sees them.
 router.post('/estimate', async (req, res) => {
   try {
     const { action, params = {} } = req.body || {};
@@ -67,8 +84,7 @@ router.post('/estimate', async (req, res) => {
 
     res.json({
       action,
-      ...estimate,
-      multiplier: estimator.CREDIT_MULTIPLIER,
+      ...publicEstimate(estimate),
       balance,
       sufficient: balance >= estimate.credits,
       remainingAfter: Math.max(0, balance - estimate.credits),

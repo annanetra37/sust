@@ -364,7 +364,7 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     user.id,
     finalEstimate.credits,
     'EXCEL_S1',
-    `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits ($${finalEstimate.estimatedCostUSD.toFixed(4)})`,
+    `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits`,
     uploadId,
   );
 

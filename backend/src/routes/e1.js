@@ -404,7 +404,7 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     user.id,
     finalEstimate.credits,
     'EXCEL_E1',
-    `E1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits ($${finalEstimate.estimatedCostUSD.toFixed(4)})`,
+    `E1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits`,
     uploadId,
   );
 
@@ -462,9 +462,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
         error: 'Insufficient credits',
         required: creditCost,
         available: company.creditBalance,
-        estimatedCostUSD: estimate.estimatedCostUSD,
         documents: docCount,
-        breakdown: estimate.breakdown,
       });
     }
 
@@ -503,7 +501,6 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
       uploadId: uploadRecord.id,
       documents: docCount,
       estimatedCredits: creditCost,
-      estimatedCostUSD: estimate.estimatedCostUSD,
     });
   } catch (err) {
     console.error('Doc extract upload error:', err);
@@ -649,13 +646,12 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
 
   // Deduct the same cost that was previewed / checked up-front.
   const creditsToDeduct = (estimate && estimate.credits) || estimator.estimateDocExtract({ fileCount: files.length }).credits;
-  const usdToLog = (estimate && estimate.estimatedCostUSD) || estimator.estimateDocExtract({ fileCount: files.length }).estimatedCostUSD;
   await deductCredits(
     user.companyId,
     user.id,
     creditsToDeduct,
     'DOC_EXTRACT_E1',
-    `AI Doc Extract (${mode}): ${files.length} files, ${succeeded} records — ${creditsToDeduct} credits ($${usdToLog.toFixed(4)})`,
+    `AI Doc Extract (${mode}): ${files.length} files, ${succeeded} records — ${creditsToDeduct} credits`,
     uploadId,
   );
 
