@@ -4,7 +4,7 @@ import { Upload, FileSpreadsheet, Loader2, Sparkles, Database } from 'lucide-rea
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import DatabaseImport from '../components/DatabaseImport';
-import ConfirmCreditsModal from '../components/ConfirmCreditsModal';
+import CreditPreview from '../components/CreditPreview';
 
 export default function S1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -19,11 +19,8 @@ export default function S1Upload() {
   const fileRef = useRef();
   const pollRef = useRef();
 
-  // Credit preview modal state
-  const [estimate, setEstimate] = useState(null);
-  const [estimateLoading, setEstimateLoading] = useState(false);
-  const [estimateError, setEstimateError] = useState('');
-  const [showConfirm, setShowConfirm] = useState(false);
+  // Live credit estimate populated by <CreditPreview/>
+  const [excelEstimate, setExcelEstimate] = useState(null);
 
   useEffect(() => {
     api.getOrgUnits().then((units) => { setOrgUnits(units); if (units.length) setOrgUnitId(units[0].id); });
@@ -43,34 +40,9 @@ export default function S1Upload() {
     return () => clearInterval(pollRef.current);
   }, [uploadId]);
 
-  // Credit preview + confirm flow
+  // Cost is shown inline via <CreditPreview/> as soon as a file is picked.
   const handleUpload = async () => {
     if (!file || !orgUnitId || !reportingYear) return;
-    setEstimate(null);
-    setEstimateError('');
-    setShowConfirm(true);
-    setEstimateLoading(true);
-    try {
-      const est = await api.estimateCredits({
-        action: 'excel-s1',
-        params: { fileSizeBytes: file.size },
-      });
-      setEstimate(est);
-    } catch (err) {
-      setEstimateError(err.error || err.message || 'Could not calculate estimated cost');
-    } finally {
-      setEstimateLoading(false);
-    }
-  };
-
-  const cancelConfirm = () => {
-    if (uploading) return;
-    setShowConfirm(false);
-    setEstimate(null);
-    setEstimateError('');
-  };
-
-  const runUpload = async () => {
     setError('');
     setUploading(true);
     try {
@@ -80,12 +52,8 @@ export default function S1Upload() {
       fd.append('reportingYear', reportingYear);
       const res = await api.uploadS1(fd);
       setUploadId(res.uploadId);
-      setShowConfirm(false);
-      setEstimate(null);
     } catch (err) {
       setError(err.error || 'Upload failed');
-      setShowConfirm(false);
-      setEstimate(null);
     } finally {
       setUploading(false);
     }
@@ -188,11 +156,30 @@ export default function S1Upload() {
             )}
           </div>
 
+          {file && (
+            <CreditPreview
+              action="excel-s1"
+              params={{ fileSizeBytes: file.size }}
+              label="Processing this spreadsheet will cost"
+              onEstimate={setExcelEstimate}
+            />
+          )}
+
           {error && <div className="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>}
 
-          <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!file || uploading} onClick={handleUpload}>
+          <button
+            className="btn-primary w-full flex items-center justify-center gap-2"
+            disabled={!file || uploading || (excelEstimate && !excelEstimate.sufficient)}
+            onClick={handleUpload}
+          >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {uploading ? 'Starting AI processing...' : `Process with AI for ${reportingYear}`}
+            {uploading
+              ? 'Starting AI processing...'
+              : excelEstimate && !excelEstimate.sufficient
+                ? `Insufficient credits — need ${excelEstimate.credits.toLocaleString()}`
+                : excelEstimate
+                  ? `Process with AI for ${reportingYear} — ${excelEstimate.credits.toLocaleString()} credits`
+                  : `Process with AI for ${reportingYear}`}
           </button>
         </div>
         ) : tab === 'database' ? (
@@ -208,19 +195,6 @@ export default function S1Upload() {
         /* Processing screen */
         <ProcessingScreen progress={progress} status={progress?.status || 'PROCESSING'} type="S1" />
       )}
-
-      <ConfirmCreditsModal
-        open={showConfirm}
-        loading={estimateLoading}
-        estimate={estimate}
-        action="Process Workforce Spreadsheet with AI"
-        description={`AI will map columns (gender, contract, training, turnover, ...) and ingest records into S1 tables for ${reportingYear}.`}
-        confirmLabel="Process & Deduct Credits"
-        confirming={uploading}
-        error={estimateError || error}
-        onConfirm={runUpload}
-        onCancel={cancelConfirm}
-      />
 
       {/* What can I upload */}
       {!uploadId && (

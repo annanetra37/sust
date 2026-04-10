@@ -3,7 +3,7 @@ import api from '../services/api';
 import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Upload } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
-import ConfirmCreditsModal from '../components/ConfirmCreditsModal';
+import CreditPreview from '../components/CreditPreview';
 
 export default function Reports() {
   const [standards, setStandards] = useState([]);
@@ -21,12 +21,8 @@ export default function Reports() {
   const [companyDescription, setCompanyDescription] = useState('');
   const [showValidation, setShowValidation] = useState(false);
 
-  // Credit preview modal state
-  const [estimate, setEstimate] = useState(null);
-  const [estimateLoading, setEstimateLoading] = useState(false);
-  const [estimateError, setEstimateError] = useState('');
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingWithoutMissing, setPendingWithoutMissing] = useState(false);
+  // Live credit estimate populated by <CreditPreview/>
+  const [reportEstimate, setReportEstimate] = useState(null);
 
   useEffect(() => {
     Promise.all([api.getStandards(), api.getLanguages(), api.getDataYears()]).then(([stds, langs, yrs]) => {
@@ -75,49 +71,23 @@ export default function Reports() {
     finally { setValidating(false); }
   };
 
-  // Step 1 — user clicks Generate: fetch estimate and open confirm modal
+  // Cost is shown inline via <CreditPreview/> alongside the validation
+  // results.  Clicking Generate runs the action directly — the user has
+  // already seen the cost above the button.
   const handleGenerate = async (withoutMissing = false) => {
-    setPendingWithoutMissing(withoutMissing);
-    setEstimate(null);
-    setEstimateError('');
-    setShowConfirm(true);
-    setEstimateLoading(true);
-    try {
-      const est = await api.estimateReportCost({
-        year, standard: selectedStandard, topics: selectedTopics,
-      });
-      setEstimate(est);
-    } catch (err) {
-      setEstimateError(err.error || err.message || 'Could not calculate estimated cost');
-    } finally {
-      setEstimateLoading(false);
-    }
-  };
-
-  // Step 2 — user confirms in the modal: run the real generation
-  const runGenerate = async () => {
-    setShowConfirm(false);
     setGenerating(true);
     setGenerated(false);
     try {
       await api.generateReportV2({
         year, standard: selectedStandard, topics: selectedTopics,
-        language, format: 'pdf', generateWithoutMissing: pendingWithoutMissing, companyDescription,
+        language, format: 'pdf', generateWithoutMissing: withoutMissing, companyDescription,
       });
       setGenerated(true);
     } catch (err) {
       alert(err.error || 'Report generation failed');
     } finally {
       setGenerating(false);
-      setEstimate(null);
     }
-  };
-
-  const cancelConfirm = () => {
-    if (generating) return;
-    setShowConfirm(false);
-    setEstimate(null);
-    setEstimateError('');
   };
 
   const PILLAR_COLORS = {
@@ -299,11 +269,29 @@ export default function Reports() {
             </div>
           ))}
 
+          {/* Inline credit preview — shown above the Generate button so the
+              user sees exactly what this report will cost before clicking */}
+          <CreditPreview
+            action="report-gen"
+            params={{ year, standard: selectedStandard, topics: selectedTopics }}
+            label={`Generating this ${selectedStandard} report will cost`}
+            onEstimate={setReportEstimate}
+          />
+
           {/* Generate */}
           <div className="space-y-2 pt-2">
             {validation.missing.length === 0 ? (
-              <button onClick={() => handleGenerate(false)} disabled={generating} className="btn-primary w-full flex items-center justify-center gap-2">
-                <Download className="w-4 h-4" /> Generate Full Report
+              <button
+                onClick={() => handleGenerate(false)}
+                disabled={generating || (reportEstimate && !reportEstimate.sufficient)}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {reportEstimate && !reportEstimate.sufficient
+                  ? `Insufficient credits — need ${reportEstimate.credits.toLocaleString()}`
+                  : reportEstimate
+                    ? `Generate Full Report — ${reportEstimate.credits.toLocaleString()} credits`
+                    : 'Generate Full Report'}
               </button>
             ) : (
               <>
@@ -311,27 +299,23 @@ export default function Reports() {
                   <strong>{validation.missing.length} disclosure(s)</strong> have no quantitative data.
                   Missing sections will include an omission explanation as required by the standard.
                 </div>
-                <button onClick={() => handleGenerate(true)} disabled={generating} className="btn-primary w-full flex items-center justify-center gap-2">
-                  <Download className="w-4 h-4" /> Generate Report ({validation.missing.length} sections with omission notes)
+                <button
+                  onClick={() => handleGenerate(true)}
+                  disabled={generating || (reportEstimate && !reportEstimate.sufficient)}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  {reportEstimate && !reportEstimate.sufficient
+                    ? `Insufficient credits — need ${reportEstimate.credits.toLocaleString()}`
+                    : reportEstimate
+                      ? `Generate Report — ${reportEstimate.credits.toLocaleString()} credits (${validation.missing.length} sections with omission notes)`
+                      : `Generate Report (${validation.missing.length} sections with omission notes)`}
                 </button>
               </>
             )}
           </div>
         </div>
       )}
-
-      <ConfirmCreditsModal
-        open={showConfirm}
-        loading={estimateLoading}
-        estimate={estimate}
-        action={`Generate ${selectedStandard} Report`}
-        description={`Assemble a standard-compliant PDF for ${year} with ${selectedTopics.length} topic(s). Credits are charged based on data availability and number of disclosures rendered.`}
-        confirmLabel="Generate & Deduct Credits"
-        confirming={generating}
-        error={estimateError}
-        onConfirm={runGenerate}
-        onCancel={cancelConfirm}
-      />
     </div>
   );
 }
