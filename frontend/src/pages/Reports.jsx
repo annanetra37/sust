@@ -3,6 +3,7 @@ import api from '../services/api';
 import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Upload } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
+import ConfirmCreditsModal from '../components/ConfirmCreditsModal';
 
 export default function Reports() {
   const [standards, setStandards] = useState([]);
@@ -19,6 +20,13 @@ export default function Reports() {
   const [generated, setGenerated] = useState(false);
   const [companyDescription, setCompanyDescription] = useState('');
   const [showValidation, setShowValidation] = useState(false);
+
+  // Credit preview modal state
+  const [estimate, setEstimate] = useState(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingWithoutMissing, setPendingWithoutMissing] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getStandards(), api.getLanguages(), api.getDataYears()]).then(([stds, langs, yrs]) => {
@@ -67,17 +75,49 @@ export default function Reports() {
     finally { setValidating(false); }
   };
 
+  // Step 1 — user clicks Generate: fetch estimate and open confirm modal
   const handleGenerate = async (withoutMissing = false) => {
+    setPendingWithoutMissing(withoutMissing);
+    setEstimate(null);
+    setEstimateError('');
+    setShowConfirm(true);
+    setEstimateLoading(true);
+    try {
+      const est = await api.estimateReportCost({
+        year, standard: selectedStandard, topics: selectedTopics,
+      });
+      setEstimate(est);
+    } catch (err) {
+      setEstimateError(err.error || err.message || 'Could not calculate estimated cost');
+    } finally {
+      setEstimateLoading(false);
+    }
+  };
+
+  // Step 2 — user confirms in the modal: run the real generation
+  const runGenerate = async () => {
+    setShowConfirm(false);
     setGenerating(true);
     setGenerated(false);
     try {
       await api.generateReportV2({
         year, standard: selectedStandard, topics: selectedTopics,
-        language, format: 'pdf', generateWithoutMissing: withoutMissing, companyDescription,
+        language, format: 'pdf', generateWithoutMissing: pendingWithoutMissing, companyDescription,
       });
       setGenerated(true);
-    } catch (err) { alert(err.error || 'Report generation failed'); }
-    finally { setGenerating(false); }
+    } catch (err) {
+      alert(err.error || 'Report generation failed');
+    } finally {
+      setGenerating(false);
+      setEstimate(null);
+    }
+  };
+
+  const cancelConfirm = () => {
+    if (generating) return;
+    setShowConfirm(false);
+    setEstimate(null);
+    setEstimateError('');
   };
 
   const PILLAR_COLORS = {
@@ -279,6 +319,19 @@ export default function Reports() {
           </div>
         </div>
       )}
+
+      <ConfirmCreditsModal
+        open={showConfirm}
+        loading={estimateLoading}
+        estimate={estimate}
+        action={`Generate ${selectedStandard} Report`}
+        description={`Assemble a standard-compliant PDF for ${year} with ${selectedTopics.length} topic(s). Credits are charged based on data availability and number of disclosures rendered.`}
+        confirmLabel="Generate & Deduct Credits"
+        confirming={generating}
+        error={estimateError}
+        onConfirm={runGenerate}
+        onCancel={cancelConfirm}
+      />
     </div>
   );
 }
