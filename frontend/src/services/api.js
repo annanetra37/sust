@@ -121,6 +121,11 @@ const api = {
   resetS1: (data) => request('/settings/reset/s1', { method: 'POST', body: JSON.stringify(data) }),
   resetE1: (data) => request('/settings/reset/e1', { method: 'POST', body: JSON.stringify(data) }),
   getCredits: (params) => request(`/settings/credits?${new URLSearchParams(params || {})}`),
+
+  // Credits preview / estimate
+  estimateCredits: (body) => request('/credits/estimate', { method: 'POST', body: JSON.stringify(body) }),
+  getCreditBalance: () => request('/credits/balance'),
+  estimateReportCost: (data) => request('/reports/v2/estimate', { method: 'POST', body: JSON.stringify(data) }),
   getCompany: () => request('/settings/company'),
   uploadLogo: (formData) => request('/settings/logo', { method: 'POST', body: formData }),
   getLogoUrl: () => '/api/settings/logo',

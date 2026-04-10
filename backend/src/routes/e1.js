@@ -8,6 +8,8 @@ const { mapSchema, cleanAndTransform, validateAndCoerce, extractDocumentWithAI }
 const { extractText } = require('../services/docExtract');
 const { saveFile, saveFiles } = require('../utils/fileStore');
 const { logActivity } = require('../utils/activityLog');
+const estimator = require('../utils/estimator');
+const { logCost } = require('../utils/costTracker');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 const docUpload = multer({
@@ -311,11 +313,15 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     return;
   }
 
+  // Estimator-based credit cost — scales with number of rows (batches × tokens
+  // for Claude clean/transform + one schema-map call).
+  const estimate = estimator.estimateExcelETL({ rowCount: totalRows, sheetCount: 1 });
+  const creditCost = estimate.credits;
   const company = await prisma.company.findUnique({ where: { id: user.companyId } });
-  if (company.creditBalance < totalRows) {
+  if (company.creditBalance < creditCost) {
     await prisma.uploadHistory.update({
       where: { id: uploadId },
-      data: { status: 'FAILED', errorMessage: `Insufficient credits. Need ${totalRows}, have ${company.creditBalance}` },
+      data: { status: 'FAILED', errorMessage: `Insufficient credits. Need ${creditCost}, have ${company.creditBalance}` },
     });
     return;
   }
@@ -390,7 +396,17 @@ async function processE1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
   }
 
   await aggregateGHGInventory(user.companyId, orgUnitId);
-  await deductCredits(user.companyId, user.id, totalRows, 'EXCEL_E1', `E1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows`, uploadId);
+  // Re-estimate with the actual row count so deduction matches reality even
+  // if the initial estimate used a different count.
+  const finalEstimate = estimator.estimateExcelETL({ rowCount: totalRows, sheetCount: 1 });
+  await deductCredits(
+    user.companyId,
+    user.id,
+    finalEstimate.credits,
+    'EXCEL_E1',
+    `E1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits ($${finalEstimate.estimatedCostUSD.toFixed(4)})`,
+    uploadId,
+  );
 
   await prisma.uploadHistory.update({
     where: { id: uploadId },
@@ -435,13 +451,20 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
     }
 
     const docCount = req.files.length;
-    const creditCost = docCount * 2;
+    // Estimator-based cost (USD × 400 = credits).  The actual deduction below
+    // uses the same figure so the user is charged exactly what they confirmed.
+    const estimate = estimator.estimateDocExtract({ fileCount: docCount, assumeVision: true });
+    const creditCost = estimate.credits;
 
     const company = await prisma.company.findUnique({ where: { id: req.user.companyId } });
     if (company.creditBalance < creditCost) {
       return res.status(403).json({
-        error: 'Insufficient credits', required: creditCost,
-        available: company.creditBalance, costPerDoc: 2, documents: docCount,
+        error: 'Insufficient credits',
+        required: creditCost,
+        available: company.creditBalance,
+        estimatedCostUSD: estimate.estimatedCostUSD,
+        documents: docCount,
+        breakdown: estimate.breakdown,
       });
     }
 
@@ -465,7 +488,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
       },
     });
 
-    processDocumentsWithAI(req.files, req.user, orgUnitId, mode, uploadRecord.id, docYear)
+    processDocumentsWithAI(req.files, req.user, orgUnitId, mode, uploadRecord.id, docYear, estimate)
       .catch((err) => {
         console.error('AI doc extract error:', err);
         prisma.uploadHistory.update({
@@ -474,8 +497,14 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
         });
       });
 
-    logActivity(req.user.id, req.user.companyId, 'DOC_EXTRACT', `Extracted ${docCount} document(s) — ${mode} for ${orgUnit ? orgUnit.name : orgUnitId} (${docYear})`, { mode, docCount, year: docYear }, req.ip);
-    res.status(202).json({ message: 'AI document extraction started', uploadId: uploadRecord.id, documents: docCount });
+    logActivity(req.user.id, req.user.companyId, 'DOC_EXTRACT', `Extracted ${docCount} document(s) — ${mode} for ${orgUnit ? orgUnit.name : orgUnitId} (${docYear})`, { mode, docCount, year: docYear, estimatedCredits: creditCost }, req.ip);
+    res.status(202).json({
+      message: 'AI document extraction started',
+      uploadId: uploadRecord.id,
+      documents: docCount,
+      estimatedCredits: creditCost,
+      estimatedCostUSD: estimate.estimatedCostUSD,
+    });
   } catch (err) {
     console.error('Doc extract upload error:', err);
     const { status, error } = require('../utils/errors').formatError(err);
@@ -483,7 +512,7 @@ router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
   }
 });
 
-async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, reportingYear) {
+async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, reportingYear, estimate) {
   const MAX_CONCURRENT = 3;
   let processed = 0;
   let succeeded = 0;
@@ -618,7 +647,17 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
     }
   }
 
-  await deductCredits(user.companyId, user.id, files.length * 2, 'DOC_EXTRACT_E1', `AI Doc Extract (${mode}): ${files.length} files, ${succeeded} records`, uploadId);
+  // Deduct the same cost that was previewed / checked up-front.
+  const creditsToDeduct = (estimate && estimate.credits) || estimator.estimateDocExtract({ fileCount: files.length }).credits;
+  const usdToLog = (estimate && estimate.estimatedCostUSD) || estimator.estimateDocExtract({ fileCount: files.length }).estimatedCostUSD;
+  await deductCredits(
+    user.companyId,
+    user.id,
+    creditsToDeduct,
+    'DOC_EXTRACT_E1',
+    `AI Doc Extract (${mode}): ${files.length} files, ${succeeded} records — ${creditsToDeduct} credits ($${usdToLog.toFixed(4)})`,
+    uploadId,
+  );
 
   if (orgUnitId) {
     await aggregateGHGInventory(user.companyId, orgUnitId);

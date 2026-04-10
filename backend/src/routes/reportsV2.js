@@ -8,6 +8,9 @@ const { formatError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLog');
 const { STANDARDS, validateReportData } = require('../services/standardRegistry');
 const pdfCharts = require('../services/pdfCharts');
+const estimator = require('../utils/estimator');
+const { deductCredits } = require('../middleware/credits');
+const { logCost } = require('../utils/costTracker');
 
 router.use(authenticate);
 
@@ -36,6 +39,42 @@ router.post('/validate', async (req, res) => {
   }
 });
 
+// ─── Estimate credit cost for a report ──────────────────────
+// Scales with the number of topics selected and the data availability that
+// comes back from validateReportData().  The response is what the frontend
+// shows to the user before they confirm generation.
+router.post('/estimate', async (req, res) => {
+  try {
+    const { year, standard, topics } = req.body;
+    if (!year || !standard) return res.status(400).json({ error: 'Year and standard are required.' });
+
+    const std = STANDARDS[standard];
+    if (!std) return res.status(400).json({ error: `Unknown standard: ${standard}` });
+    const selectedTopics = topics && topics.length ? topics : Object.keys(std.topics);
+
+    const validation = await validateReportData(prisma, req.user.companyId, parseInt(year), standard, selectedTopics);
+    const estimate = estimator.estimateReport({ validation });
+
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { creditBalance: true },
+    });
+    const balance = company?.creditBalance ?? 0;
+
+    res.json({
+      ...estimate,
+      multiplier: estimator.CREDIT_MULTIPLIER,
+      balance,
+      sufficient: balance >= estimate.credits,
+      remainingAfter: Math.max(0, balance - estimate.credits),
+    });
+  } catch (err) {
+    console.error('Report estimate error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
 // ─── Generate report v2 ────────────────────────────────────
 
 router.post('/generate', async (req, res) => {
@@ -53,6 +92,22 @@ router.post('/generate', async (req, res) => {
 
     // Validate data
     const validation = await validateReportData(prisma, req.user.companyId, y, standard, selectedTopics);
+
+    // ─── Credit check (estimator-based, scales with data availability) ───
+    const reportEstimate = estimator.estimateReport({ validation });
+    const companyForCredits = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { creditBalance: true },
+    });
+    if ((companyForCredits?.creditBalance ?? 0) < reportEstimate.credits) {
+      return res.status(403).json({
+        error: 'Insufficient credits',
+        required: reportEstimate.credits,
+        available: companyForCredits?.creditBalance ?? 0,
+        estimatedCostUSD: reportEstimate.estimatedCostUSD,
+        breakdown: reportEstimate.breakdown,
+      });
+    }
 
     // Log if generating without missing data
     if (generateWithoutMissing && validation.missing.length > 0) {
@@ -727,9 +782,46 @@ router.post('/generate', async (req, res) => {
 
     doc.end();
 
+    // ─── Deduct credits + record cost log entry ────────────────────────
+    // Uses the same estimate as the up-front check, so the user is charged
+    // exactly what they confirmed.  Runs after doc.end() so we don't deduct
+    // if PDF assembly threw earlier.
+    try {
+      await deductCredits(
+        req.user.companyId,
+        req.user.id,
+        reportEstimate.credits,
+        'REPORT_GEN',
+        `${standard} report for ${y} — ${reportEstimate.breakdown.topicsWithData} topic(s), ${reportEstimate.breakdown.disclosuresWithData} disclosures — ${reportEstimate.credits} credits ($${reportEstimate.estimatedCostUSD.toFixed(4)})`,
+        null,
+      );
+      await logCost({
+        companyId: req.user.companyId,
+        userId: req.user.id,
+        operation: 'REPORT_GEN',
+        model: null,
+        inputTokens: 0,
+        outputTokens: 0,
+        durationMs: null,
+        relatedId: null,
+        metadata: {
+          standard,
+          year: y,
+          topics: selectedTopics,
+          format: fmt,
+          credits: reportEstimate.credits,
+          breakdown: reportEstimate.breakdown,
+        },
+        estimatedCostOverride: reportEstimate.estimatedCostUSD,
+      });
+    } catch (creditErr) {
+      // Don't fail the response — the PDF is already streamed to the client.
+      console.error('[Report] post-generation credit/cost logging failed:', creditErr.message);
+    }
+
     logActivity(req.user.id, req.user.companyId, 'GENERATE_REPORT',
-      `Generated ${standard} report for ${y} with topics: ${selectedTopics.join(', ')}`,
-      { standard, year: y, topics: selectedTopics, format: fmt }, req.ip
+      `Generated ${standard} report for ${y} with topics: ${selectedTopics.join(', ')} — ${reportEstimate.credits} credits`,
+      { standard, year: y, topics: selectedTopics, format: fmt, credits: reportEstimate.credits, estimatedCostUSD: reportEstimate.estimatedCostUSD }, req.ip
     );
 
   } catch (err) {

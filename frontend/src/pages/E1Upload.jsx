@@ -4,6 +4,7 @@ import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles, Data
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import DatabaseImport from '../components/DatabaseImport';
+import ConfirmCreditsModal from '../components/ConfirmCreditsModal';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -20,6 +21,12 @@ export default function E1Upload() {
   const fileRef = useRef();
   const docFileRef = useRef();
   const pollRef = useRef();
+
+  // Credit preview modal state
+  const [estimate, setEstimate] = useState(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+  const [estimateError, setEstimateError] = useState('');
+  const [pendingAction, setPendingAction] = useState(null); // 'excel' | 'doc-extract'
 
   useEffect(() => {
     api.getOrgUnits().then((units) => {
@@ -43,42 +50,70 @@ export default function E1Upload() {
     return () => clearInterval(pollRef.current);
   }, [uploadId]);
 
-  const handleExcelUpload = async () => {
-    if (!file || !orgUnitId) return;
+  // ─── Credit preview + confirm flow ───────────────────────────────────
+  const openEstimate = async (action) => {
+    setEstimateError('');
+    setEstimate(null);
+    setPendingAction(action);
+    setEstimateLoading(true);
+    try {
+      let body;
+      if (action === 'excel') {
+        if (!file || !orgUnitId) { setPendingAction(null); return; }
+        body = { action: 'excel-e1', params: { fileSizeBytes: file.size } };
+      } else if (action === 'doc-extract') {
+        if (!docFiles.length) { setPendingAction(null); return; }
+        body = { action: 'doc-extract', params: { fileCount: docFiles.length, assumeVision: true } };
+      }
+      const est = await api.estimateCredits(body);
+      setEstimate(est);
+    } catch (err) {
+      setEstimateError(err.error || err.message || 'Could not calculate estimated cost');
+    } finally {
+      setEstimateLoading(false);
+    }
+  };
+
+  const cancelEstimate = () => {
+    if (uploading) return;
+    setPendingAction(null);
+    setEstimate(null);
+    setEstimateError('');
+  };
+
+  const confirmAction = async () => {
     setError('');
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('orgUnitId', orgUnitId);
-      fd.append('reportingYear', reportingYear);
-      const res = await api.uploadE1(fd);
-      setUploadId(res.uploadId);
+      if (pendingAction === 'excel') {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('orgUnitId', orgUnitId);
+        fd.append('reportingYear', reportingYear);
+        const res = await api.uploadE1(fd);
+        setUploadId(res.uploadId);
+      } else if (pendingAction === 'doc-extract') {
+        const fd = new FormData();
+        docFiles.forEach((f) => fd.append('files', f));
+        fd.append('mode', extractMode);
+        fd.append('orgUnitId', orgUnitId);
+        fd.append('reportingYear', reportingYear);
+        const res = await api.uploadDocExtract(fd);
+        setUploadId(res.uploadId);
+      }
+      setPendingAction(null);
+      setEstimate(null);
     } catch (err) {
-      setError(err.error || 'Upload failed');
+      setError(err.error || err.message || 'Upload failed');
+      setPendingAction(null);
+      setEstimate(null);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDocExtract = async () => {
-    if (!docFiles.length) return;
-    setError('');
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      docFiles.forEach((f) => fd.append('files', f));
-      fd.append('mode', extractMode);
-      fd.append('orgUnitId', orgUnitId);
-      fd.append('reportingYear', reportingYear);
-      const res = await api.uploadDocExtract(fd);
-      setUploadId(res.uploadId);
-    } catch (err) {
-      setError(err.error || err.message || 'Extraction failed');
-    } finally {
-      setUploading(false);
-    }
-  };
+  const handleExcelUpload = () => openEstimate('excel');
+  const handleDocExtract = () => openEstimate('doc-extract');
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
@@ -189,7 +224,7 @@ export default function E1Upload() {
               <>
                 <Upload className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                 <p className="text-gray-500 dark:text-gray-400">Drop any emissions spreadsheet — AI auto-detects categories & scopes</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Any column names, any language, any units — 1 credit per row</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Any column names, any language, any units — cost preview shown before processing</p>
               </>
             )}
           </div>
@@ -236,7 +271,7 @@ export default function E1Upload() {
               <>
                 <ScanSearch className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
                 <p className="text-gray-500 dark:text-gray-400">Drop invoices & receipts — AI reads any language, any format</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, JPG, PNG — up to 20 files, 10MB each — 2 credits per document</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, JPG, PNG — up to 20 files, 10MB each — cost preview shown before processing</p>
               </>
             )}
           </div>
@@ -255,6 +290,31 @@ export default function E1Upload() {
           onProcessingStarted={(id) => setUploadId(id)}
         />
       ) : null}
+
+      <ConfirmCreditsModal
+        open={pendingAction !== null}
+        loading={estimateLoading}
+        estimate={estimate}
+        action={
+          pendingAction === 'excel'
+            ? 'Process Spreadsheet with AI'
+            : pendingAction === 'doc-extract'
+              ? `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} (${extractMode})`
+              : ''
+        }
+        description={
+          pendingAction === 'excel'
+            ? `AI will map columns, clean rows, and ingest into E1 emission tables for ${reportingYear}.`
+            : pendingAction === 'doc-extract'
+              ? `Claude Vision will read each file and extract ${extractMode.toLowerCase()} records for ${reportingYear}. Total cost is the sum of all ${docFiles.length} document(s).`
+              : ''
+        }
+        confirmLabel={pendingAction === 'doc-extract' ? 'Extract & Deduct Credits' : 'Process & Deduct Credits'}
+        confirming={uploading}
+        error={estimateError || error}
+        onConfirm={confirmAction}
+        onCancel={cancelEstimate}
+      />
     </div>
   );
 }

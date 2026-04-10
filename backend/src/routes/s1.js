@@ -7,6 +7,7 @@ const { deductCredits } = require('../middleware/credits');
 const { mapSchema, cleanAndTransform, validateAndCoerce } = require('../services/aiEtl');
 const { saveFile } = require('../utils/fileStore');
 const { logActivity } = require('../utils/activityLog');
+const estimator = require('../utils/estimator');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -225,12 +226,14 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
     return;
   }
 
-  // Check credits
+  // Estimator-based credit cost — scales with row count & number of sheets.
+  const estimate = estimator.estimateExcelETL({ rowCount: totalRows, sheetCount: allSheetData.length });
+  const creditCost = estimate.credits;
   const company = await prisma.company.findUnique({ where: { id: user.companyId } });
-  if (company.creditBalance < totalRows) {
+  if (company.creditBalance < creditCost) {
     await prisma.uploadHistory.update({
       where: { id: uploadId },
-      data: { status: 'FAILED', errorMessage: `Insufficient credits. Need ${totalRows}, have ${company.creditBalance}` },
+      data: { status: 'FAILED', errorMessage: `Insufficient credits. Need ${creditCost}, have ${company.creditBalance}` },
     });
     return;
   }
@@ -355,7 +358,15 @@ async function processS1WithAI(workbook, user, orgUnitId, uploadId, reportingYea
 
   console.log(`[S1 ETL] Complete: ${insertedRows} rows inserted from ${totalRows} raw rows for year ${reportingYear}`);
 
-  await deductCredits(user.companyId, user.id, totalRows, 'EXCEL_S1', `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows`, uploadId);
+  const finalEstimate = estimator.estimateExcelETL({ rowCount: totalRows, sheetCount: allSheetData.length });
+  await deductCredits(
+    user.companyId,
+    user.id,
+    finalEstimate.credits,
+    'EXCEL_S1',
+    `S1 AI ETL: ${insertedRows} rows ingested from ${totalRows} raw rows — ${finalEstimate.credits} credits ($${finalEstimate.estimatedCostUSD.toFixed(4)})`,
+    uploadId,
+  );
 
   await prisma.uploadHistory.update({
     where: { id: uploadId },
