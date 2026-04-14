@@ -4,7 +4,7 @@ import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles, Data
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import DatabaseImport from '../components/DatabaseImport';
-import ConfirmCreditsModal from '../components/ConfirmCreditsModal';
+import CreditPreview from '../components/CreditPreview';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -22,11 +22,11 @@ export default function E1Upload() {
   const docFileRef = useRef();
   const pollRef = useRef();
 
-  // Credit preview modal state
-  const [estimate, setEstimate] = useState(null);
-  const [estimateLoading, setEstimateLoading] = useState(false);
-  const [estimateError, setEstimateError] = useState('');
-  const [pendingAction, setPendingAction] = useState(null); // 'excel' | 'doc-extract'
+  // Live credit estimate for the current tab's inputs.  Populated by
+  // <CreditPreview/> via the onEstimate callback so we can disable the
+  // action button when the balance is insufficient.
+  const [excelEstimate, setExcelEstimate] = useState(null);
+  const [docEstimate, setDocEstimate] = useState(null);
 
   useEffect(() => {
     api.getOrgUnits().then((units) => {
@@ -50,70 +50,45 @@ export default function E1Upload() {
     return () => clearInterval(pollRef.current);
   }, [uploadId]);
 
-  // ─── Credit preview + confirm flow ───────────────────────────────────
-  const openEstimate = async (action) => {
-    setEstimateError('');
-    setEstimate(null);
-    setPendingAction(action);
-    setEstimateLoading(true);
-    try {
-      let body;
-      if (action === 'excel') {
-        if (!file || !orgUnitId) { setPendingAction(null); return; }
-        body = { action: 'excel-e1', params: { fileSizeBytes: file.size } };
-      } else if (action === 'doc-extract') {
-        if (!docFiles.length) { setPendingAction(null); return; }
-        body = { action: 'doc-extract', params: { fileCount: docFiles.length, assumeVision: true } };
-      }
-      const est = await api.estimateCredits(body);
-      setEstimate(est);
-    } catch (err) {
-      setEstimateError(err.error || err.message || 'Could not calculate estimated cost');
-    } finally {
-      setEstimateLoading(false);
-    }
-  };
-
-  const cancelEstimate = () => {
-    if (uploading) return;
-    setPendingAction(null);
-    setEstimate(null);
-    setEstimateError('');
-  };
-
-  const confirmAction = async () => {
+  // Cost is shown inline via <CreditPreview/> as soon as inputs are set.
+  // Clicking Process/Extract runs the action directly — the user has
+  // already seen the cost above the button.
+  const handleExcelUpload = async () => {
+    if (!file || !orgUnitId) return;
     setError('');
     setUploading(true);
     try {
-      if (pendingAction === 'excel') {
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('orgUnitId', orgUnitId);
-        fd.append('reportingYear', reportingYear);
-        const res = await api.uploadE1(fd);
-        setUploadId(res.uploadId);
-      } else if (pendingAction === 'doc-extract') {
-        const fd = new FormData();
-        docFiles.forEach((f) => fd.append('files', f));
-        fd.append('mode', extractMode);
-        fd.append('orgUnitId', orgUnitId);
-        fd.append('reportingYear', reportingYear);
-        const res = await api.uploadDocExtract(fd);
-        setUploadId(res.uploadId);
-      }
-      setPendingAction(null);
-      setEstimate(null);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('orgUnitId', orgUnitId);
+      fd.append('reportingYear', reportingYear);
+      const res = await api.uploadE1(fd);
+      setUploadId(res.uploadId);
     } catch (err) {
-      setError(err.error || err.message || 'Upload failed');
-      setPendingAction(null);
-      setEstimate(null);
+      setError(err.error || 'Upload failed');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleExcelUpload = () => openEstimate('excel');
-  const handleDocExtract = () => openEstimate('doc-extract');
+  const handleDocExtract = async () => {
+    if (!docFiles.length) return;
+    setError('');
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      docFiles.forEach((f) => fd.append('files', f));
+      fd.append('mode', extractMode);
+      fd.append('orgUnitId', orgUnitId);
+      fd.append('reportingYear', reportingYear);
+      const res = await api.uploadDocExtract(fd);
+      setUploadId(res.uploadId);
+    } catch (err) {
+      setError(err.error || err.message || 'Extraction failed');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
 
@@ -229,10 +204,29 @@ export default function E1Upload() {
             )}
           </div>
 
+          {file && (
+            <CreditPreview
+              action="excel-e1"
+              params={{ fileSizeBytes: file.size }}
+              label="Processing this spreadsheet will cost"
+              onEstimate={setExcelEstimate}
+            />
+          )}
+
           {error && <div className="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>}
-          <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!file || uploading} onClick={handleExcelUpload}>
+          <button
+            className="btn-primary w-full flex items-center justify-center gap-2"
+            disabled={!file || uploading || (excelEstimate && !excelEstimate.sufficient)}
+            onClick={handleExcelUpload}
+          >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {uploading ? 'Starting AI processing...' : `Process with AI for ${reportingYear}`}
+            {uploading
+              ? 'Starting AI processing...'
+              : excelEstimate && !excelEstimate.sufficient
+                ? `Insufficient credits — need ${excelEstimate.credits.toLocaleString()}`
+                : excelEstimate
+                  ? `Process with AI for ${reportingYear} — ${excelEstimate.credits.toLocaleString()} credits`
+                  : `Process with AI for ${reportingYear}`}
           </button>
         </div>
       ) : tab === 'doc-extract' ? (
@@ -276,10 +270,29 @@ export default function E1Upload() {
             )}
           </div>
 
+          {docFiles.length > 0 && (
+            <CreditPreview
+              action="doc-extract"
+              params={{ fileCount: docFiles.length, assumeVision: true }}
+              label={`Extracting ${docFiles.length} document${docFiles.length !== 1 ? 's' : ''} will cost`}
+              onEstimate={setDocEstimate}
+            />
+          )}
+
           {error && <div className="p-3 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400 rounded-lg text-sm">{error}</div>}
-          <button className="btn-primary w-full flex items-center justify-center gap-2" disabled={!docFiles.length || uploading} onClick={handleDocExtract}>
+          <button
+            className="btn-primary w-full flex items-center justify-center gap-2"
+            disabled={!docFiles.length || uploading || (docEstimate && !docEstimate.sufficient)}
+            onClick={handleDocExtract}
+          >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {uploading ? 'AI is reading documents...' : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
+            {uploading
+              ? 'AI is reading documents...'
+              : docEstimate && !docEstimate.sufficient
+                ? `Insufficient credits — need ${docEstimate.credits.toLocaleString()}`
+                : docEstimate
+                  ? `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear} — ${docEstimate.credits.toLocaleString()} credits`
+                  : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
           </button>
         </div>
       ) : tab === 'database' ? (
@@ -290,31 +303,6 @@ export default function E1Upload() {
           onProcessingStarted={(id) => setUploadId(id)}
         />
       ) : null}
-
-      <ConfirmCreditsModal
-        open={pendingAction !== null}
-        loading={estimateLoading}
-        estimate={estimate}
-        action={
-          pendingAction === 'excel'
-            ? 'Process Spreadsheet with AI'
-            : pendingAction === 'doc-extract'
-              ? `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} (${extractMode})`
-              : ''
-        }
-        description={
-          pendingAction === 'excel'
-            ? `AI will map columns, clean rows, and ingest into E1 emission tables for ${reportingYear}.`
-            : pendingAction === 'doc-extract'
-              ? `Claude Vision will read each file and extract ${extractMode.toLowerCase()} records for ${reportingYear}. Total cost is the sum of all ${docFiles.length} document(s).`
-              : ''
-        }
-        confirmLabel={pendingAction === 'doc-extract' ? 'Extract & Deduct Credits' : 'Process & Deduct Credits'}
-        confirming={uploading}
-        error={estimateError || error}
-        onConfirm={confirmAction}
-        onCancel={cancelEstimate}
-      />
     </div>
   );
 }

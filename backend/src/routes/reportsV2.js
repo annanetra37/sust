@@ -61,9 +61,21 @@ router.post('/estimate', async (req, res) => {
     });
     const balance = company?.creditBalance ?? 0;
 
+    // Strip internal pricing fields (USD, model, heuristic flags) before
+    // returning — the client should only ever see credits and scaling info.
+    const SAFE_KEYS = new Set([
+      'fileCount', 'rowCount', 'sheetCount', 'batches',
+      'topicCount', 'topicsWithData', 'disclosuresWithData', 'disclosuresMissing',
+      'narrativeCount',
+    ]);
+    const safeBreakdown = {};
+    for (const [k, v] of Object.entries(estimate.breakdown || {})) {
+      if (SAFE_KEYS.has(k)) safeBreakdown[k] = v;
+    }
+
     res.json({
-      ...estimate,
-      multiplier: estimator.CREDIT_MULTIPLIER,
+      credits: estimate.credits,
+      breakdown: safeBreakdown,
       balance,
       sufficient: balance >= estimate.credits,
       remainingAfter: Math.max(0, balance - estimate.credits),
@@ -104,8 +116,6 @@ router.post('/generate', async (req, res) => {
         error: 'Insufficient credits',
         required: reportEstimate.credits,
         available: companyForCredits?.creditBalance ?? 0,
-        estimatedCostUSD: reportEstimate.estimatedCostUSD,
-        breakdown: reportEstimate.breakdown,
       });
     }
 
@@ -792,7 +802,7 @@ router.post('/generate', async (req, res) => {
         req.user.id,
         reportEstimate.credits,
         'REPORT_GEN',
-        `${standard} report for ${y} — ${reportEstimate.breakdown.topicsWithData} topic(s), ${reportEstimate.breakdown.disclosuresWithData} disclosures — ${reportEstimate.credits} credits ($${reportEstimate.estimatedCostUSD.toFixed(4)})`,
+        `${standard} report for ${y} — ${reportEstimate.breakdown.topicsWithData} topic(s), ${reportEstimate.breakdown.disclosuresWithData} disclosures — ${reportEstimate.credits} credits`,
         null,
       );
       await logCost({
@@ -821,7 +831,7 @@ router.post('/generate', async (req, res) => {
 
     logActivity(req.user.id, req.user.companyId, 'GENERATE_REPORT',
       `Generated ${standard} report for ${y} with topics: ${selectedTopics.join(', ')} — ${reportEstimate.credits} credits`,
-      { standard, year: y, topics: selectedTopics, format: fmt, credits: reportEstimate.credits, estimatedCostUSD: reportEstimate.estimatedCostUSD }, req.ip
+      { standard, year: y, topics: selectedTopics, format: fmt, credits: reportEstimate.credits }, req.ip
     );
 
   } catch (err) {
