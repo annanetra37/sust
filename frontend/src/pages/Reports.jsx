@@ -13,6 +13,7 @@ export default function Reports() {
   const [years, setYears] = useState([]);
   const [language, setLanguage] = useState('en');
   const [languages, setLanguages] = useState({});
+  const [exportFormat, setExportFormat] = useState('pdf');
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [allTopics, setAllTopics] = useState(true);
   const [validation, setValidation] = useState(null);
@@ -86,7 +87,7 @@ export default function Reports() {
     try {
       await api.generateReportV2({
         year, standard: selectedStandard, topics: selectedTopics,
-        language, format: 'pdf', generateWithoutMissing: withoutMissing, companyDescription,
+        language, format: exportFormat, generateWithoutMissing: withoutMissing, companyDescription,
       });
       setGenerated(true);
     } catch (err) {
@@ -141,7 +142,9 @@ export default function Reports() {
           <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
           <div>
             <p className="font-semibold text-green-800 dark:text-green-300">Report generated and downloaded!</p>
-            <p className="text-sm text-green-600 dark:text-green-400">Check your downloads folder for the PDF.</p>
+            <p className="text-sm text-green-600 dark:text-green-400">
+              Check your downloads folder for the {exportFormat === 'docx' ? 'Word document' : 'PDF'}.
+            </p>
           </div>
         </div>
       )}
@@ -186,7 +189,7 @@ export default function Reports() {
       </div>
 
       {/* Step 2: Year + Language + Description */}
-      <div className="card">
+      <div className="card space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <div>
             <FieldLabel label="Reporting Year" required />
@@ -212,6 +215,43 @@ export default function Reports() {
           <div>
             <FieldLabel label="Company Description" info="Brief description for the cover page." />
             <input className="input" placeholder="e.g., Leading manufacturer..." value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Export format selection */}
+        <div>
+          <FieldLabel label="Export Format" required info="Choose whether to download the report as a PDF or editable Word document (.docx)." />
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setExportFormat('pdf')}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                exportFormat === 'pdf'
+                  ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-red-500" />
+                <p className="font-semibold text-sm">PDF Document</p>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Print-ready report with charts and visualisations (.pdf)</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setExportFormat('docx')}
+              className={`p-3 rounded-xl border-2 text-left transition-all ${
+                exportFormat === 'docx'
+                  ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <p className="font-semibold text-sm">Word Document</p>
+              </div>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Editable Microsoft Word file you can customise (.docx)</p>
+            </button>
           </div>
         </div>
       </div>
