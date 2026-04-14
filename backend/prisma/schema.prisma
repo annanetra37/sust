@@ -26,6 +26,13 @@ model Company {
   logoPath         String?      // path to uploaded company logo (PNG/JPG)
   creditBalance    Int      @default(100)
   esgStandard      String   @default("ESRS")
+
+  // ─── Subscription tier ───────────────────────────────────────
+  // 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
+  // Feature gating + hard limits are driven by this value.  The
+  // canonical tier → features map lives in services/tierFeatures.js.
+  tier             String   @default("STARTER")
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
-import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles, Database } from 'lucide-react';
+import { Upload, FileSpreadsheet, FileImage, Loader2, ScanSearch, Sparkles, Database, Lock } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import DatabaseImport from '../components/DatabaseImport';
 import CreditPreview from '../components/CreditPreview';
+import FeatureLock from '../components/FeatureLock';
+import useFeature from '../hooks/useFeature';
 
 export default function E1Upload() {
   const [orgUnits, setOrgUnits] = useState([]);
@@ -27,6 +29,11 @@ export default function E1Upload() {
   // action button when the balance is insufficient.
   const [excelEstimate, setExcelEstimate] = useState(null);
   const [docEstimate, setDocEstimate] = useState(null);
+
+  // Tier entitlements — Invoices & Receipts (AI doc extract) and the
+  // Database tab are Professional+ features.
+  const docExtractFeature = useFeature('ai_doc_extract');
+  const dbConnectionsFeature = useFeature('db_connections');
 
   useEffect(() => {
     api.getOrgUnits().then((units) => {
@@ -170,11 +177,21 @@ export default function E1Upload() {
         <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('excel')}>
           <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Spreadsheet
         </button>
-        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'doc-extract' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('doc-extract')}>
-          <ScanSearch className="w-4 h-4 inline mr-1" /> Invoices & Receipts
+        <button
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'doc-extract' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'} ${!docExtractFeature.allowed ? 'opacity-70' : ''}`}
+          onClick={() => setTab('doc-extract')}
+          title={!docExtractFeature.allowed ? `Upgrade to ${docExtractFeature.requiredTierName} to unlock AI invoice extraction` : undefined}
+        >
+          <ScanSearch className="w-4 h-4 inline" /> Invoices & Receipts
+          {!docExtractFeature.allowed && <Lock className="w-3 h-3 text-gray-400" />}
         </button>
-        <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'database' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('database')}>
-          <Database className="w-4 h-4 inline mr-1" /> Database
+        <button
+          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'database' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'} ${!dbConnectionsFeature.allowed ? 'opacity-70' : ''}`}
+          onClick={() => setTab('database')}
+          title={!dbConnectionsFeature.allowed ? `Upgrade to ${dbConnectionsFeature.requiredTierName} to unlock database connections` : undefined}
+        >
+          <Database className="w-4 h-4 inline" /> Database
+          {!dbConnectionsFeature.allowed && <Lock className="w-3 h-3 text-gray-400" />}
         </button>
       </div>
 
@@ -230,6 +247,12 @@ export default function E1Upload() {
           </button>
         </div>
       ) : tab === 'doc-extract' ? (
+        !docExtractFeature.allowed ? (
+          <FeatureLock
+            feature="ai_doc_extract"
+            description="AI document extraction reads invoices, receipts, and travel bookings in any language and auto-populates your Scope 1/2/3 emissions. Upgrade to Professional to unlock it."
+          />
+        ) : (
         <div className="card space-y-4">
           <div>
             <FieldLabel label="Document Type" info="Select the type of documents you're uploading for better extraction accuracy." />
@@ -295,13 +318,21 @@ export default function E1Upload() {
                   : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
           </button>
         </div>
+        )
       ) : tab === 'database' ? (
-        <DatabaseImport
-          orgUnitId={orgUnitId}
-          reportingYear={reportingYear}
-          type="E1"
-          onProcessingStarted={(id) => setUploadId(id)}
-        />
+        !dbConnectionsFeature.allowed ? (
+          <FeatureLock
+            feature="db_connections"
+            description="Pipe emissions data directly from your Postgres, MySQL, Snowflake, or BigQuery warehouse. Upgrade to Professional to connect a database."
+          />
+        ) : (
+          <DatabaseImport
+            orgUnitId={orgUnitId}
+            reportingYear={reportingYear}
+            type="E1"
+            onProcessingStarted={(id) => setUploadId(id)}
+          />
+        )
       ) : null}
     </div>
   );

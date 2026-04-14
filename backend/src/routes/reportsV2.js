@@ -11,14 +11,22 @@ const pdfCharts = require('../services/pdfCharts');
 const estimator = require('../utils/estimator');
 const { deductCredits } = require('../middleware/credits');
 const { logCost } = require('../utils/costTracker');
+const { attachTier } = require('../middleware/tier');
+const tierFeatures = require('../services/tierFeatures');
 
-router.use(authenticate);
+router.use(authenticate, attachTier);
 
 // ─── List available standards ───────────────────────────────
-
-router.get('/standards', (_, res) => {
+// Every tier sees the full list — standards the user isn't entitled to are
+// returned with `locked: true` + `requiredTier` so the UI can render a lock
+// icon and an upgrade prompt.  Generation of locked standards is refused
+// server-side below.
+router.get('/standards', (req, res) => {
+  const allowed = new Set(tierFeatures.allowedStandardsFor(req.tier));
   const list = Object.entries(STANDARDS).map(([key, s]) => ({
     key, name: s.name, framework: s.framework, version: s.version,
+    locked: !allowed.has(key),
+    requiredTier: allowed.has(key) ? null : (tierFeatures.STANDARD_TIER[key] || 'PROFESSIONAL'),
     topics: Object.entries(s.topics).map(([tk, t]) => ({ key: tk, code: t.code, name: t.name, pillar: t.pillar })),
   }));
   res.json(list);
@@ -101,6 +109,30 @@ router.post('/generate', async (req, res) => {
     const lang = language || 'en';
     const fmt = format || 'pdf';
     const selectedTopics = topics || Object.keys(std.topics);
+
+    // ─── Tier gating for standard + language ───────────────────────────
+    const allowedStandards = new Set(tierFeatures.allowedStandardsFor(req.tier));
+    if (!allowedStandards.has(standard)) {
+      const needed = tierFeatures.STANDARD_TIER[standard] || 'PROFESSIONAL';
+      return res.status(403).json({
+        error: 'FEATURE_NOT_IN_PLAN',
+        message: `The ${standard} standard requires the ${tierFeatures.getTier(needed).name} plan.`,
+        feature: standard === 'GRI' ? 'gri_report' : 'all_standards',
+        currentTier: req.tier,
+        requiredTier: needed,
+      });
+    }
+    const allowedLangs = new Set(tierFeatures.allowedLanguagesFor(req.tier));
+    if (!allowedLangs.has(lang)) {
+      const needed = tierFeatures.LANGUAGE_TIER[lang] || 'PROFESSIONAL';
+      return res.status(403).json({
+        error: 'FEATURE_NOT_IN_PLAN',
+        message: `Reports in this language require the ${tierFeatures.getTier(needed).name} plan.`,
+        feature: 'multi_language_reports',
+        currentTier: req.tier,
+        requiredTier: needed,
+      });
+    }
 
     // Validate data
     const validation = await validateReportData(prisma, req.user.companyId, y, standard, selectedTopics);

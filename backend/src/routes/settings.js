@@ -369,6 +369,56 @@ router.put('/company', requireAdmin, async (req, res) => {
   }
 });
 
+// ─── Subscription tier ──────────────────────────────────────
+// Returns the current tier, feature map, limits, labels, and the lists of
+// standards / languages the company is entitled to.  The frontend calls
+// this once per session and caches the response in AuthContext so every
+// component can render feature locks without round-trips.
+const tierFeatures = require('../services/tierFeatures');
+const { invalidateTierCache } = require('../middleware/tier');
+
+router.get('/tier-info', async (req, res) => {
+  try {
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { tier: true, creditBalance: true },
+    });
+    if (!company) return res.status(404).json({ error: 'Company not found.' });
+    res.json({
+      ...tierFeatures.tierInfo(company.tier),
+      creditBalance: company.creditBalance,
+    });
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// Admin-only tier setter — used for testing & manual upgrades.  No Stripe
+// wiring; real pricing would call this from a billing webhook.
+router.put('/tier', requireAdmin, async (req, res) => {
+  try {
+    const { tier } = req.body || {};
+    if (!tier || !tierFeatures.TIERS[tierFeatures.normaliseTier(tier)]) {
+      return res.status(400).json({ error: `Unknown tier. Valid: ${tierFeatures.TIER_KEYS.join(', ')}` });
+    }
+    const normalised = tierFeatures.normaliseTier(tier);
+    const company = await prisma.company.update({
+      where: { id: req.user.companyId },
+      data: { tier: normalised },
+    });
+    invalidateTierCache(req.user.companyId);
+    logActivity(req.user.id, req.user.companyId, 'TIER_CHANGE', `Tier changed to ${normalised}`, { tier: normalised }, req.ip);
+    res.json({
+      ...tierFeatures.tierInfo(company.tier),
+      creditBalance: company.creditBalance,
+    });
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
 // ─── Company Logo ───────────────────────────────────────────
 
 router.post('/logo', requireAdmin, logoUpload.single('logo'), async (req, res) => {

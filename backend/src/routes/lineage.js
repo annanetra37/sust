@@ -1,11 +1,13 @@
 const router = require('express').Router();
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/tier');
 const { formatError } = require('../utils/errors');
 const PDFDocument = require('pdfkit');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = require('docx');
 
-router.use(authenticate);
+// Audit trail / lineage is a Professional+ feature.
+router.use(authenticate, requireFeature('audit_lineage'));
 
 // ─── Data Lineage ───────────────────────────────────────────
 

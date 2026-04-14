@@ -3,9 +3,11 @@ const PDFDocument = require('pdfkit');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
+const { attachTier } = require('../middleware/tier');
+const tierFeatures = require('../services/tierFeatures');
 const { formatError } = require('../utils/errors');
 
-router.use(authenticate);
+router.use(authenticate, attachTier);
 
 const LANGUAGES = {
   en: 'English', fr: 'French', de: 'German', ar: 'Arabic',
@@ -118,6 +120,19 @@ router.post('/generate', async (req, res) => {
   }
 });
 
-router.get('/languages', (_, res) => res.json(LANGUAGES));
+// Return every language with a `locked` flag so the UI can render locks.
+// Generation in a non-entitled language is rejected server-side below.
+router.get('/languages', (req, res) => {
+  const allowed = new Set(tierFeatures.allowedLanguagesFor(req.tier));
+  const out = {};
+  for (const [code, name] of Object.entries(LANGUAGES)) {
+    out[code] = {
+      name,
+      locked: !allowed.has(code),
+      requiredTier: allowed.has(code) ? null : (tierFeatures.LANGUAGE_TIER[code] || 'PROFESSIONAL'),
+    };
+  }
+  res.json(out);
+});
 
 module.exports = router;

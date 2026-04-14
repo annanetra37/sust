@@ -7,6 +7,8 @@ import {
   ZoomIn, ZoomOut, Maximize2, Minus, Plus
 } from 'lucide-react';
 import { HelpBanner } from '../components/HelpSystem';
+import FeatureLock from '../components/FeatureLock';
+import useFeature from '../hooks/useFeature';
 import clsx from 'clsx';
 
 const TOPIC_META = {
@@ -24,10 +26,27 @@ const AUDIT_COLORS = {
 
 export default function LineagePage() {
   const navigate = useNavigate();
+  const lineageFeature = useFeature('audit_lineage');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [filters, setFilters] = useState({ topic: '', orgUnitId: '', userId: '' });
+
+  // Short-circuit for tiers without audit-lineage entitlement.
+  if (!lineageFeature.allowed) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Lineage & Audit Trail</h1>
+          <p className="text-gray-500 dark:text-gray-400">Full provenance of every ESG number in your report.</p>
+        </div>
+        <FeatureLock
+          feature="audit_lineage"
+          description="Trace every metric back to the raw upload, user, and timestamp it came from. Export a signed audit trail for assurance engagements. Upgrade to Professional to enable lineage tracking."
+        />
+      </div>
+    );
+  }
   const [expanded, setExpanded] = useState({});
   const [zoom, setZoom] = useState(1);
   const canvasRef = useRef(null);

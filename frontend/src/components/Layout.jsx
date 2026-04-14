@@ -5,11 +5,13 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity
+  Sun, Moon, GitBranch, Activity, Lock
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
 import { LogoFull } from './Logo';
+import TierBadge from './TierBadge';
+import { hasFeature, normaliseTier } from '../config/tierFeatures';
 
 const NAV = [
   { label: 'Home', path: '/', icon: LayoutDashboard },
@@ -48,8 +50,8 @@ const NAV = [
   },
   { label: 'SBTi Targets', path: '/sbti-targets', icon: Target },
   { label: 'Reports', path: '/reports', icon: FileText },
-  { label: 'Data Connections', path: '/connections', icon: Database },
-  { label: 'Data Lineage', path: '/lineage', icon: GitBranch },
+  { label: 'Data Connections', path: '/connections', icon: Database, feature: 'db_connections' },
+  { label: 'Data Lineage', path: '/lineage', icon: GitBranch, feature: 'audit_lineage' },
   { label: 'History', path: '/history', icon: History },
   { label: 'Activity Log', path: '/activity-log', icon: Activity, adminOnly: true },
   { label: 'Users', path: '/users', icon: Users2, adminOnly: true },
@@ -63,6 +65,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expanded, setExpanded] = useState({});
+  const currentTier = normaliseTier(user?.company?.tier);
 
   const toggle = (label) => setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
 
@@ -130,17 +133,21 @@ export default function Layout() {
               );
             }
 
+            const locked = item.feature && !hasFeature(currentTier, item.feature);
             return (
               <Link
                 key={item.path}
                 to={item.path}
+                title={locked ? `Upgrade required to unlock ${item.label}` : undefined}
                 className={clsx(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  location.pathname === item.path ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-50'
+                  location.pathname === item.path ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-50',
+                  locked && 'opacity-60'
                 )}
               >
                 <item.icon className="w-4 h-4" />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {locked && <Lock className="w-3 h-3 text-gray-400 shrink-0" />}
               </Link>
             );
           })}
@@ -178,6 +185,7 @@ export default function Layout() {
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
+            <TierBadge tier={currentTier} size="md" />
             <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
               {user?.company?.creditBalance ?? 0} credits
             </span>

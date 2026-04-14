@@ -143,7 +143,7 @@ router.post('/login', async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
-      include: { company: { select: { id: true, name: true, creditBalance: true } } },
+      include: { company: { select: { id: true, name: true, creditBalance: true, tier: true } } },
     });
 
     if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
@@ -373,7 +373,7 @@ router.get('/me', authenticate, async (req, res) => {
       select: {
         id: true, email: true, firstName: true, lastName: true, phone: true,
         jobTitle: true, role: true, isActive: true, createdAt: true,
-        company: { select: { id: true, name: true, creditBalance: true, country: true, industry: true } },
+        company: { select: { id: true, name: true, creditBalance: true, country: true, industry: true, tier: true } },
         permissions: { include: { orgUnit: true } },
       },
     });
