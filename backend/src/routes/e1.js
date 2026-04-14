@@ -4,6 +4,7 @@ const XLSX = require('xlsx');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { deductCredits } = require('../middleware/credits');
+const { requireFeature } = require('../middleware/tier');
 const { mapSchema, cleanAndTransform, validateAndCoerce, extractDocumentWithAI } = require('../services/aiEtl');
 const { extractText } = require('../services/docExtract');
 const { saveFile, saveFiles } = require('../utils/fileStore');
@@ -437,7 +438,7 @@ async function aggregateGHGInventory(companyId, orgUnitId) {
 
 // ─── Document Extract (AI-Powered) ──────────────────────────
 
-router.post('/doc-extract', docUpload.array('files', 20), async (req, res) => {
+router.post('/doc-extract', requireFeature('ai_doc_extract'), docUpload.array('files', 20), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'No files provided' });
 

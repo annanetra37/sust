@@ -2,9 +2,12 @@ const router = require('express').Router();
 const { Pool } = require('pg');
 const prisma = require('../config/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/tier');
 const { formatError } = require('../utils/errors');
 
-router.use(authenticate, requireAdmin);
+// Database connections are a Professional+ feature — gate the entire router
+// in one place so every endpoint here is protected.
+router.use(authenticate, requireAdmin, requireFeature('db_connections'));
 
 router.get('/', async (req, res) => {
   try {

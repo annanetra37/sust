@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Upload } from 'lucide-react';
+import { FileText, Download, Loader2, CheckCircle, XCircle, AlertTriangle, Info, Upload, Lock } from 'lucide-react';
 import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import CreditPreview from '../components/CreditPreview';
+import TierBadge from '../components/TierBadge';
 
 export default function Reports() {
   const [standards, setStandards] = useState([]);
@@ -30,9 +31,11 @@ export default function Reports() {
       setLanguages(langs);
       setYears(yrs.length > 0 ? yrs : [new Date().getFullYear()]);
       if (yrs.length > 0) setYear(yrs[0]);
-      if (stds.length > 0) {
-        setSelectedStandard(stds[0].key);
-        setSelectedTopics(stds[0].topics.map((t) => t.key));
+      // Default to the first standard the user is actually entitled to
+      const firstUnlocked = stds.find((s) => !s.locked) || stds[0];
+      if (firstUnlocked) {
+        setSelectedStandard(firstUnlocked.key);
+        setSelectedTopics(firstUnlocked.topics.map((t) => t.key));
       }
     });
   }, []);
@@ -40,9 +43,12 @@ export default function Reports() {
   const currentStandard = standards.find((s) => s.key === selectedStandard);
 
   const handleStandardChange = (key) => {
-    setSelectedStandard(key);
     const std = standards.find((s) => s.key === key);
-    if (std) setSelectedTopics(std.topics.map((t) => t.key));
+    // Clicking a locked standard is a no-op — the button renders a lock badge
+    // and a tooltip, so this is belt-and-braces against keyboard / edge cases.
+    if (!std || std.locked) return;
+    setSelectedStandard(key);
+    setSelectedTopics(std.topics.map((t) => t.key));
     setAllTopics(true);
     setValidation(null);
     setGenerated(false);
@@ -150,9 +156,28 @@ export default function Reports() {
         <FieldLabel label="Reporting Standard" required info="Determines the structure, required disclosures, and compliance rules." />
         <div className="grid grid-cols-2 gap-3">
           {standards.map((s) => (
-            <button key={s.key} onClick={() => handleStandardChange(s.key)}
-              className={`p-3 rounded-xl border-2 text-left transition-all ${selectedStandard === s.key ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
-              <p className="font-semibold text-sm">{s.key}</p>
+            <button
+              key={s.key}
+              onClick={() => handleStandardChange(s.key)}
+              disabled={s.locked}
+              title={s.locked ? `Upgrade required to unlock ${s.key}` : undefined}
+              className={`relative p-3 rounded-xl border-2 text-left transition-all ${
+                s.locked
+                  ? 'border-gray-200 dark:border-gray-800 opacity-60 cursor-not-allowed'
+                  : selectedStandard === s.key
+                    ? 'border-brand-500 bg-brand-50 dark:bg-brand-950 ring-1 ring-brand-400'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-semibold text-sm">{s.key}</p>
+                {s.locked && (
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Lock className="w-3 h-3 text-gray-400" />
+                    <TierBadge tier={s.requiredTier} size="sm" />
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{s.name}</p>
               <p className="text-[10px] text-gray-400 mt-0.5">{s.framework} {s.version}</p>
             </button>
@@ -172,7 +197,16 @@ export default function Reports() {
           <div>
             <FieldLabel label="Language" />
             <select className="input" value={language} onChange={(e) => setLanguage(e.target.value)}>
-              {Object.entries(languages).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+              {Object.entries(languages).map(([code, info]) => {
+                // Backend returns { name, locked, requiredTier } per language.
+                const name = typeof info === 'string' ? info : info.name;
+                const locked = typeof info === 'object' && info.locked;
+                return (
+                  <option key={code} value={code} disabled={locked}>
+                    {name}{locked ? '  —  Professional plan' : ''}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div>

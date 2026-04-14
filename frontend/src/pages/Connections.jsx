@@ -5,6 +5,8 @@ import {
   Server, Cloud, Globe, FileSpreadsheet, Warehouse, HardDrive, Cable, ArrowRight, Shield
 } from 'lucide-react';
 import { HelpBanner, InfoTip, FieldLabel } from '../components/HelpSystem';
+import FeatureLock from '../components/FeatureLock';
+import useFeature from '../hooks/useFeature';
 
 const CONNECTORS = [
   {
@@ -88,6 +90,7 @@ const ALL_CONNECTOR_MAP = {};
 CONNECTORS.forEach((cat) => cat.items.forEach((c) => { ALL_CONNECTOR_MAP[c.value] = c; }));
 
 export default function Connections() {
+  const connectionsFeature = useFeature('db_connections');
   const [connections, setConnections] = useState([]);
   const [setupType, setSetupType] = useState(null);
   const [testing, setTesting] = useState(null);
@@ -95,6 +98,23 @@ export default function Connections() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loaded, setLoaded] = useState(false);
+
+  // Short-circuit the entire page for tiers that don't have this feature —
+  // saves a round-trip to an endpoint that would return 403 anyway.
+  if (!connectionsFeature.allowed) {
+    return (
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Connections</h1>
+          <p className="text-gray-500 dark:text-gray-400">Pipe data directly from your warehouses and SaaS tools.</p>
+        </div>
+        <FeatureLock
+          feature="db_connections"
+          description="Connect PostgreSQL, MySQL, SQL Server, Snowflake, BigQuery, and more. AI auto-maps your tables to the correct ESG schemas — no manual mapping. Upgrade to Professional to enable data connections."
+        />
+      </div>
+    );
+  }
 
   const load = () => {
     api.getConnections()
