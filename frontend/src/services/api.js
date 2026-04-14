@@ -160,7 +160,8 @@ const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${data.standard}_Report_${data.year}.pdf`;
+    const ext = data.format === 'docx' ? 'docx' : 'pdf';
+    a.download = `${data.standard}_Report_${data.year}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   },

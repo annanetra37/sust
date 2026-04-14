@@ -1,5 +1,14 @@
 const router = require('express').Router();
 const PDFDocument = require('pdfkit');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  ImageRun,
+} = require('docx');
 const path = require('path');
 const fs = require('fs');
 const prisma = require('../config/prisma');
@@ -8,6 +17,7 @@ const { formatError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLog');
 const { STANDARDS, validateReportData } = require('../services/standardRegistry');
 const pdfCharts = require('../services/pdfCharts');
+const docxCharts = require('../services/docxCharts');
 const estimator = require('../utils/estimator');
 const { deductCredits } = require('../middleware/credits');
 const { logCost } = require('../utils/costTracker');
@@ -95,6 +105,647 @@ router.post('/estimate', async (req, res) => {
   }
 });
 
+// ─── DOCX builder ──────────────────────────────────────────
+// Produces a Word document that mirrors the textual content of the PDF
+// report.  Charts are not embedded — the docx version is optimised for
+// easy editing rather than print-ready visual fidelity.
+async function buildReportDocx({
+  company,
+  companyDescription,
+  std,
+  standard,
+  y,
+  selectedTopics,
+  validation,
+  orgUnits,
+  data,
+  generateWithoutMissing,
+  logoFilePath,
+}) {
+  const round = (n) => Math.round(n * 10000) / 10000;
+
+  const BRAND = '003700';
+  const children = [];
+
+  const heading = (text, level = HeadingLevel.HEADING_1) =>
+    new Paragraph({
+      heading: level,
+      children: [new TextRun({ text, bold: true, color: BRAND })],
+    });
+  const text = (t, opts = {}) =>
+    new Paragraph({ children: [new TextRun({ text: t, ...opts })] });
+  const bullet = (t) =>
+    new Paragraph({ children: [new TextRun({ text: t })], bullet: { level: 0 } });
+  const spacer = () => new Paragraph({ children: [new TextRun({ text: '' })] });
+  const centered = (t, opts = {}) =>
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: t, ...opts })],
+    });
+
+  // Embed a rasterised chart into the document.  The chart buffer comes
+  // from docxCharts (SVG → PNG via sharp).  Returns silently if rendering
+  // failed (e.g. `sharp` unavailable) so the document still generates.
+  // Width is scaled to ~480px, which fits inside A4 margins in Word.
+  const addChart = (chart) => {
+    if (!chart || !chart.buffer) return;
+    const targetW = 480;
+    const scale = targetW / chart.width;
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new ImageRun({
+            data: chart.buffer,
+            transformation: {
+              width: targetW,
+              height: Math.round(chart.height * scale),
+            },
+          }),
+        ],
+      }),
+    );
+  };
+
+  // ═══════════════ COVER PAGE ═══════════════
+  if (logoFilePath) {
+    try {
+      const imgBuf = fs.readFileSync(logoFilePath);
+      children.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new ImageRun({
+              data: imgBuf,
+              transformation: { width: 120, height: 120 },
+            }),
+          ],
+        }),
+      );
+    } catch (e) {
+      // ignore logo failures
+    }
+  }
+
+  children.push(spacer());
+  children.push(centered('Sustainability Management Report', { bold: true, size: 48, color: BRAND }));
+  children.push(centered(`(${standard})`, { bold: true, size: 28 }));
+  children.push(spacer());
+  children.push(centered(company.name, { size: 32 }));
+  children.push(
+    centered(companyDescription || `${company.industry} | ${company.country}`, {
+      size: 22,
+      color: '666666',
+    }),
+  );
+  children.push(spacer());
+  children.push(centered(`Reporting Year: ${y || 'All Years'}`, { size: 26 }));
+  children.push(centered('Prepared in accordance with:', { size: 20, color: '666666' }));
+  children.push(centered(std.name, { bold: true, size: 24, color: BRAND }));
+  children.push(centered(`${std.framework} ${std.version}`, { size: 18, color: '888888' }));
+  children.push(spacer());
+  children.push(
+    centered(`Generated on ${new Date().toLocaleDateString()} | Confidential`, {
+      size: 18,
+      color: 'AAAAAA',
+    }),
+  );
+  children.push(centered('Triple I ESG Portal — www.triplei.io', { size: 18, color: 'AAAAAA' }));
+
+  // ═══════════════ ABOUT THIS REPORT ═══════════════
+  children.push(heading('1. About This Report'));
+  children.push(
+    text(
+      `This report has been prepared by ${company.name} in accordance with the ${std.name} (${std.framework} ${std.version}).`,
+    ),
+  );
+  children.push(text(`Reporting period: January 1, ${y} to December 31, ${y}`));
+  children.push(text(`Company: ${company.name}`));
+  children.push(text(`Industry: ${company.industry}`));
+  children.push(text(`Headquarters: ${company.hqLocation || company.country}`));
+  children.push(text(`Company size: ${company.companySize}`));
+  if (company.stockExchange) {
+    children.push(text(`Stock exchange: ${company.stockExchange} (${company.tickerSymbol || ''})`));
+  }
+
+  children.push(heading('Organizational Boundaries', HeadingLevel.HEADING_2));
+  children.push(text('Consolidation approach: Operational control'));
+  children.push(text('Organizational units included in this report:'));
+  for (const ou of orgUnits) {
+    children.push(bullet(`${ou.name} — ${ou.country}`));
+  }
+  const countries = [...new Set(orgUnits.map((u) => u.country))].join(', ');
+  children.push(
+    text(
+      `Operations covered: All operations under the organizational control of ${company.name} across ${orgUnits.length} organizational unit(s) in ${countries}.`,
+    ),
+  );
+
+  children.push(heading('Methodology', HeadingLevel.HEADING_2));
+  children.push(
+    text(
+      'GHG emissions have been calculated in accordance with the GHG Protocol Corporate Accounting and Reporting Standard (Revised Edition). Emission factors are sourced from recognized databases including DEFRA, EPA, and IEA. Energy consumption is reported in MWh with appropriate conversion factors applied for different fuel types and energy carriers.',
+    ),
+  );
+  children.push(text('Scope boundaries:'));
+  children.push(bullet('Scope 1: Direct emissions from owned/controlled sources (stationary combustion, mobile combustion, fugitive emissions)'));
+  children.push(bullet('Scope 2: Indirect emissions from purchased electricity, steam, heating, and cooling (location-based method)'));
+  children.push(bullet('Scope 3: All other indirect emissions in the value chain (business travel, employee commuting, purchased goods)'));
+  children.push(
+    text(
+      'Energy units: All energy quantities are standardized to MWh. Conversion factors: 1 litre diesel = 0.01 MWh, 1 litre petrol = 0.0091 MWh, 1 m³ natural gas = 0.01055 MWh, 1 GJ = 0.27778 MWh.',
+    ),
+  );
+
+  if (validation.missing.length > 0 && generateWithoutMissing) {
+    children.push(heading('Data Coverage Notice', HeadingLevel.HEADING_2));
+    children.push(
+      text(
+        `The following ${validation.missing.length} disclosure(s) could not be fully populated due to missing data:`,
+      ),
+    );
+    for (const m of validation.missing) {
+      children.push(bullet(`${m.code} — ${m.name}`));
+    }
+  }
+
+  // ═══════════════ TOPIC SECTIONS ═══════════════
+  let sectionNum = std.crossCutting.length > 0 ? 3 : 2;
+  for (const topicKey of selectedTopics) {
+    const topic = std.topics[topicKey];
+    if (!topic) continue;
+
+    children.push(heading(`${sectionNum}. ${topic.code} — ${topic.name}`));
+    children.push(text(`Pillar: ${topic.pillar}`, { color: '999999', italics: true }));
+
+    for (const disc of topic.disclosures) {
+      children.push(heading(`${disc.code}: ${disc.name}`, HeadingLevel.HEADING_3));
+
+      const discData = validation.topics
+        .find((t) => t.key === topicKey)
+        ?.disclosures.find((d) => d.code === disc.code);
+
+      if (disc.type === 'metric' && discData?.hasData) {
+        if (topicKey === 'E1' && data.E1) {
+          const totalAllScopes = Object.values(data.E1.byScope).reduce((s, v) => s + v, 0);
+
+          if (disc.code === 'GRI 305-1') {
+            const s1 = round(data.E1.byScope['Scope 1'] || 0);
+            const s1Pct = totalAllScopes > 0 ? (s1 / totalAllScopes) * 100 : 0;
+            children.push(text(`Direct GHG Emissions (Scope 1): ${s1} tCO2e`));
+            children.push(text(`Share of total (Scope 1+2+3): ${s1Pct.toFixed(1)}%`));
+            children.push(
+              text(
+                'Scope 1 includes direct emissions from owned or controlled sources including stationary combustion, mobile combustion (company vehicles), and fugitive emissions.',
+                { color: '666666', size: 18 },
+              ),
+            );
+            const s1Cats = {};
+            data.E1.activities
+              .filter((a) => a.scope === 'Scope 1')
+              .forEach((a) => {
+                const k = a.activityCategory || 'Other';
+                s1Cats[k] = (s1Cats[k] || 0) + (a.totalEmissions || 0);
+              });
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Scope 1 Emissions', value: s1.toLocaleString(), unit: 'tCO2e', color: docxCharts.SCOPE_COLORS['Scope 1'] },
+                  { label: 'Share of Total', value: `${s1Pct.toFixed(1)}%`, unit: 'of Scope 1+2+3', color: docxCharts.SCOPE_COLORS['Scope 1'] },
+                  { label: 'Activity Records', value: data.E1.activities.filter((a) => a.scope === 'Scope 1').length, unit: 'data points', color: '#64748b' },
+                ],
+              }),
+            );
+            addChart(
+              await docxCharts.hBarChartBuffer({
+                title: 'Scope 1 Emissions by Activity Category',
+                data: Object.entries(s1Cats).map(([label, value]) => ({ label, value })),
+                unit: 'tCO2e',
+                color: docxCharts.SCOPE_COLORS['Scope 1'],
+                maxBars: 5,
+              }),
+            );
+          } else if (disc.code === 'GRI 305-2') {
+            const s2 = round(data.E1.byScope['Scope 2'] || 0);
+            const s2Pct = totalAllScopes > 0 ? (s2 / totalAllScopes) * 100 : 0;
+            children.push(text(`Energy Indirect GHG Emissions (Scope 2): ${s2} tCO2e`));
+            children.push(text(`Share of total (Scope 1+2+3): ${s2Pct.toFixed(1)}%`));
+            children.push(
+              text(
+                'Scope 2 covers indirect emissions from purchased electricity, steam, heating, and cooling. Location-based method applied using grid-average emission factors.',
+                { color: '666666', size: 18 },
+              ),
+            );
+            const s2Cats = {};
+            data.E1.activities
+              .filter((a) => a.scope === 'Scope 2')
+              .forEach((a) => {
+                const k = a.activitySubcat || a.activityCategory || 'Other';
+                s2Cats[k] = (s2Cats[k] || 0) + (a.totalEmissions || 0);
+              });
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Scope 2 Emissions', value: s2.toLocaleString(), unit: 'tCO2e', color: docxCharts.SCOPE_COLORS['Scope 2'] },
+                  { label: 'Share of Total', value: `${s2Pct.toFixed(1)}%`, unit: 'of Scope 1+2+3', color: docxCharts.SCOPE_COLORS['Scope 2'] },
+                  { label: 'Electricity', value: round(data.E1.energyByType.electricity).toLocaleString(), unit: 'MWh', color: '#0ea5e9' },
+                ],
+              }),
+            );
+            addChart(
+              await docxCharts.hBarChartBuffer({
+                title: 'Scope 2 Emissions by Energy Carrier',
+                data: Object.entries(s2Cats).map(([label, value]) => ({ label, value })),
+                unit: 'tCO2e',
+                color: docxCharts.SCOPE_COLORS['Scope 2'],
+                maxBars: 5,
+              }),
+            );
+          } else if (disc.code === 'GRI 305-3') {
+            const s3 = round(data.E1.byScope['Scope 3'] || 0);
+            const s3Pct = totalAllScopes > 0 ? (s3 / totalAllScopes) * 100 : 0;
+            children.push(text(`Other Indirect GHG Emissions (Scope 3): ${s3} tCO2e`));
+            children.push(text(`Share of total (Scope 1+2+3): ${s3Pct.toFixed(1)}%`));
+            const s3Cats = {};
+            data.E1.activities
+              .filter((a) => a.scope === 'Scope 3')
+              .forEach((a) => {
+                s3Cats[a.activityCategory] = (s3Cats[a.activityCategory] || 0) + (a.totalEmissions || 0);
+              });
+            children.push(
+              text(
+                'Scope 3 categories included: business travel, employee commuting, purchased goods and services where data is available.',
+                { color: '666666', size: 18 },
+              ),
+            );
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Scope 3 Emissions', value: s3.toLocaleString(), unit: 'tCO2e', color: docxCharts.SCOPE_COLORS['Scope 3'] },
+                  { label: 'Share of Total', value: `${s3Pct.toFixed(1)}%`, unit: 'of Scope 1+2+3', color: docxCharts.SCOPE_COLORS['Scope 3'] },
+                  { label: 'Categories Reported', value: Object.keys(s3Cats).length, unit: 'GHG Protocol cats.', color: '#64748b' },
+                ],
+              }),
+            );
+            addChart(
+              await docxCharts.hBarChartBuffer({
+                title: 'Scope 3 Emissions by Category',
+                data: Object.entries(s3Cats).map(([label, value]) => ({ label, value })),
+                unit: 'tCO2e',
+                color: docxCharts.SCOPE_COLORS['Scope 3'],
+                maxBars: 8,
+              }),
+            );
+          } else if (disc.code === 'GRI 305-4') {
+            children.push(text(`GHG Emissions Intensity: ${round(data.E1.intensity)} tCO2e per employee`));
+            children.push(text(`Total emissions: ${round(data.E1.totalEmissions)} tCO2e`));
+            children.push(text(`Denominator: ${data.E1.employees} employees (FTE)`));
+            children.push(
+              text(
+                'Intensity ratio calculated as total Scope 1+2+3 emissions divided by full-time equivalent employee count.',
+                { color: '666666', size: 18 },
+              ),
+            );
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'GHG Intensity', value: round(data.E1.intensity).toLocaleString(), unit: 'tCO2e / employee', color: '#003700' },
+                  { label: 'Total Emissions', value: round(data.E1.totalEmissions).toLocaleString(), unit: 'tCO2e (Scope 1+2+3)', color: '#0ea5e9' },
+                  { label: 'Workforce', value: (data.E1.employees || 0).toLocaleString(), unit: 'employees (FTE)', color: '#8b5cf6' },
+                ],
+              }),
+            );
+          } else if (disc.code === 'GRI 305-5') {
+            children.push(text('[Omission] GHG emissions reduction data is not yet tracked separately.'));
+            children.push(
+              text(
+                'Reason for omission: The organization has not yet established a formal emissions reduction tracking mechanism separate from year-over-year comparison. Plans are in place to implement reduction tracking aligned with SBTi commitments.',
+                { color: '666666', size: 18 },
+              ),
+            );
+          } else if (disc.code === 'GRI 302') {
+            const energyActivities = data.E1.activities.filter(
+              (a) =>
+                a.activityCategory?.toLowerCase().includes('electric') ||
+                a.activityCategory?.toLowerCase().includes('energy') ||
+                a.activityCategory?.toLowerCase().includes('combustion') ||
+                a.unit?.toLowerCase().includes('kwh') ||
+                a.unit?.toLowerCase().includes('mwh'),
+            );
+            if (energyActivities.length > 0) {
+              const totalKwh = energyActivities.reduce((s, a) => {
+                if (a.unit?.toLowerCase().includes('kwh')) return s + a.quantity;
+                if (a.unit?.toLowerCase().includes('mwh')) return s + a.quantity * 1000;
+                return s;
+              }, 0);
+              children.push(text(`Total energy consumption: ${round(totalKwh)} kWh (${round(totalKwh * 0.0036)} GJ)`));
+              children.push(text(`Energy records: ${energyActivities.length}`));
+            } else {
+              children.push(text(`${discData.count} emission activity records include energy-related data.`));
+            }
+          } else if (disc.code.includes('E1-6') || disc.code.includes('MT-b') || disc.code.includes('MET-1')) {
+            children.push(text(`Total GHG Emissions: ${round(data.E1.totalEmissions)} tCO2e`));
+            Object.entries(data.E1.byScope).forEach(([scope, val]) => {
+              children.push(bullet(`${scope}: ${round(val)} tCO2e`));
+            });
+            if (data.E1.employees > 0) {
+              children.push(
+                text(`GHG Intensity: ${round(data.E1.intensity)} tCO2e per employee (${data.E1.employees} employees)`),
+              );
+            }
+
+            // Donut: emissions by scope
+            addChart(
+              await docxCharts.donutChartBuffer({
+                title: 'Total GHG Emissions by Scope (tCO2e)',
+                data: Object.entries(data.E1.byScope).map(([label, value]) => ({ label, value: round(value) })),
+                colorMap: docxCharts.SCOPE_COLORS,
+              }),
+            );
+
+            if (data.E1.totalEnergyMwh > 0) {
+              children.push(text('Energy Consumption:', { bold: true }));
+              children.push(bullet(`Total: ${round(data.E1.totalEnergyMwh)} MWh`));
+              if (data.E1.energyByType.electricity > 0)
+                children.push(bullet(`Electricity: ${round(data.E1.energyByType.electricity)} MWh`));
+              if (data.E1.energyByType.heating > 0)
+                children.push(bullet(`District heating: ${round(data.E1.energyByType.heating)} MWh`));
+              if (data.E1.energyByType.fuel > 0)
+                children.push(bullet(`Fuel (diesel, petrol, LPG): ${round(data.E1.energyByType.fuel)} MWh`));
+              if (data.E1.energyByType.other > 0)
+                children.push(bullet(`Other energy sources: ${round(data.E1.energyByType.other)} MWh`));
+
+              addChart(
+                await docxCharts.hBarChartBuffer({
+                  title: 'Energy Consumption Mix (MWh)',
+                  data: [
+                    { label: 'Electricity', value: round(data.E1.energyByType.electricity) },
+                    { label: 'District heating', value: round(data.E1.energyByType.heating) },
+                    { label: 'Fuel (diesel/petrol/LPG)', value: round(data.E1.energyByType.fuel) },
+                    { label: 'Other energy', value: round(data.E1.energyByType.other) },
+                  ],
+                  unit: 'MWh',
+                  color: '#0ea5e9',
+                  maxBars: 6,
+                }),
+              );
+            }
+
+            if (data.E1.yoyChange !== null) {
+              children.push(text('Year-over-Year Trend:', { bold: true }));
+              const direction = data.E1.yoyChange > 0 ? 'increased' : 'decreased';
+              const absChange = Math.abs(round(data.E1.yoyChange));
+              children.push(
+                text(
+                  `Total GHG emissions ${direction} by ${absChange}% compared to the previous year (${y - 1}: ${round(data.E1.prevTotalEmissions)} tCO2e vs ${y}: ${round(data.E1.totalEmissions)} tCO2e).`,
+                ),
+              );
+
+              addChart(
+                await docxCharts.yoyBarsBuffer({
+                  title: 'Year-over-Year Comparison — Total GHG Emissions',
+                  prevLabel: `${y - 1}`,
+                  currLabel: `${y}`,
+                  prevValue: round(data.E1.prevTotalEmissions),
+                  currValue: round(data.E1.totalEmissions),
+                  unit: 'tCO2e',
+                }),
+              );
+            }
+
+            const topCats = {};
+            data.E1.activities.forEach((a) => {
+              topCats[a.activityCategory] = (topCats[a.activityCategory] || 0) + (a.totalEmissions || 0);
+            });
+            const sortedCats = Object.entries(topCats).sort((a, b) => b[1] - a[1]);
+            if (sortedCats.length > 0) {
+              children.push(text('Emission Drivers:', { bold: true }));
+              children.push(
+                text(
+                  `The primary sources of emissions are: ${sortedCats
+                    .slice(0, 3)
+                    .map(([cat, val]) => `${cat} (${round(val)} tCO2e)`)
+                    .join(', ')}.`,
+                ),
+              );
+
+              addChart(
+                await docxCharts.hBarChartBuffer({
+                  title: 'Top Emission Drivers by Activity Category',
+                  data: sortedCats.map(([label, value]) => ({ label, value: round(value) })),
+                  unit: 'tCO2e',
+                  color: '#ef4444',
+                  maxBars: 6,
+                }),
+              );
+            }
+          } else if (disc.code.includes('E1-4') || disc.code.includes('MT-c') || disc.code.includes('MET-2')) {
+            if (data.E1.targets.length > 0) {
+              const t = data.E1.targets[0];
+              children.push(text(`Target: ${t.reductionPct}% reduction by ${t.targetYear}`));
+              children.push(text(`Base year: ${t.baseYear} | Method: ${t.method} | Scope: ${t.scope}`));
+              if (t.description) children.push(text(`Description: ${t.description}`));
+
+              const yearsElapsed = Math.max(0, y - t.baseYear);
+              const totalYears = Math.max(1, t.targetYear - t.baseYear);
+              const timeProgressPct = Math.min(100, (yearsElapsed / totalYears) * 100);
+              addChart(
+                await docxCharts.progressBarBuffer({
+                  title: `SBTi Target Timeline — ${t.reductionPct}% reduction by ${t.targetYear}`,
+                  label: `Elapsed: ${yearsElapsed} of ${totalYears} years (base ${t.baseYear} → target ${t.targetYear})`,
+                  percent: timeProgressPct,
+                  color: '#10b981',
+                }),
+              );
+            } else {
+              children.push(text('[Omission] No formal decarbonization targets have been set.'));
+            }
+          } else if (disc.code.includes('E1-5')) {
+            const totalQty = data.E1.activities.reduce((s, a) => s + (a.quantity || 0), 0);
+            children.push(text(`Total activity quantity: ${round(totalQty)} (various units)`));
+            children.push(text(`Activity records: ${data.E1.activities.length}`));
+          } else {
+            children.push(text(`${discData.count} data records available for this disclosure.`));
+          }
+        } else if (topicKey === 'S1' && data.S1) {
+          if (disc.code.includes('S1-6') || disc.code.includes('405-1')) {
+            children.push(text(`Total employees: ${data.S1.totalEmployees}`));
+            Object.entries(data.S1.byGender).forEach(([g, c]) => children.push(bullet(`${g}: ${c}`)));
+
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Total Employees', value: (data.S1.totalEmployees || 0).toLocaleString(), unit: 'headcount', color: '#003700' },
+                  { label: 'Gender Categories', value: Object.keys(data.S1.byGender).length, unit: 'reported', color: '#8b5cf6' },
+                  { label: 'Org Units Covered', value: data.S1.comp.length, unit: 'records', color: '#0ea5e9' },
+                ],
+              }),
+            );
+            addChart(
+              await docxCharts.hBarChartBuffer({
+                title: 'Workforce Composition by Gender',
+                data: Object.entries(data.S1.byGender).map(([label, value]) => ({ label, value })),
+                unit: 'employees',
+                color: '#8b5cf6',
+                maxBars: 6,
+              }),
+            );
+          } else if (disc.code.includes('S1-13') || disc.code.includes('404-1')) {
+            const hours = data.S1.train.reduce((s, r) => s + r.trainingHours, 0);
+            const trained = data.S1.train.reduce((s, r) => s + r.employeeCount, 0);
+            children.push(text(`Total training hours: ${hours.toLocaleString()}`));
+            children.push(text(`Employees trained: ${trained}`));
+            children.push(text(`Average hours per employee: ${trained > 0 ? (hours / trained).toFixed(1) : 'N/A'}`));
+
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Total Training Hours', value: hours.toLocaleString(), unit: 'hours', color: '#0ea5e9' },
+                  { label: 'Employees Trained', value: trained.toLocaleString(), unit: 'headcount', color: '#10b981' },
+                  { label: 'Avg / Employee', value: trained > 0 ? (hours / trained).toFixed(1) : '—', unit: 'hours', color: '#8b5cf6' },
+                ],
+              }),
+            );
+          } else if (disc.code.includes('S1-9') || disc.code.includes('S1-12')) {
+            const disabled = data.S1.div
+              .filter((r) => r.disabilityStatus === 'Yes')
+              .reduce((s, r) => s + r.count, 0);
+            const disabilityRate = data.S1.totalEmployees > 0 ? (disabled / data.S1.totalEmployees) * 100 : 0;
+            children.push(text(`Employees with disclosed disability: ${disabled}`));
+            children.push(text(`Disability rate: ${disabilityRate.toFixed(1)}%`));
+
+            addChart(
+              await docxCharts.progressBarBuffer({
+                title: 'Disability Inclusion Rate',
+                label: `${disabled} of ${data.S1.totalEmployees} employees with disclosed disability`,
+                percent: disabilityRate,
+                color: '#8b5cf6',
+              }),
+            );
+          } else if (disc.code.includes('S1-14') || disc.code.includes('403-9')) {
+            const total = data.S1.inj.reduce((s, r) => s + r.count, 0);
+            const fatal = data.S1.inj
+              .filter((r) => r.injuryStatus === 'Fatal')
+              .reduce((s, r) => s + r.count, 0);
+            children.push(text(`Total workplace incidents: ${total}`));
+            children.push(text(`Fatalities: ${fatal}`));
+
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Total Incidents', value: total.toLocaleString(), unit: 'recorded', color: '#f59e0b' },
+                  { label: 'Fatalities', value: fatal.toLocaleString(), unit: 'reporting period', color: '#ef4444' },
+                  { label: 'Non-fatal', value: (total - fatal).toLocaleString(), unit: 'incidents', color: '#64748b' },
+                ],
+              }),
+            );
+          } else if (disc.code.includes('401-1')) {
+            const vol = data.S1.turn
+              .filter((r) => r.turnoverType === 'Voluntary')
+              .reduce((s, r) => s + r.count, 0);
+            const invol = data.S1.turn
+              .filter((r) => r.turnoverType === 'Involuntary')
+              .reduce((s, r) => s + r.count, 0);
+            const turnoverRate =
+              data.S1.totalEmployees > 0 ? ((vol + invol) / data.S1.totalEmployees) * 100 : 0;
+            children.push(text(`Voluntary turnover: ${vol}`));
+            children.push(text(`Involuntary turnover: ${invol}`));
+            children.push(text(`Turnover rate: ${turnoverRate.toFixed(1)}%`));
+
+            addChart(
+              await docxCharts.hBarChartBuffer({
+                title: 'Employee Turnover Breakdown',
+                data: [
+                  { label: 'Voluntary', value: vol },
+                  { label: 'Involuntary', value: invol },
+                ],
+                unit: 'employees',
+                color: '#f59e0b',
+                maxBars: 4,
+              }),
+            );
+            addChart(
+              await docxCharts.progressBarBuffer({
+                title: 'Overall Turnover Rate',
+                label: `${vol + invol} of ${data.S1.totalEmployees} employees`,
+                percent: turnoverRate,
+                color: '#f59e0b',
+              }),
+            );
+          } else {
+            children.push(text(`${discData.count} data records available.`));
+          }
+        }
+      } else if (disc.type === 'narrative') {
+        children.push(
+          text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`, {
+            italics: true,
+            color: '555555',
+          }),
+        );
+        children.push(
+          text(
+            `[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`,
+            { color: '888888', size: 18 },
+          ),
+        );
+      } else {
+        children.push(
+          text(`[Omission] Quantitative data for this disclosure is not available for the reporting period ${y}.`, {
+            color: 'B45309',
+          }),
+        );
+        children.push(
+          text(
+            `Reason: Data collection processes for "${disc.name}" have not yet been established or the relevant data sources have not been connected. The organization intends to disclose this metric in future reporting periods as data systems mature.`,
+            { color: '888888', size: 18 },
+          ),
+        );
+      }
+
+      children.push(spacer());
+    }
+
+    sectionNum++;
+  }
+
+  // ═══════════════ STANDARD INDEX ═══════════════
+  children.push(heading(`${sectionNum}. ${std.name} Index`));
+  for (const topicKey of selectedTopics) {
+    const topic = std.topics[topicKey];
+    if (!topic) continue;
+    children.push(text(`${topic.code} — ${topic.name}`, { bold: true, color: BRAND }));
+    for (const disc of topic.disclosures) {
+      const discResult = validation.topics
+        .find((t) => t.key === topicKey)
+        ?.disclosures.find((d) => d.code === disc.code);
+      const status = discResult?.hasData
+        ? '✓ Reported'
+        : disc.type === 'narrative'
+          ? '○ Narrative pending'
+          : '✗ No data';
+      children.push(bullet(`${disc.code} — ${disc.name} — ${status}`));
+    }
+  }
+
+  children.push(spacer());
+  children.push(
+    centered(`This report was generated by Triple I ESG Portal on ${new Date().toISOString().split('T')[0]}.`, {
+      size: 16,
+      color: '999999',
+    }),
+  );
+
+  const doc = new Document({
+    creator: 'Triple I ESG Portal',
+    title: `${standard} Report ${y}`,
+    description: `${std.name} sustainability report for ${company.name}`,
+    sections: [{ children }],
+  });
+
+  return Packer.toBuffer(doc);
+}
+
 // ─── Generate report v2 ────────────────────────────────────
 
 router.post('/generate', async (req, res) => {
@@ -107,7 +758,10 @@ router.post('/generate', async (req, res) => {
     if (!std) return res.status(400).json({ error: `Unknown standard: ${standard}` });
 
     const lang = language || 'en';
-    const fmt = format || 'pdf';
+    const fmt = (format || 'pdf').toLowerCase();
+    if (!['pdf', 'docx'].includes(fmt)) {
+      return res.status(400).json({ error: 'Format must be "pdf" or "docx".' });
+    }
     const selectedTopics = topics || Object.keys(std.topics);
 
     // ─── Tier gating for standard + language ───────────────────────────
@@ -220,6 +874,81 @@ router.post('/generate', async (req, res) => {
         comp.forEach(r => { byGender[r.gender] = (byGender[r.gender] || 0) + r.employeeCount; });
         data.S1 = { comp, div, train, turn, inj, totalEmployees, byGender };
       }
+    }
+
+    // ─── DOCX branch ──────────────────────────────────────────
+    // Build a Word document from the same data and return early.  Credit
+    // deduction + activity logging mirror the PDF path below.
+    if (fmt === 'docx') {
+      let logoFilePath = null;
+      if (company.logoPath) {
+        const uploadsDir = path.join(__dirname, '../../uploads');
+        const candidate = path.join(uploadsDir, company.logoPath);
+        if (fs.existsSync(candidate)) logoFilePath = candidate;
+      }
+
+      const buffer = await buildReportDocx({
+        company,
+        companyDescription,
+        std,
+        standard,
+        y,
+        selectedTopics,
+        validation,
+        orgUnits,
+        data,
+        generateWithoutMissing,
+        logoFilePath,
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
+      res.setHeader('Content-Disposition', `attachment; filename="${standard}_Report_${y}.docx"`);
+      res.send(buffer);
+
+      try {
+        await deductCredits(
+          req.user.companyId,
+          req.user.id,
+          reportEstimate.credits,
+          'REPORT_GEN',
+          `${standard} report (docx) for ${y} — ${reportEstimate.breakdown.topicsWithData} topic(s), ${reportEstimate.breakdown.disclosuresWithData} disclosures — ${reportEstimate.credits} credits`,
+          null,
+        );
+        await logCost({
+          companyId: req.user.companyId,
+          userId: req.user.id,
+          operation: 'REPORT_GEN',
+          model: null,
+          inputTokens: 0,
+          outputTokens: 0,
+          durationMs: null,
+          relatedId: null,
+          metadata: {
+            standard,
+            year: y,
+            topics: selectedTopics,
+            format: fmt,
+            credits: reportEstimate.credits,
+            breakdown: reportEstimate.breakdown,
+          },
+          estimatedCostOverride: reportEstimate.estimatedCostUSD,
+        });
+      } catch (creditErr) {
+        console.error('[Report] post-generation credit/cost logging failed:', creditErr.message);
+      }
+
+      logActivity(
+        req.user.id,
+        req.user.companyId,
+        'GENERATE_REPORT',
+        `Generated ${standard} report (docx) for ${y} with topics: ${selectedTopics.join(', ')} — ${reportEstimate.credits} credits`,
+        { standard, year: y, topics: selectedTopics, format: fmt, credits: reportEstimate.credits },
+        req.ip,
+      );
+      return;
     }
 
     // Generate PDF
