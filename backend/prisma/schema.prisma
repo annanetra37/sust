@@ -51,6 +51,38 @@ model Company {
   emissionActivity FE1EmissionActivityData[]
   ghgInventory     FE1GHGInventory[]
   sbtiTargets      SBTiTarget[]
+
+  financials       CompanyFinancials?
+}
+
+// ─── Sustainability ROI inputs ──────────────────────────────────
+// Per-company financial assumptions used by the ROI module to translate
+// emission / energy / workforce data into USD impact.  Populated from the
+// ROI dashboard's "financial data" form.  Defaults mirror industry averages
+// so the module still produces meaningful numbers before the CFO steps in.
+model CompanyFinancials {
+  id                           String  @id @default(uuid())
+  companyId                    String  @unique
+  company                      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // Energy cost (USD per kWh) — drives the "Energy cost savings" pillar.
+  electricityPricePerKwh       Float   @default(0.15)
+  // Shadow / actual carbon price (USD per tCO2e) — drives the
+  // "Carbon tax avoidance" pillar.
+  carbonTaxPerTco2e            Float   @default(85)
+  // Average fully-loaded recruiting cost per hire (USD) — drives the
+  // "HR & talent ROI" pillar.
+  avgRecruitingCostPerHire     Float   @default(4700)
+  // Total annual revenue (USD) — drives the "Contract eligibility" pillar.
+  annualRevenue                Float?
+  // Share of revenue tied to contracts that require an ESG / sustainability
+  // certification to win or keep.  Stored as a fraction in [0, 1].
+  esgDependentRevenueShare     Float   @default(0.35)
+  // Currency symbol used for display.  Storage stays in USD.
+  currency                     String  @default("USD")
+
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 }
 
 model User {

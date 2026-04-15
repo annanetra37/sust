@@ -27,7 +27,8 @@ export const TIERS = {
     inheritsFrom: 'STARTER',
     features: {
       ai_doc_extract: true, all_standards: true, db_connections: true,
-      audit_lineage: true, multi_language_reports: true, priority_support: true,
+      audit_lineage: true, multi_language_reports: true, sustainability_roi: true,
+      priority_support: true,
     },
   },
   ENTERPRISE: {
@@ -50,6 +51,7 @@ export const FEATURE_LABELS = {
   db_connections:         'Database connections',
   audit_lineage:          'Audit trail & lineage',
   multi_language_reports: '7-language reports',
+  sustainability_roi:     'Sustainability ROI module',
   priority_support:       'Priority support',
   sso_saml:               'SSO / SAML',
   custom_branding:        'Custom branding',

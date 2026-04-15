@@ -21,6 +21,7 @@ import Connections from './pages/Connections';
 import SBTiTargets from './pages/SBTiTargets';
 import LineagePage from './pages/LineagePage';
 import ActivityLogPage from './pages/ActivityLogPage';
+import ROIDashboard from './pages/ROIDashboard';
 import ComingSoon from './pages/ComingSoon';
 
 function ProtectedRoute({ children }) {
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/sbti-targets" element={<SBTiTargets />} />
         <Route path="/lineage" element={<LineagePage />} />
         <Route path="/activity-log" element={<ActivityLogPage />} />
+        <Route path="/roi" element={<ROIDashboard />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 
