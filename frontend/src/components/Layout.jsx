@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity, Lock
+  Sun, Moon, GitBranch, Activity, Lock, TrendingUp
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -50,6 +50,7 @@ const NAV = [
   },
   { label: 'SBTi Targets', path: '/sbti-targets', icon: Target },
   { label: 'Reports', path: '/reports', icon: FileText },
+  { label: 'Sustainability ROI', path: '/roi', icon: TrendingUp, feature: 'sustainability_roi' },
   { label: 'Data Connections', path: '/connections', icon: Database, feature: 'db_connections' },
   { label: 'Data Lineage', path: '/lineage', icon: GitBranch, feature: 'audit_lineage' },
   { label: 'History', path: '/history', icon: History },

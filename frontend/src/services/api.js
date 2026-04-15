@@ -210,6 +210,14 @@ const api = {
     URL.revokeObjectURL(url);
   },
 
+  // Sustainability ROI
+  getRoiSummary: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return request(`/roi/summary${qs ? '?' + qs : ''}`);
+  },
+  getRoiFinancials: () => request('/roi/financials'),
+  updateRoiFinancials: (data) => request('/roi/financials', { method: 'PUT', body: JSON.stringify(data) }),
+
   // Assistant
   chatAssistant: (message, history) => request('/assistant/chat', { method: 'POST', body: JSON.stringify({ message, history }) }),
 

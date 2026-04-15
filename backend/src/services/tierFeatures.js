@@ -60,6 +60,7 @@ const TIERS = {
       db_connections:         true,  // /api/connections/*
       audit_lineage:          true,  // /api/lineage/*
       multi_language_reports: true,  // languages other than English
+      sustainability_roi:     true,  // /api/roi — Sustainability ROI dashboard
       priority_support:       true,
     },
   },
@@ -98,6 +99,7 @@ const FEATURE_LABELS = {
   db_connections:         'Database connections',
   audit_lineage:          'Audit trail & lineage',
   multi_language_reports: '7-language reports',
+  sustainability_roi:     'Sustainability ROI module',
   priority_support:       'Priority support',
   sso_saml:               'SSO / SAML',
   custom_branding:        'Custom branding',
