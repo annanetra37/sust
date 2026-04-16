@@ -91,4 +91,4 @@ async function sendInvite(email, token, companyName) {
   });
 }
 
-module.exports = { sendOTP, sendResetLink, sendInvite };
+module.exports = { sendEmail, sendOTP, sendResetLink, sendInvite };
