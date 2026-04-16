@@ -516,6 +516,9 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
   let succeeded = 0;
   const yearWarnings = [];
   const docErrors = [];
+  // Per-file status array — saved to UploadHistory so the UI can show
+  // exactly which file succeeded, which failed, and why.
+  const perFileStatus = [];
 
   for (let i = 0; i < files.length; i += MAX_CONCURRENT) {
     const batch = files.slice(i, i + MAX_CONCURRENT);
@@ -555,8 +558,16 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
 
         if (!extraction.items || extraction.items.length === 0) {
           console.warn('[Doc Extract] No items extracted from:', extraction.sourceFile, '— Notes:', extraction.notes);
+          perFileStatus.push({
+            file: extraction.sourceFile || 'Unknown',
+            status: 'failed',
+            records: 0,
+            confidence: extraction.confidence || 0,
+            reason: extraction.notes || 'AI could not extract structured data from this document.',
+          });
         }
 
+        let fileRecords = 0;
         for (const item of (extraction.items || [])) {
           // Accept any item that has meaningful data
           const qty = parseFloat(item.quantity) || 0;
@@ -629,12 +640,33 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
               },
             });
             succeeded++;
+            fileRecords++;
           }
+        }
+
+        // Record per-file status for files that had items (even if some were filtered)
+        if (extraction.items && extraction.items.length > 0) {
+          perFileStatus.push({
+            file: extraction.sourceFile || 'Unknown',
+            status: fileRecords > 0 ? 'success' : 'failed',
+            records: fileRecords,
+            confidence: extraction.confidence || 0,
+            reason: fileRecords > 0
+              ? `${fileRecords} record(s) extracted`
+              : `AI extracted ${extraction.items.length} item(s) but all were filtered (no quantity, amount, or emissions).`,
+          });
         }
       } else if (result.status === 'rejected') {
         const errMsg = result.reason?.message || String(result.reason);
         console.error(`[Doc Extract] FAILED:`, errMsg);
         docErrors.push(errMsg);
+        perFileStatus.push({
+          file: batch[batchResults.indexOf(result)]?.originalname || 'Unknown',
+          status: 'error',
+          records: 0,
+          confidence: 0,
+          reason: errMsg,
+        });
       } else if (result.status === 'fulfilled' && (!result.value || !result.value.items?.length)) {
         const notes = result.value?.notes || 'No data extracted';
         console.warn('[Doc Extract] No items from:', result.value?.sourceFile, '—', notes);
@@ -677,6 +709,13 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
   const finalStatus = succeeded === 0 && files.length > 0 ? 'FAILED' : 'COMPLETED';
   const errorMessage = messages.length > 0 ? messages.join('\n\n') : null;
 
+  // Encode per-file status so the frontend can show a breakdown.
+  // Format: human-readable message, then a <!--FILESTATUS:json--> block.
+  const fileStatusTag = perFileStatus.length > 0
+    ? `\n<!--FILESTATUS:${JSON.stringify(perFileStatus)}-->`
+    : '';
+  const fullErrorMessage = (errorMessage || '') + fileStatusTag || null;
+
   console.log(`[Doc Extract] Final: ${succeeded} records from ${files.length} files. Status: ${finalStatus}. Errors: ${docErrors.length}`);
 
   await prisma.uploadHistory.update({
@@ -685,7 +724,7 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
       status: finalStatus,
       processedRows: processed,
       completedAt: new Date(),
-      errorMessage,
+      errorMessage: fullErrorMessage,
     },
   });
 }
