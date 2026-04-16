@@ -14,10 +14,9 @@ const AUDIT_STATUSES = [
   { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700', icon: null },
 ];
 
-// Helper to download/view files with auth token
+// Helper to build authenticated file URLs via the shared api helper.
 function authUrl(path) {
-  const token = localStorage.getItem('accessToken');
-  return `/api${path}${path.includes('?') ? '&' : '?'}token=${token}`;
+  return api.authFileUrl(path);
 }
 
 export default function HistoryPage() {
@@ -196,10 +195,12 @@ export default function HistoryPage() {
                 {files.map((f, i) => {
                   const ext = (f.name || '').split('.').pop()?.toLowerCase();
                   const isViewable = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext);
-                  // For Excel/CSV, use Google Docs Viewer for inline preview
+                  // For Excel/CSV, use Google Docs Viewer for inline preview.
+                  // f.downloadUrl is already an absolute authenticated URL
+                  // (via api.authFileUrl), so pass it directly to Google.
                   const viewHref = isViewable
                     ? f.viewUrl
-                    : `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + f.downloadUrl)}&embedded=true`;
+                    : `https://docs.google.com/gview?url=${encodeURIComponent(f.downloadUrl)}&embedded=true`;
 
                   return (
                   <div key={i} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">

@@ -128,7 +128,7 @@ const api = {
   estimateReportCost: (data) => request('/reports/v2/estimate', { method: 'POST', body: JSON.stringify(data) }),
   getCompany: () => request('/settings/company'),
   uploadLogo: (formData) => request('/settings/logo', { method: 'POST', body: formData }),
-  getLogoUrl: () => '/api/settings/logo',
+  getLogoUrl: () => `${API_BASE}/settings/logo`,
   deleteLogo: () => request('/settings/logo', { method: 'DELETE' }),
   updateCompany: (data) => request('/settings/company', { method: 'PUT', body: JSON.stringify(data) }),
 
@@ -136,8 +136,8 @@ const api = {
   getHistory: (params) => request(`/history?${new URLSearchParams(params || {})}`),
   getHistoryDetail: (id) => request(`/history/${id}`),
   getDataYears: () => request('/history/meta/years'),
-  getFileDownloadUrl: (id, fileIndex) => `/api/history/${id}/download/${fileIndex || 0}`,
-  getFileViewUrl: (id, fileIndex) => `/api/history/${id}/view/${fileIndex || 0}`,
+  getFileDownloadUrl: (id, fileIndex) => `${API_BASE}/history/${id}/download/${fileIndex || 0}`,
+  getFileViewUrl: (id, fileIndex) => `${API_BASE}/history/${id}/view/${fileIndex || 0}`,
   updateAuditStatus: (id, data) => request(`/history/${id}/audit`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Reports
@@ -223,6 +223,16 @@ const api = {
 
   // Assistant
   chatAssistant: (message, history) => request('/assistant/chat', { method: 'POST', body: JSON.stringify({ message, history }) }),
+
+  // Build an authenticated URL for opening files in a new tab or as
+  // download links.  Appends the current access token as a query param so
+  // the backend can verify the request (its auth middleware also accepts
+  // ?token=).  Uses API_BASE so URLs work in deployments where the backend
+  // is on a different domain.
+  authFileUrl: (path) => {
+    const sep = path.includes('?') ? '&' : '?';
+    return `${API_BASE}${path}${sep}token=${accessToken || ''}`;
+  },
 
   setTokens,
   clearTokens,

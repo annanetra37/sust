@@ -243,7 +243,7 @@ export default function LineagePage() {
                                                 {upload.auditStatus}
                                               </span>
                                               {upload.hasSourceFile && (
-                                                <a href={`/api/history/${upload.id}/view/0?token=${localStorage.getItem('accessToken')}`}
+                                                <a href={api.authFileUrl(`/history/${upload.id}/view/0`)}
                                                   target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                                                   className="text-brand-500 hover:text-brand-700"><Eye className="w-3.5 h-3.5" /></a>
                                               )}

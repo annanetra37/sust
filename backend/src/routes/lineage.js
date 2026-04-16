@@ -151,7 +151,11 @@ router.post('/export', async (req, res) => {
       include: { user: { select: { firstName: true, lastName: true } } },
     });
 
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Use the backend's own URL for download links embedded in the export
+    // PDF/docx.  The files are served by the backend (GET /api/history/:id/download),
+    // so the link must point there — not at the frontend domain.
+    const apiPort = process.env.PORT || 4000;
+    const baseUrl = process.env.API_URL || process.env.BACKEND_URL || `http://localhost:${apiPort}`;
 
     if (fmt === 'pdf') {
       const doc = new PDFDocument({ margin: 40, size: 'A4' });
