@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { LogoFull } from '../components/Logo';
@@ -7,6 +7,43 @@ import COUNTRIES from '../utils/countries';
 const INDUSTRIES = ['Technology', 'Manufacturing', 'Finance', 'Healthcare', 'Energy', 'Retail', 'Transportation', 'Agriculture', 'Construction', 'Other'];
 const SIZES = ['1-50', '51-200', '201-500', '501-1000', '1001-5000', '5000+'];
 const STRUCTURES = ['Corporation', 'LLC', 'Partnership', 'Sole Proprietorship', 'Non-profit', 'Public Company'];
+
+// Personal / free email providers that are blocked.
+const PERSONAL_DOMAINS = new Set([
+  'gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de',
+  'hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.de',
+  'outlook.com','live.com','msn.com',
+  'aol.com','icloud.com','me.com','mac.com',
+  'mail.com','protonmail.com','proton.me','zoho.com',
+  'yandex.com','yandex.ru','gmx.com','gmx.de','gmx.net',
+  'tutanota.com','tuta.io','fastmail.com',
+  'qq.com','163.com','126.com','sina.com',
+  'web.de','t-online.de','freenet.de',
+  'rediffmail.com','inbox.com','mail.ru',
+]);
+
+function isPersonalEmail(email) {
+  if (!email || !email.includes('@')) return false;
+  const domain = email.toLowerCase().split('@')[1];
+  return PERSONAL_DOMAINS.has(domain);
+}
+
+function validatePassword(pw) {
+  if (!pw) return '';
+  const issues = [];
+  if (pw.length < 8) issues.push('at least 8 characters');
+  if (!/[A-Z]/.test(pw)) issues.push('an uppercase letter');
+  if (!/[0-9]/.test(pw)) issues.push('a number');
+  if (!/[^A-Za-z0-9]/.test(pw)) issues.push('a special character');
+  if (issues.length === 0) return '';
+  return `Password must include ${issues.join(', ')}.`;
+}
+
+// Small reusable inline error label.
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="text-xs text-red-600 mt-1">{message}</p>;
+}
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -20,13 +57,62 @@ export default function Signup() {
     hqLocation: '', stockExchange: '', tickerSymbol: '',
   });
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
+  // Per-field errors — only shown after the user has interacted with the
+  // field (on blur) so we don't flash red on a fresh, empty form.
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const set = (key) => (e) => {
+    const value = e.target.value;
+    setForm((f) => ({ ...f, [key]: value }));
+
+    // Clear field error on typing (re-validated on blur).
+    if (fieldErrors[key]) {
+      setFieldErrors((prev) => ({ ...prev, [key]: '' }));
+    }
+  };
+
+  const validateField = useCallback((key, value) => {
+    if (key === 'email') {
+      if (!value) return 'Email is required.';
+      if (isPersonalEmail(value)) {
+        return 'Please use a business email address. Personal emails (Gmail, Hotmail, Yahoo, etc.) are not accepted.';
+      }
+    }
+    if (key === 'password') {
+      return validatePassword(value);
+    }
+    return '';
+  }, []);
+
+  const handleBlur = (key) => () => {
+    const msg = validateField(key, form[key]);
+    setFieldErrors((prev) => ({ ...prev, [key]: msg }));
+  };
+
+  // Validate step 1 fields before advancing to step 2.
+  const step1Valid = () => {
+    const emailErr = validateField('email', form.email);
+    const pwErr = validateField('password', form.password);
+
+    const errors = {};
+    if (emailErr) errors.email = emailErr;
+    if (pwErr) errors.password = pwErr;
+    if (!form.firstName.trim()) errors.firstName = 'First name is required.';
+    if (!form.lastName.trim()) errors.lastName = 'Last name is required.';
+
+    setFieldErrors((prev) => ({ ...prev, ...errors }));
+    return Object.values(errors).every((v) => !v);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (step === 1) return setStep(2);
-
     setError('');
+
+    if (step === 1) {
+      if (!step1Valid()) return;
+      return setStep(2);
+    }
+
     setLoading(true);
     try {
       await api.signup(form);
@@ -61,21 +147,54 @@ export default function Signup() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                  <input className="input" required value={form.firstName} onChange={set('firstName')} />
+                  <input
+                    className={`input ${fieldErrors.firstName ? 'border-red-400 focus:ring-red-400' : ''}`}
+                    required
+                    value={form.firstName}
+                    onChange={set('firstName')}
+                    onBlur={handleBlur('firstName')}
+                  />
+                  <FieldError message={fieldErrors.firstName} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                  <input className="input" required value={form.lastName} onChange={set('lastName')} />
+                  <input
+                    className={`input ${fieldErrors.lastName ? 'border-red-400 focus:ring-red-400' : ''}`}
+                    required
+                    value={form.lastName}
+                    onChange={set('lastName')}
+                    onBlur={handleBlur('lastName')}
+                  />
+                  <FieldError message={fieldErrors.lastName} />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input type="email" className="input" required value={form.email} onChange={set('email')} />
+                <input
+                  type="email"
+                  className={`input ${fieldErrors.email ? 'border-red-400 focus:ring-red-400' : ''}`}
+                  required
+                  value={form.email}
+                  onChange={set('email')}
+                  onBlur={handleBlur('email')}
+                  placeholder="you@company.com"
+                />
+                <FieldError message={fieldErrors.email} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-                <input type="password" className="input" required value={form.password} onChange={set('password')} />
-                <p className="text-xs text-gray-400 mt-1">8+ chars, uppercase, number, special character</p>
+                <input
+                  type="password"
+                  className={`input ${fieldErrors.password ? 'border-red-400 focus:ring-red-400' : ''}`}
+                  required
+                  value={form.password}
+                  onChange={set('password')}
+                  onBlur={handleBlur('password')}
+                />
+                {fieldErrors.password
+                  ? <FieldError message={fieldErrors.password} />
+                  : <p className="text-xs text-gray-400 mt-1">8+ chars, uppercase, number, special character</p>
+                }
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
