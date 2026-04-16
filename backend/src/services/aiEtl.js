@@ -268,9 +268,19 @@ IMPORTANT RULES:
     'Company Vehicle': `Extract company vehicle/service vehicle data: vehicle type, fuel type (petrol/diesel/hybrid/electric), distance driven (km or miles), fuel quantity (litres or gallons), vehicle registration/plate number, date, cost, currency. IMPORTANT: For company vehicles, always use activityCategory="Mobile Combustion" and subType="Service Vehicles".`,
   };
 
-  const promptText = `You are an expert at extracting structured emissions data from invoices, receipts, and bills. The document may be in ANY language.
+  const promptText = `You are an expert at extracting structured emissions data from invoices, receipts, and bills. The document may be in ANY language — including non-Latin scripts, handwritten text, and partially illegible documents.
 
-${useVision ? '## Document\nThe document image is attached. Read ALL text visible in the image.' : `## Document Text\n${textOrBuffer.substring(0, 6000)}`}
+${useVision ? `## Document
+The document image is attached. Read ALL text visible in the image.
+
+CRITICAL — HANDWRITTEN DOCUMENTS:
+- The document may contain HANDWRITTEN text (pen, pencil, marker).
+- Read handwritten numbers, dates, and amounts with extra care.
+- If text is partially illegible, use context clues (pre-printed labels on the form, column headers, currency symbols) to infer the values.
+- Hungarian invoices (SZÁMLA): "Bruttó" / "végösszeg" = gross total, "Nettó" = net, "ÁFA" = VAT, "Érték" = value, "Mennyiség" = quantity, "Egységár" = unit price.
+- Common European receipt formats: the GROSS TOTAL is usually the largest number at the bottom.
+- If the document is a taxi/transport receipt, extract: total fare, date, origin/destination if visible, currency.
+- A partial extraction with best-effort numbers is ALWAYS better than returning empty items.` : `## Document Text\n${textOrBuffer.substring(0, 6000)}`}
 
 ## Extraction Mode: ${mode}
 ${modeInstructions[mode]}
@@ -311,10 +321,17 @@ Convert non-metric units (miles→km, gallons→litres, MWh→kWh).
 Determine GHG Protocol scope (Scope 1/2/3).
 Double-check your distance calculations against known geography.
 
-CRITICAL: The document text may come from OCR and contain errors, misspellings, or garbled characters.
-Do your BEST to extract data even from imperfect text. If you can identify ANY energy quantity,
-distance, amount, or date — include it. Do NOT return empty items just because the OCR is imperfect.
-A partial extraction is better than no extraction.
+CRITICAL: The document may be handwritten, scanned, photographed at an angle, or OCR'd with errors.
+Do your BEST to extract data even from imperfect, blurry, or partially illegible text.
+If you can identify ANY quantity, distance, amount, fare, or date — include it.
+Do NOT return empty items just because the text is hard to read or in a foreign language.
+A partial extraction with your best guess is ALWAYS better than no extraction.
+
+MULTILINGUAL SUPPORT — recognise these common words across languages:
+- Total/Summe/Összeg/Összesen/Bruttó/Total/Totale/合計/Итого = total amount
+- Taxi/Cab/Fahrt/Utazás/Viaje/Corsa = taxi ride
+- Date/Datum/Dátum/Fecha/Data/日付/Дата = date
+- EUR/USD/GBP/HUF/Ft/CHF/CZK/PLN = currency
 
 Return ONLY valid JSON:
 {

@@ -175,11 +175,57 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {upload.errorMessage && (
-            <div className={`mt-4 p-3 rounded-lg text-sm ${upload.status === 'DATA_DELETED' ? 'bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border border-orange-200' : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400'}`}>
-              {upload.errorMessage}
-            </div>
-          )}
+          {upload.errorMessage && (() => {
+            // Parse per-file status from the <!--FILESTATUS:json--> tag if present.
+            const raw = upload.errorMessage;
+            const tagMatch = raw.match(/<!--FILESTATUS:([\s\S]+?)-->/);
+            const humanMessage = raw.replace(/\n?<!--FILESTATUS:[\s\S]+?-->/, '').trim();
+            let perFile = [];
+            try { if (tagMatch) perFile = JSON.parse(tagMatch[1]); } catch {}
+
+            return (
+              <div className="mt-4 space-y-3">
+                {humanMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${upload.status === 'DATA_DELETED' ? 'bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 border border-orange-200' : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800'}`}>
+                    <AlertTriangle className="w-4 h-4 inline-block mr-1 -mt-0.5" />
+                    {humanMessage}
+                  </div>
+                )}
+                {perFile.length > 0 && (
+                  <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Per-file extraction status
+                    </div>
+                    <div className="divide-y dark:divide-gray-800">
+                      {perFile.map((pf, idx) => (
+                        <div key={idx} className="flex items-center gap-3 px-3 py-2 text-sm">
+                          {pf.status === 'success' ? (
+                            <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                          )}
+                          <span className="font-medium text-gray-700 dark:text-gray-300 flex-1 truncate">{pf.file}</span>
+                          <span className={`text-xs ${pf.status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                            {pf.status === 'success' ? `${pf.records} record(s)` : 'No data'}
+                          </span>
+                          {pf.confidence > 0 && (
+                            <span className="text-[10px] text-gray-400">{Math.round(pf.confidence * 100)}%</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {perFile.some(pf => pf.status !== 'success' && pf.reason) && (
+                      <div className="px-3 py-2 bg-red-50 dark:bg-red-950 text-xs text-red-600 dark:text-red-400 space-y-1">
+                        {perFile.filter(pf => pf.status !== 'success' && pf.reason).map((pf, idx) => (
+                          <p key={idx}><strong>{pf.file}:</strong> {pf.reason}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {creditTransaction && (
             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
