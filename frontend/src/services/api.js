@@ -210,6 +210,9 @@ const api = {
     URL.revokeObjectURL(url);
   },
 
+  // Upgrade request
+  requestUpgrade: (data) => request('/settings/upgrade-request', { method: 'POST', body: JSON.stringify(data) }),
+
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

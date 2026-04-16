@@ -376,6 +376,58 @@ router.put('/company', requireAdmin, async (req, res) => {
 // component can render feature locks without round-trips.
 const tierFeatures = require('../services/tierFeatures');
 const { invalidateTierCache } = require('../middleware/tier');
+const { sendEmail } = require('../utils/email');
+
+// ─── Upgrade request ───────────────────────────────────────────
+// Sends a notification to the Triple I sales team when a user clicks
+// "Request upgrade" on a feature-locked page.  No Stripe, no self-serve;
+// the team reaches out to the customer manually.
+router.post('/upgrade-request', async (req, res) => {
+  try {
+    const { desiredTier, feature, message } = req.body || {};
+
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { name: true, tier: true, industry: true, companySize: true, country: true },
+    });
+    if (!company) return res.status(404).json({ error: 'Company not found.' });
+
+    const user = req.user;
+    const tierLabel = desiredTier || 'Professional';
+
+    await sendEmail({
+      to: 'info@triplei.io',
+      subject: `Upgrade request — ${company.name} → ${tierLabel}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+          <h2 style="color: #003700; margin-bottom: 16px;">New Upgrade Request</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #333;">
+            <tr><td style="padding: 6px 12px; font-weight: bold; color: #666;">User</td><td style="padding: 6px 12px;">${user.firstName} ${user.lastName} &lt;${user.email}&gt;</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding: 6px 12px; font-weight: bold; color: #666;">Company</td><td style="padding: 6px 12px;">${company.name}</td></tr>
+            <tr><td style="padding: 6px 12px; font-weight: bold; color: #666;">Industry / Size</td><td style="padding: 6px 12px;">${company.industry} / ${company.companySize}</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding: 6px 12px; font-weight: bold; color: #666;">Country</td><td style="padding: 6px 12px;">${company.country}</td></tr>
+            <tr><td style="padding: 6px 12px; font-weight: bold; color: #666;">Current tier</td><td style="padding: 6px 12px;">${company.tier}</td></tr>
+            <tr style="background:#f9fafb;"><td style="padding: 6px 12px; font-weight: bold; color: #666;">Requested tier</td><td style="padding: 6px 12px;"><strong>${tierLabel}</strong></td></tr>
+            ${feature ? `<tr><td style="padding: 6px 12px; font-weight: bold; color: #666;">Feature</td><td style="padding: 6px 12px;">${feature}</td></tr>` : ''}
+            ${message ? `<tr style="background:#f9fafb;"><td style="padding: 6px 12px; font-weight: bold; color: #666;">Message</td><td style="padding: 6px 12px;">${message}</td></tr>` : ''}
+          </table>
+          <p style="color: #999; font-size: 11px; margin-top: 24px; border-top: 1px solid #eee; padding-top: 12px;">Triple I ESG Portal — automated upgrade request notification</p>
+        </div>
+      `,
+    });
+
+    logActivity(req.user.id, req.user.companyId, 'UPGRADE_REQUEST',
+      `Requested upgrade to ${tierLabel}${feature ? ` (triggered by ${feature})` : ''}`,
+      { desiredTier: tierLabel, feature, message }, req.ip,
+    );
+
+    res.json({ message: 'Your upgrade request has been sent. Our team will be in touch shortly.' });
+  } catch (err) {
+    console.error('[settings] upgrade-request error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
 
 router.get('/tier-info', async (req, res) => {
   try {
