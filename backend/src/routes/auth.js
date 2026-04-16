@@ -24,6 +24,27 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: email, password, first name, last name, company name, country, industry, and company size are all required.' });
     }
 
+    // Block personal / free email providers — business emails only.
+    const personalDomains = [
+      'gmail.com','googlemail.com','yahoo.com','yahoo.co.uk','yahoo.fr','yahoo.de',
+      'hotmail.com','hotmail.co.uk','hotmail.fr','hotmail.de',
+      'outlook.com','live.com','msn.com',
+      'aol.com','icloud.com','me.com','mac.com',
+      'mail.com','protonmail.com','proton.me','zoho.com',
+      'yandex.com','yandex.ru','gmx.com','gmx.de','gmx.net',
+      'tutanota.com','tuta.io','fastmail.com',
+      'qq.com','163.com','126.com','sina.com',
+      'web.de','t-online.de','freenet.de',
+      'rediffmail.com','inbox.com','mail.ru',
+    ];
+    const emailDomain = email.toLowerCase().split('@')[1];
+    if (!emailDomain || personalDomains.includes(emailDomain)) {
+      return res.status(400).json({
+        error: 'Please use a business email address. Personal email providers (Gmail, Hotmail, Yahoo, etc.) are not accepted.',
+        field: 'email',
+      });
+    }
+
     if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
       return res.status(400).json({ error: 'Password must be at least 8 characters and include an uppercase letter, a number, and a special character.' });
     }
