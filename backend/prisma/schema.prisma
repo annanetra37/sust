@@ -53,6 +53,11 @@ model Company {
   sbtiTargets      SBTiTarget[]
 
   financials       CompanyFinancials?
+
+  // PCF / Sector pack relations (Sprint 1)
+  products         Product[]
+  components       Component[]
+  sectorSelection  CompanySectorSelection?
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -181,6 +186,8 @@ model OrgUnit {
   employeeTurnover FS1EmployeeTurnover[]
   emissionActivity FE1EmissionActivityData[]
   ghgInventory     FE1GHGInventory[]
+
+  products         Product[]
 
   @@unique([name, companyId])
 }
@@ -398,4 +405,191 @@ model DataConnection {
   lastSyncAt   DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ─── PCF Module — Product Carbon Footprint (Sprint 1) ───────────
+// Sector-agnostic graph of Products → BOM → Components → EmissionFactors
+// → PcfCalculations.  Used by Electronics today, Automotive in Q4 2026,
+// Real Estate + Financial Services in Q1 2027.  Functional unit + lifecycle
+// stage fields are generic so an SSD, a vehicle, a building, and a
+// financial instrument are all just Products with different stages active.
+
+model Product {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId       String?
+  orgUnit         OrgUnit? @relation(fields: [orgUnitId], references: [id])
+
+  sku             String
+  name            String
+  sector          String   // electronics | automotive | real_estate | financial | generic
+  functionalUnit  String   // "1 SSD module", "1 vehicle", "1 m2 leasable"
+  declaredUnit    String   // usually same as functionalUnit for Lite
+  massKg          Float?
+  lifetimeYears   Float?
+  methodology     String   @default("ISO_14067")
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  boms            BillOfMaterialsItem[]
+  processes       ProcessStep[]
+  calculations    PcfCalculation[]
+
+  @@unique([companyId, sku])
+  @@index([companyId, sector])
+}
+
+model Component {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  materialClass   String   // "aluminum_6061", "pcb_fr4", "li_ion_nmc", ...
+  supplierName    String?
+  originCountry   String?
+  primaryDataFlag Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  bomItems        BillOfMaterialsItem[]
+
+  @@index([companyId, materialClass])
+}
+
+model BillOfMaterialsItem {
+  id             String    @id @default(uuid())
+  productId      String
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  componentId    String
+  component      Component @relation(fields: [componentId], references: [id])
+  quantity       Float
+  unit           String    // kg, pcs, m, m2
+  scrapRatePct   Float     @default(0)
+  lifecycleStage String    // A1, A2, A3, A4, B1, C1 (EN 15978 stages)
+  chosenFactorId String?   // FK resolved at calculate-time (soft, no constraint)
+  sortOrder      Int       @default(0)
+
+  @@index([productId])
+  @@index([componentId])
+}
+
+// EmissionFactor is global — not scoped per company — because factors come
+// from public datasets (Ecoinvent, DEFRA, EPA) or from supplier submissions
+// that any buyer could reuse.  `source=supplier_primary` rows carry a
+// supplierCompanyId to preserve provenance.
+model EmissionFactor {
+  id                 String   @id @default(uuid())
+  source             String   // ecoinvent_3_10 | defra_2024 | epa_ghg_2024 | supplier_primary
+  activityName       String
+  materialClass      String?  // normalised tag for BOM classifier matching
+  region             String   // GLO | EU | US | VN | MY | CN | ...
+  value              Float
+  unit               String   // kgCO2e per <functionalUnit>
+  functionalUnit     String   // "kg" | "kWh" | "pcs" | "m3"
+  vintage            Int
+  uncertaintyStd     Float?   // for Monte Carlo
+  supplierCompanyId  String?  // set when source=supplier_primary
+  notes              String?
+  createdAt          DateTime @default(now())
+
+  @@index([source, region, vintage])
+  @@index([activityName])
+  @@index([materialClass, region])
+}
+
+model ProcessStep {
+  id             String  @id @default(uuid())
+  productId      String
+  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  lifecycleStage String
+  siteId         String?
+  energyKwh      Float?
+  waterM3        Float?
+  wasteKg        Float?
+  emissionsKg    Float?
+  notes          String?
+
+  createdAt      DateTime @default(now())
+
+  @@index([productId, lifecycleStage])
+}
+
+model PcfCalculation {
+  id                String   @id @default(uuid())
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  runAt             DateTime @default(now())
+  engineVersion     String
+  totalKgCo2e       Float
+  uncertaintyLow    Float?
+  uncertaintyHigh   Float?
+  primaryDataPct    Float    // computed share 0..1
+  breakdownByStage  Json     // { A1: 42.1, A2: 3.4, A3: 11.0, ... }
+  breakdownByComp   Json     // [{ componentId, kgCo2e, pct }]
+  factorSnapshot    Json     // which factor IDs + vintages were used
+  status            String   @default("draft") // draft | final | verified
+
+  verifications     PcfVerification[]
+
+  @@index([productId, runAt])
+}
+
+model PcfVerification {
+  id               String   @id @default(uuid())
+  calculationId    String
+  calculation      PcfCalculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  verifierName     String
+  verifierOrg      String?
+  verifiedAt       DateTime
+  standard         String   // ISO_14067 | PEF | GHG_Product
+  evidenceUrl      String?
+  notes            String?
+
+  createdAt        DateTime @default(now())
+}
+
+// ─── Sector Pack Framework (PCF-05) ─────────────────────────────
+// Sector packs are data, not code — loaded from backend/src/sectors/*/pack.json
+// at boot by sectorLoader.js.  Each pack bundles KPIs, materiality starters,
+// emission factors, and report templates.  Adding a new sector does NOT
+// require frontend changes.
+
+model SectorPack {
+  id          String      @id @default(uuid())
+  key         String      @unique  // electronics | automotive | real_estate | financial | generic
+  name        String
+  version     String
+  enabled     Boolean     @default(true)
+  manifest    Json
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  kpis        SectorKpi[]
+}
+
+model SectorKpi {
+  id            String     @id @default(uuid())
+  packId        String
+  pack          SectorPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  code          String     // TC-HW-410a.1
+  name          String
+  unit          String
+  framework     String     // SASB | ESRS | RBA | custom
+  category      String     // environmental | social | governance | product
+  formula       String?    // how to compute from existing data
+  aggregation   String?    // sum | avg | ratio
+  sortOrder     Int        @default(0)
+
+  @@unique([packId, code])
+}
+
+// One row per company — tracks which sector pack is currently active.
+// Selected at onboarding, switchable in Settings.
+model CompanySectorSelection {
+  companyId   String   @id
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sectorKey   String
+  selectedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

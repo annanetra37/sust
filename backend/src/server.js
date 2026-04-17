@@ -40,6 +40,7 @@ app.use('/api/lineage', require('./routes/lineage'));
 app.use('/api/activity-log', require('./routes/activityLog'));
 app.use('/api/exports', require('./routes/exports'));
 app.use('/api/roi', require('./routes/roi'));
+app.use('/api/sectors', require('./routes/sectors'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -47,8 +48,21 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date(
 // Global error handler — returns meaningful messages
 app.use(globalErrorHandler);
 
-app.listen(config.port, () => {
+app.listen(config.port, async () => {
   console.log(`Triple I ESG API running on port ${config.port}`);
+
+  // Boot-time sector pack loader.  Reads backend/src/sectors/*/pack.json
+  // and upserts SectorPack + SectorKpi + EmissionFactor rows.  Safe to run
+  // on every boot — all writes are idempotent.  Skipped if SKIP_SECTOR_LOAD=1
+  // (useful for local dev against a freshly-empty DB before migrate has run).
+  if (process.env.SKIP_SECTOR_LOAD !== '1') {
+    try {
+      const sectorLoader = require('./services/sectorLoader');
+      await sectorLoader.loadAllPacks();
+    } catch (err) {
+      console.error('[server] sectorLoader failed on boot:', err.message);
+    }
+  }
 });
 
 module.exports = app;
