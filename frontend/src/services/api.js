@@ -90,6 +90,13 @@ const api = {
   acceptInvite: (data) => request('/auth/accept-invite', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request('/auth/me'),
 
+  // Microsoft Entra SSO
+  ssoConfig: (email) =>
+    request(`/auth/microsoft/config?email=${encodeURIComponent(email || '')}`),
+  getSsoSettings: () => request('/auth/microsoft/settings'),
+  updateSsoSettings: (data) =>
+    request('/auth/microsoft/settings', { method: 'PUT', body: JSON.stringify(data) }),
+
   // Users
   getUsers: () => request('/users'),
   updateUserStatus: (id, isActive) => request(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),

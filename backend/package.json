@@ -36,7 +36,9 @@
     "sharp": "^0.33.5",
     "@anthropic-ai/sdk": "^0.39.0",
     "@prisma/adapter-pg": "^7.6.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "@azure/msal-node": "^2.16.2",
+    "@azure/storage-blob": "^12.25.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7",

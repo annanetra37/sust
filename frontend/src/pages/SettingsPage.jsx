@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, AlertTriangle, Search, Loader2, Upload } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
 import COUNTRIES from '../utils/countries';
+import SsoSettingsPanel from '../components/SsoSettingsPanel';
+import { hasFeature } from '../config/tierFeatures';
 
 const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
 
@@ -93,10 +95,15 @@ export default function SettingsPage() {
     }
   };
 
+  // SSO tab is Enterprise-only (gated server-side by requireFeature('sso_saml')).
+  // Show it only for admins in an SSO-entitled company.
+  const ssoTabVisible = isAdmin && hasFeature(user?.company?.tier, 'sso_saml');
+
   const tabs = [
     { key: 'org-units', label: 'Organizational Units', tip: 'Business units, offices, or subsidiaries' },
     { key: 'branding', label: 'Company Branding', tip: 'Upload company logo for reports' },
     { key: 'standards', label: 'ESG Standards', tip: 'The reporting framework used for compliance reports' },
+    ...(ssoTabVisible ? [{ key: 'sso', label: 'Single Sign-On', tip: 'Microsoft Entra ID / Azure AD' }] : []),
     { key: 'reset', label: 'Data Reset', tip: 'Permanently delete uploaded data by year' },
     { key: 'credits', label: 'Credit Transactions', tip: 'View credit usage history and remaining balance' },
   ];
@@ -208,6 +215,8 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {tab === 'sso' && ssoTabVisible && <SsoSettingsPanel />}
 
       {tab === 'reset' && isAdmin && (
         <div className="card space-y-4">

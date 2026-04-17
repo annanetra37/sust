@@ -26,6 +26,7 @@ app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth/microsoft', require('./routes/authMicrosoft'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/s1', require('./routes/s1'));
 app.use('/api/e1', require('./routes/e1'));

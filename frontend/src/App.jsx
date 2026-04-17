@@ -7,6 +7,7 @@ import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AcceptInvite from './pages/AcceptInvite';
+import MicrosoftAuthComplete from './pages/MicrosoftAuthComplete';
 import Home from './pages/Home';
 import Analytics from './pages/Analytics';
 import S1Dashboard from './pages/S1Dashboard';
@@ -48,6 +49,7 @@ export default function App() {
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/auth/microsoft/complete" element={<MicrosoftAuthComplete />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>

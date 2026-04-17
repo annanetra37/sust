@@ -6,6 +6,7 @@ const prisma = require('../config/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { formatError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLog');
+const blobStorage = require('../services/blobStorage');
 
 const logoUpload = multer({
   storage: multer.memoryStorage(),
@@ -473,22 +474,37 @@ router.put('/tier', requireAdmin, async (req, res) => {
 
 // ─── Company Logo ───────────────────────────────────────────
 
+// Logo storage strategy:
+//   - When AZURE_STORAGE_CONNECTION_STRING is set, logos live in Azure
+//     Blob Storage (logoUrl column).  Survives Railway redeploys.
+//   - Otherwise, fall back to the legacy local-filesystem path
+//     (logoPath column).  Used in local dev and pre-migration Railway.
+// The GET endpoint serves whichever of the two is populated so that
+// companies uploaded before Block C is finished keep rendering after it
+// is — no data migration required.
 router.post('/logo', requireAdmin, logoUpload.single('logo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image file provided. Supported: PNG, JPG, WebP (max 5MB).' });
 
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    const logoDir = path.join(uploadsDir, req.user.companyId);
-    if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
+    if (blobStorage.isEnabled()) {
+      const logoUrl = await blobStorage.uploadLogo(
+        req.user.companyId, req.file.buffer, req.file.mimetype,
+      );
+      // Clear any stale local path so GET /logo prefers the blob URL.
+      await prisma.company.update({
+        where: { id: req.user.companyId },
+        data: { logoUrl, logoPath: null },
+      });
+      return res.json({ message: 'Logo uploaded successfully.', logoUrl });
+    }
 
-    const ext = path.extname(req.file.originalname) || '.png';
-    const logoFile = `company_logo${ext}`;
-    const logoPath = path.join(logoDir, logoFile);
-    fs.writeFileSync(logoPath, req.file.buffer);
-
-    const relativePath = `${req.user.companyId}/${logoFile}`;
-    await prisma.company.update({ where: { id: req.user.companyId }, data: { logoPath: relativePath } });
-
+    const relativePath = await blobStorage.uploadLogoLocal(
+      req.user.companyId, req.file.buffer, req.file.mimetype, req.file.originalname,
+    );
+    await prisma.company.update({
+      where: { id: req.user.companyId },
+      data: { logoPath: relativePath, logoUrl: null },
+    });
     res.json({ message: 'Logo uploaded successfully.', logoPath: relativePath });
   } catch (err) {
     const { status, error } = formatError(err);
@@ -498,11 +514,21 @@ router.post('/logo', requireAdmin, logoUpload.single('logo'), async (req, res) =
 
 router.get('/logo', async (req, res) => {
   try {
-    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { logoPath: true } });
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { logoPath: true, logoUrl: true },
+    });
+
+    // Prefer Azure Blob if present — simple 302 so the browser fetches
+    // directly from storage.  We could stream it through the API, but a
+    // redirect is cheaper and works with the access-token query shim.
+    if (company?.logoUrl) {
+      return res.redirect(company.logoUrl);
+    }
+
     if (!company?.logoPath) return res.status(404).json({ error: 'No logo uploaded.' });
 
-    const uploadsDir = path.join(__dirname, '../../uploads');
-    const filePath = path.join(uploadsDir, company.logoPath);
+    const filePath = path.join(blobStorage.localUploadsDir(), company.logoPath);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Logo file not found.' });
 
     const ext = path.extname(filePath).toLowerCase();
@@ -518,13 +544,33 @@ router.get('/logo', async (req, res) => {
 
 router.delete('/logo', requireAdmin, async (req, res) => {
   try {
-    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { logoPath: true } });
+    const company = await prisma.company.findUnique({
+      where: { id: req.user.companyId },
+      select: { logoPath: true, logoUrl: true },
+    });
+
+    // Local filesystem logo — remove the file.
     if (company?.logoPath) {
-      const uploadsDir = path.join(__dirname, '../../uploads');
-      const filePath = path.join(uploadsDir, company.logoPath);
+      const filePath = path.join(blobStorage.localUploadsDir(), company.logoPath);
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
-    await prisma.company.update({ where: { id: req.user.companyId }, data: { logoPath: null } });
+
+    // Azure blob logo — best-effort delete.  Swallow errors so a stale
+    // ACL or credential doesn't block the admin from clearing the UI
+    // record; the orphaned blob can be cleaned up out-of-band.
+    if (company?.logoUrl && blobStorage.isEnabled()) {
+      try {
+        const blobName = new URL(company.logoUrl).pathname.replace(/^\/logos\//, '');
+        await blobStorage.deleteBlob('logos', blobName);
+      } catch (e) {
+        console.warn('[settings] Azure logo delete failed:', e.message);
+      }
+    }
+
+    await prisma.company.update({
+      where: { id: req.user.companyId },
+      data: { logoPath: null, logoUrl: null },
+    });
     res.json({ message: 'Logo removed.' });
   } catch (err) {
     const { status, error } = formatError(err);

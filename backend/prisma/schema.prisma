@@ -23,9 +23,20 @@ model Company {
   regionsOfOp      String[] @default([])
   stockExchange    String?
   tickerSymbol     String?
-  logoPath         String?      // path to uploaded company logo (PNG/JPG)
+  logoPath         String?      // legacy: relative path on Railway filesystem (pre-Azure migration)
+  logoUrl          String?      // Azure Blob Storage URL for the company logo (post-migration)
   creditBalance    Int      @default(100)
   esgStandard      String   @default("ESRS")
+
+  // ─── Microsoft Entra ID SSO ──────────────────────────────────
+  // Enterprise-tier customers bring their own Azure AD tenant.  When
+  // ssoEnabled is true, users whose email domain is claimed by this
+  // company are offered the "Sign in with Microsoft" button and the
+  // backend only accepts tokens issued by msEntraTenantId.
+  msEntraTenantId  String?
+  ssoProvider      String?      // 'microsoft' (reserved for future: 'okta', 'google')
+  ssoEnabled       Boolean  @default(false)
+  ssoEnforcedAt    DateTime?    // when (if ever) password login was disabled for this company
 
   // ─── Subscription tier ───────────────────────────────────────
   // 'STARTER' | 'PROFESSIONAL' | 'ENTERPRISE'
@@ -96,6 +107,13 @@ model User {
   role            Role      @default(CUSTOM)
   isActive        Boolean   @default(false)
   emailVerified   Boolean   @default(false)
+
+  // ─── Microsoft Entra SSO identity ────────────────────────────
+  // azureOid is Entra's stable "objectId" claim (oid) — immutable even
+  // if the user changes their email.  ssoProvider records which IdP
+  // the account was last authenticated through.
+  azureOid        String?   @unique
+  ssoProvider     String?
   otpCode         String?
   otpExpiresAt    DateTime?
   otpLastSentAt   DateTime?

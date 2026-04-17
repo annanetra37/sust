@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Sun, Moon } from 'lucide-react';
 import { LogoFull } from '../components/Logo';
 import { useTheme } from '../context/ThemeContext';
+import MicrosoftSsoButton from '../components/MicrosoftSsoButton';
 
 export default function Login() {
   const { login } = useAuth();
@@ -76,6 +77,10 @@ export default function Login() {
           <button type="submit" className="btn-primary w-full" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
+
+          {/* Microsoft SSO — auto-shown when the typed email's domain has
+              SSO enabled on the backend. */}
+          <MicrosoftSsoButton email={form.email} />
 
           <p className="text-center text-sm text-gray-500">
             Don't have an account? <Link to="/signup" className="text-brand-600 hover:underline">Sign up</Link>
