@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import S1Dashboard from './S1Dashboard';
 import E1Dashboard from './E1Dashboard';
+import SectorKpiTiles from '../components/SectorKpiTiles';
 
 export default function Analytics() {
   const [view, setView] = useState('environmental');
@@ -20,6 +21,12 @@ export default function Analytics() {
           >Social</button>
         </div>
       </div>
+
+      {/* Sector-specific KPI tiles — shows industry KPIs from the active pack */}
+      <div className="card">
+        <SectorKpiTiles />
+      </div>
+
       {view === 'environmental' ? <E1Dashboard /> : <S1Dashboard />}
     </div>
   );

@@ -28,10 +28,31 @@ const { deductCredits } = require('../middleware/credits');
 const estimator = require('../utils/estimator');
 const config = require('../config');
 const Anthropic = require('@anthropic-ai/sdk').default;
+const jwt = require('jsonwebtoken');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
-router.use(authenticate);
+// Auth that also accepts ?token= query param (for PDF/JSON exports opened in new tabs).
+async function authWithToken(req, res, next) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) return authenticate(req, res, next);
+  const token = req.query.token;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, config.jwt.secret);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { id: true, email: true, role: true, isActive: true, companyId: true, firstName: true, lastName: true },
+      });
+      if (!user || !user.isActive) return res.status(401).json({ error: 'Authentication required.' });
+      req.user = user;
+      return next();
+    } catch { return res.status(401).json({ error: 'Invalid or expired token.' }); }
+  }
+  return authenticate(req, res, next);
+}
+
+router.use(authWithToken);
 
 let aiClient;
 function getAI() {
@@ -630,6 +651,76 @@ router.post('/products/:id/simulate', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[PCF] Simulate error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// ─── Saved Scenarios (PCF-04 extension) ─────────────────────────────────────
+// Save, list, and delete what-if scenarios so users can revisit them.
+
+router.post('/products/:id/scenarios', async (req, res) => {
+  try {
+    const product = await prisma.product.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!product) return res.status(404).json({ error: 'Product not found.' });
+
+    const { name, overrides } = req.body || {};
+    if (!name || !overrides) return res.status(400).json({ error: 'Name and overrides are required.' });
+
+    // Run the simulator to capture the results at save-time.
+    const sim = await pcfEngine.simulatePcf(product.id, overrides);
+
+    const scenario = await prisma.savedScenario.create({
+      data: {
+        productId: product.id,
+        name,
+        overrides,
+        baselineResult: sim.baseline,
+        scenarioResult: sim.scenario,
+        deltaKgCo2e: sim.delta.kgCo2e,
+        deltaPct: sim.delta.pct,
+      },
+    });
+
+    logActivity(req.user.id, req.user.companyId, 'PCF_SCENARIO_SAVE',
+      `Saved what-if scenario "${name}" for ${product.sku}: delta ${sim.delta.kgCo2e} kgCO2e (${sim.delta.pct}%)`,
+      { productId: product.id, scenarioId: scenario.id }, req.ip);
+
+    res.status(201).json(scenario);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+router.get('/products/:id/scenarios', async (req, res) => {
+  try {
+    const product = await prisma.product.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!product) return res.status(404).json({ error: 'Product not found.' });
+
+    const scenarios = await prisma.savedScenario.findMany({
+      where: { productId: product.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(scenarios);
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+router.delete('/scenarios/:scenarioId', async (req, res) => {
+  try {
+    const scenario = await prisma.savedScenario.findUnique({
+      where: { id: req.params.scenarioId },
+      include: { product: { select: { companyId: true, sku: true } } },
+    });
+    if (!scenario || scenario.product.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: 'Scenario not found.' });
+    }
+    await prisma.savedScenario.delete({ where: { id: req.params.scenarioId } });
+    res.json({ message: 'Scenario deleted.' });
+  } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });
   }

@@ -443,6 +443,7 @@ model Product {
   boms            BillOfMaterialsItem[]
   processes       ProcessStep[]
   calculations    PcfCalculation[]
+  scenarios       SavedScenario[]
 
   @@unique([companyId, sku])
   @@index([companyId, sector])
@@ -620,4 +621,24 @@ model BenchmarkCohort {
 
   @@unique([sectorKey, kpiCode, region])
   @@index([sectorKey, region])
+}
+
+// ─── Saved What-If Scenarios (PCF-04 extension) ─────────────────
+// Allows users to save and revisit their what-if simulations.  Each
+// scenario belongs to a specific product and stores the overrides
+// as JSON + the last computed baseline/scenario results.
+model SavedScenario {
+  id             String   @id @default(uuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name           String
+  overrides      Json     // the full overrides object
+  baselineResult Json?    // last computed baseline snapshot
+  scenarioResult Json?    // last computed scenario snapshot
+  deltaKgCo2e    Float?
+  deltaPct       Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([productId])
 }
