@@ -229,8 +229,15 @@ const api = {
   updateBomItem: (id, data) => request(`/pcf/bom-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBomItem: (id) => request(`/pcf/bom-items/${id}`, { method: 'DELETE' }),
   calculatePcf: (productId) => request(`/pcf/products/${productId}/calculate`, { method: 'POST' }),
+  simulatePcf: (productId, overrides) => request(`/pcf/products/${productId}/simulate`, { method: 'POST', body: JSON.stringify(overrides) }),
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
+
+  // Benchmark cohort
+  getBenchmarkOptIn: () => request('/benchmarks/opt-in'),
+  setBenchmarkOptIn: (optedIn) => request('/benchmarks/opt-in', { method: 'PUT', body: JSON.stringify({ optedIn }) }),
+  getBenchmarkCohorts: (sector) => request(`/benchmarks/cohorts${sector ? `?sector=${sector}` : ''}`),
+  getBenchmarkPeer: (params) => request(`/benchmarks/peer?${new URLSearchParams(params)}`),
 
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
