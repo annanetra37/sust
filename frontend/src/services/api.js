@@ -218,6 +218,17 @@ const api = {
   getCurrentSector: () => request('/sectors/current'),
   selectSector: (sectorKey) => request('/sectors/select', { method: 'POST', body: JSON.stringify({ sectorKey }) }),
 
+  // PCF — Product Carbon Footprint
+  getProducts: () => request('/pcf/products'),
+  getProduct: (id) => request(`/pcf/products/${id}`),
+  createProduct: (data) => request('/pcf/products', { method: 'POST', body: JSON.stringify(data) }),
+  updateProduct: (id, data) => request(`/pcf/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProduct: (id) => request(`/pcf/products/${id}`, { method: 'DELETE' }),
+  uploadBom: (productId, formData) => request(`/pcf/products/${productId}/bom-upload`, { method: 'POST', body: formData }),
+  searchFactors: (params) => request(`/pcf/factors?${new URLSearchParams(params || {})}`),
+  updateBomItem: (id, data) => request(`/pcf/bom-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteBomItem: (id) => request(`/pcf/bom-items/${id}`, { method: 'DELETE' }),
+
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

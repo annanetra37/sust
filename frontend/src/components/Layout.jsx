@@ -22,6 +22,7 @@ const NAV = [
     iconBg: 'bg-emerald-100 dark:bg-emerald-900',
     children: [
       { label: 'Climate & Emissions', path: '/dashboard/E/environmental-1' },
+      { label: 'Product Carbon Footprint', path: '/pcf' },
       { label: 'Pollution & Waste', path: '/coming-soon', badge: 'Soon' },
       { label: 'Water Resources', path: '/coming-soon', badge: 'Soon' },
       { label: 'Biodiversity', path: '/coming-soon', badge: 'Soon' },
