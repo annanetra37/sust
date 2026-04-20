@@ -216,6 +216,7 @@ const api = {
   // Sector packs
   listSectors: () => request('/sectors'),
   getCurrentSector: () => request('/sectors/current'),
+  getSectorKpis: (year) => request(`/sectors/kpis${year ? `?year=${year}` : ''}`),
   selectSector: (sectorKey) => request('/sectors/select', { method: 'POST', body: JSON.stringify({ sectorKey }) }),
 
   // PCF — Product Carbon Footprint

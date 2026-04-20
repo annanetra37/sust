@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { HelpBanner, InfoTip } from '../components/HelpSystem';
 import api from '../services/api';
 import SectorPicker from '../components/SectorPicker';
+import SectorKpiTiles from '../components/SectorKpiTiles';
 
 const PILLARS = [
   {
@@ -115,6 +116,13 @@ export default function Home() {
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Sector KPIs — shows industry-specific metrics from the active pack */}
+      {sectorStatus?.selected && (
+        <div className="card">
+          <SectorKpiTiles />
         </div>
       )}
 

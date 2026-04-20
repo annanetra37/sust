@@ -9,6 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import OrgYearFilter from '../components/OrgYearFilter';
+import SectorKpiTiles from '../components/SectorKpiTiles';
 
 const SCOPE_COLORS = { 'Scope 1': '#ef4444', 'Scope 2': '#f59e0b', 'Scope 3': '#3b82f6' };
 const TREE_COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#64748b'];
@@ -66,6 +67,9 @@ export default function E1Dashboard() {
       </div>
 
       <OrgYearFilter filters={filters} onChange={setFilters} />
+
+      {/* Sector-specific KPIs (from active sector pack) */}
+      <SectorKpiTiles year={filters.year} />
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
