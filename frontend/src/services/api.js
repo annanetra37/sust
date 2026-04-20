@@ -225,6 +225,7 @@ const api = {
   updateProduct: (id, data) => request(`/pcf/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProduct: (id) => request(`/pcf/products/${id}`, { method: 'DELETE' }),
   uploadBom: (productId, formData) => request(`/pcf/products/${productId}/bom-upload`, { method: 'POST', body: formData }),
+  generateBom: (productId, data) => request(`/pcf/products/${productId}/bom-generate`, { method: 'POST', body: JSON.stringify(data) }),
   searchFactors: (params) => request(`/pcf/factors?${new URLSearchParams(params || {})}`),
   updateBomItem: (id, data) => request(`/pcf/bom-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBomItem: (id) => request(`/pcf/bom-items/${id}`, { method: 'DELETE' }),

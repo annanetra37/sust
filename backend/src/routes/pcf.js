@@ -9,6 +9,7 @@
 //   PUT    /api/pcf/products/:id                  — update product metadata
 //   DELETE /api/pcf/products/:id                  — delete product + cascade
 //   POST   /api/pcf/products/:id/bom-upload       — AI-mapped BOM import
+//   POST   /api/pcf/products/:id/bom-generate     — AI BOM from description
 //   GET    /api/pcf/factors                       — search emission factors
 //   PUT    /api/pcf/bom-items/:id                 — update a single BOM row
 //   DELETE /api/pcf/bom-items/:id                 — delete a single BOM row
@@ -321,6 +322,184 @@ Return ONLY valid JSON array:
     });
   } catch (err) {
     console.error('[PCF] BOM upload error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// ─── AI BOM Generator — no spreadsheet required ─────────────────────────────
+// For customers who don't have a formal BOM ready.  User supplies a natural-
+// language description of the product (and any structural hints they have)
+// and Claude proposes a BOM using the same canonical materialClass tags the
+// upload path uses.  The user reviews + edits in the same confidence table.
+//
+// Same 2-credit cost as bom-upload — the work is equivalent.
+router.post('/products/:id/bom-generate', async (req, res) => {
+  try {
+    const product = await prisma.product.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!product) return res.status(404).json({ error: 'Product not found.' });
+
+    const { description, massHint, originCountry, supplierHint } = req.body || {};
+    if (!description || description.trim().length < 15) {
+      return res.status(400).json({ error: 'Description is required (at least 15 characters). Describe the product, its form factor, and any known components.' });
+    }
+
+    const creditCost = 2;
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { creditBalance: true } });
+    if ((company?.creditBalance ?? 0) < creditCost) {
+      return res.status(403).json({ error: 'Insufficient credits', required: creditCost, available: company?.creditBalance ?? 0 });
+    }
+
+    const prompt = `You are a Life Cycle Assessment expert proposing a realistic Bill of Materials for a product based on an engineer's description. Use industry-standard assumptions from published LCA studies.
+
+## Product metadata
+- SKU: ${product.sku}
+- Name: ${product.name}
+- Sector: ${product.sector}
+- Functional unit: ${product.functionalUnit}
+- Total product mass (kg): ${product.massKg ?? massHint ?? 'unknown — infer from the description'}
+- Lifetime (years): ${product.lifetimeYears ?? 'unknown'}
+
+## User's description
+${description}
+
+${supplierHint ? `## Known supplier(s)\n${supplierHint}\n` : ''}${originCountry ? `## Assembly country\n${originCountry}\n` : ''}
+
+## Your task
+Propose a realistic Bill of Materials.  Return every component you expect to be present, with realistic quantities that SUM to the total product mass (if known).  Use industry-standard proportions for electronics (e.g., a consumer SSD is ~40% enclosure metal, ~25% PCB, ~20% NAND/DRAM chips, ~10% connectors + passives, ~5% packaging).
+
+For EACH component, map to the closest canonical materialClass from this list:
+aluminum_6061, aluminum_6061_rec, aluminum_adc12, copper_primary, copper_recycled, copper_wire,
+steel_low_alloy, steel_304, gold, silver, tin, tantalum, tungsten, nickel,
+pcb_fr4_1_2_layer, pcb_fr4_4_layer, pcb_fr4_6_layer, pcb_fr4_8_layer, solder_sac305,
+si_wafer_300mm, si_wafer_200mm, dram_ddr4_8gb, dram_ddr5_16gb, nand_512gb_tlc, nand_1tb_qlc,
+mcu_lowpower, cpu_server, capacitor_elec, capacitor_mlcc, resistor_smd, connector,
+li_ion_nmc, li_ion_lfp, nimh_battery,
+plastic_pc, plastic_abs, plastic_hdpe, plastic_pp, plastic_pvc,
+packaging_cardboard, packaging_eps,
+grid_electricity_vn, grid_electricity_my, grid_electricity_cn, grid_electricity_tw, grid_electricity_us, grid_electricity_eu, grid_electricity_de,
+natural_gas, fuel_diesel.
+Use "other_<description>" only if genuinely nothing matches.
+
+For each row, also provide:
+- componentName: short descriptive name
+- quantity: numeric
+- unit: "kg" for mass-based, "pcs" for counted parts, "kWh" for energy, "m" for cable, "m2" for surface area
+- lifecycleStage: A1 (raw material) | A2 (inbound transport) | A3 (manufacturing/assembly energy) | A4 (distribution) | B1 (use phase) | C1 (end-of-life)
+- confidence: 0.0–1.0 — your certainty given the description (use a LOW confidence for things you're guessing, high for things explicitly stated)
+- reasoning: one-line rationale
+
+Include A3 "assembly energy" as a ProcessStep-style row using grid_electricity_* based on originCountry (if provided), typically 10-30 kWh for small consumer electronics, 50-200 kWh for larger devices.
+
+Return ONLY valid JSON array:
+[
+  {
+    "componentName": "Aluminum enclosure casing",
+    "materialClass": "aluminum_6061",
+    "quantity": 0.048,
+    "unit": "kg",
+    "lifecycleStage": "A1",
+    "confidence": 0.75,
+    "reasoning": "Typical consumer SSD enclosure is machined aluminum, ~40% of 120g body"
+  }
+]`;
+
+    const costCtx = {
+      companyId: req.user.companyId,
+      userId: req.user.id,
+      operation: 'PCF_BOM_GENERATE',
+      metadata: { productId: product.id, sku: product.sku, descriptionLength: description.length },
+    };
+
+    const response = await trackedAICall(
+      getAI(),
+      { model: config.anthropic.model, max_tokens: 8192, messages: [{ role: 'user', content: prompt }] },
+      costCtx,
+    );
+
+    const aiText = response.content[0].text;
+    const jsonMatch = aiText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return res.status(500).json({ error: 'AI BOM generator returned unparseable response.' });
+
+    let proposed;
+    try { proposed = JSON.parse(jsonMatch[0]); } catch {
+      return res.status(500).json({ error: 'AI response is not valid JSON.' });
+    }
+
+    // Clear existing BOM (a generated BOM replaces any prior BOM for this
+    // product — users who want to merge should keep the previous upload).
+    await prisma.billOfMaterialsItem.deleteMany({ where: { productId: product.id } });
+
+    const results = [];
+    for (let i = 0; i < proposed.length; i++) {
+      const row = proposed[i];
+      if (!row.componentName || !row.materialClass) continue;
+
+      let component = await prisma.component.findFirst({
+        where: { companyId: req.user.companyId, name: row.componentName, materialClass: row.materialClass },
+      });
+      if (!component) {
+        component = await prisma.component.create({
+          data: {
+            companyId: req.user.companyId,
+            name: row.componentName,
+            materialClass: row.materialClass,
+            supplierName: supplierHint || null,
+            originCountry: originCountry || null,
+            primaryDataFlag: false, // AI-generated — never primary data
+          },
+        });
+      }
+
+      // Match factor.  For grid_electricity_*, region is implicit in the class.
+      const factor = await prisma.emissionFactor.findFirst({
+        where: { materialClass: row.materialClass },
+        orderBy: { vintage: 'desc' },
+      });
+
+      const bomItem = await prisma.billOfMaterialsItem.create({
+        data: {
+          productId: product.id,
+          componentId: component.id,
+          quantity: parseFloat(row.quantity) || 0,
+          unit: row.unit || 'kg',
+          lifecycleStage: row.lifecycleStage || 'A1',
+          chosenFactorId: factor?.id || null,
+          sortOrder: i,
+        },
+      });
+
+      results.push({
+        bomItemId: bomItem.id,
+        rowIndex: i,
+        componentName: row.componentName,
+        materialClass: row.materialClass,
+        quantity: bomItem.quantity,
+        unit: bomItem.unit,
+        lifecycleStage: bomItem.lifecycleStage,
+        confidence: row.confidence ?? 0.5,
+        reasoning: row.reasoning || '',
+        originalText: row.reasoning || '',
+        factor: factor ? { id: factor.id, value: factor.value, unit: factor.unit, source: factor.source } : null,
+        componentId: component.id,
+      });
+    }
+
+    await deductCredits(req.user.companyId, req.user.id, creditCost, 'PCF_BOM_GENERATE',
+      `AI BOM generation for ${product.sku}: ${results.length} components proposed — ${creditCost} credits`, null);
+
+    logActivity(req.user.id, req.user.companyId, 'PCF_BOM_GENERATE',
+      `AI BOM generated for product ${product.sku}: ${results.length} components from description`,
+      { productId: product.id, sku: product.sku, componentsProposed: results.length, descriptionLength: description.length }, req.ip);
+
+    res.json({
+      productId: product.id,
+      generated: true,
+      classifiedRows: results.length,
+      items: results,
+    });
+  } catch (err) {
+    console.error('[PCF] BOM generate error:', err);
     const { status, error } = formatError(err);
     res.status(status).json({ error });
   }
