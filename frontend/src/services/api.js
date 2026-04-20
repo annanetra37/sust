@@ -213,6 +213,11 @@ const api = {
   // Upgrade request
   requestUpgrade: (data) => request('/settings/upgrade-request', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Sector packs
+  listSectors: () => request('/sectors'),
+  getCurrentSector: () => request('/sectors/current'),
+  selectSector: (sectorKey) => request('/sectors/select', { method: 'POST', body: JSON.stringify({ sectorKey }) }),
+
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

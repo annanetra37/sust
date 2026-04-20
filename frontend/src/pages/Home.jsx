@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Leaf, Users2, Shield, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
+import { Leaf, Users2, Shield, ChevronDown, ChevronUp, ArrowRight, Sparkles, X } from 'lucide-react';
 import clsx from 'clsx';
 import { HelpBanner, InfoTip } from '../components/HelpSystem';
 import api from '../services/api';
+import SectorPicker from '../components/SectorPicker';
 
 const PILLARS = [
   {
@@ -42,10 +43,15 @@ export default function Home() {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState({ E: true, S: true, G: false });
   const [standard, setStandard] = useState('');
+  const [sectorStatus, setSectorStatus] = useState(null);
+  const [showSectorPicker, setShowSectorPicker] = useState(false);
 
   useEffect(() => {
     api.getEsgStandard().then((d) => setStandard(d.standard)).catch(() => {});
+    api.getCurrentSector().then(setSectorStatus).catch(() => {});
   }, []);
+
+  const needsSectorPick = sectorStatus && !sectorStatus.selected;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -63,6 +69,54 @@ export default function Home() {
         Our AI will automatically clean and structure your data, no matter the format or language.
         Click the chat bubble in the bottom-right corner anytime to ask your AI assistant for help.
       </HelpBanner>
+
+      {/* Sector pack onboarding — only shown if the company hasn't picked one yet. */}
+      {needsSectorPick && (
+        <div className="rounded-2xl border-2 border-brand-400 bg-gradient-to-br from-brand-50 to-white dark:from-brand-950 dark:to-gray-900 p-5 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-gray-100">Pick your industry to unlock sector-specific KPIs</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  Each pack adds the right materiality starters, emission factors, and disclosure templates
+                  for your sector. You can change this later in Settings.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              onClick={() => setShowSectorPicker(false)}
+              aria-label="Dismiss"
+              style={{ display: showSectorPicker ? 'block' : 'none' }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {showSectorPicker ? (
+            <SectorPicker
+              onSelect={async () => {
+                const s = await api.getCurrentSector();
+                setSectorStatus(s);
+                setShowSectorPicker(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowSectorPicker(true)}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              Choose sector
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-4">
