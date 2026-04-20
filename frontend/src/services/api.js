@@ -238,6 +238,14 @@ const api = {
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
+  // Suppliers
+  getSuppliers: () => request('/suppliers'),
+  getSupplier: (id) => request(`/suppliers/${id}`),
+  addSupplier: (data) => request('/suppliers', { method: 'POST', body: JSON.stringify(data) }),
+  deleteSupplier: (id) => request(`/suppliers/${id}`, { method: 'DELETE' }),
+  sendSupplierRequest: (id, data) => request(`/suppliers/${id}/request`, { method: 'POST', body: JSON.stringify(data) }),
+  approveSupplierRequest: (supplierId, reqId) => request(`/suppliers/${supplierId}/approve/${reqId}`, { method: 'POST' }),
+
   // Benchmark cohort
   getBenchmarkOptIn: () => request('/benchmarks/opt-in'),
   setBenchmarkOptIn: (optedIn) => request('/benchmarks/opt-in', { method: 'PUT', body: JSON.stringify({ optedIn }) }),

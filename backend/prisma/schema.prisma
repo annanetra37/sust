@@ -65,6 +65,7 @@ model Company {
   products         Product[]
   components       Component[]
   sectorSelection  CompanySectorSelection?
+  suppliers        Supplier[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -641,4 +642,47 @@ model SavedScenario {
   updatedAt      DateTime @updatedAt
 
   @@index([productId])
+}
+
+// ─── Supplier Scope 3 Portal (SUP-01) ──────────────────────────
+// The supplier portal is a separate mini-app — suppliers receive an
+// email with a scoped, time-limited link, land on a branded mini-site,
+// submit data, and leave.  No Triple I account needed.  All data
+// flows into the buyer's Scope 3 inventory with primaryDataFlag=true.
+
+model Supplier {
+  id              String   @id @default(uuid())
+  buyerCompanyId  String
+  buyerCompany    Company  @relation(fields: [buyerCompanyId], references: [id], onDelete: Cascade)
+  name            String
+  contactEmail    String
+  country         String
+  annualSpendUsd  Float?
+  category        String?  // tier1_direct, tier1_indirect, logistics, services
+  riskScore       Float?
+  createdAt       DateTime @default(now())
+
+  requests        SupplierDataRequest[]
+
+  @@unique([buyerCompanyId, contactEmail])
+  @@index([buyerCompanyId])
+}
+
+model SupplierDataRequest {
+  id              String   @id @default(uuid())
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  reportingYear   Int
+  scope3Category  String   // cat1_purchased_goods, cat4_transportation, cat6_business_travel, etc.
+  status          String   @default("sent") // sent | opened | submitted | approved | rejected
+  token           String   @unique
+  tokenExpiresAt  DateTime
+  sentAt          DateTime @default(now())
+  submittedAt     DateTime?
+  approvedAt      DateTime?
+  submission      Json?    // the supplier's form payload
+  dataQuality     String?  // primary | spend_based | secondary
+
+  @@index([supplierId])
+  @@index([token])
 }
