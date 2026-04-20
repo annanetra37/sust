@@ -4,7 +4,7 @@ import api from '../../services/api';
 import {
   Package, Upload, Loader2, AlertCircle, Trash2, ArrowLeft, CheckCircle,
   XCircle, AlertTriangle, Search, FileSpreadsheet, Play, Download, FileText,
-  BarChart3,
+  BarChart3, Sparkles, Wand2,
 } from 'lucide-react';
 import { HelpBanner } from '../../components/HelpSystem';
 import BenchmarkBadge from '../../components/BenchmarkBadge';
@@ -42,6 +42,7 @@ export default function ProductDetail() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [showGenerator, setShowGenerator] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -196,41 +197,66 @@ export default function ProductDetail() {
       {/* BOM tab */}
       {tab === 'bom' && (
         <div className="space-y-4">
-          {/* Drop zone */}
-          <div
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-              dragOver
-                ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30'
-                : 'border-gray-300 dark:border-gray-700 hover:border-gray-400'
-            }`}
-          >
-            {uploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
-                <div>
-                  <p className="font-semibold text-gray-700 dark:text-gray-300">AI is classifying your BOM...</p>
-                  <p className="text-xs text-gray-400 mt-1">Upload → AI map → Material classify</p>
+          {/* Two paths: upload a BOM spreadsheet OR generate one from a
+              natural-language product description.  Either way ends in the
+              same confidence-review table. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Drop zone — primary path when the user has a BOM file */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+                dragOver
+                  ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30'
+                  : 'border-gray-300 dark:border-gray-700 hover:border-gray-400'
+              }`}
+            >
+              {uploading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+                  <div>
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">AI is classifying your BOM...</p>
+                    <p className="text-xs text-gray-400 mt-1">Upload → AI map → Material classify</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="font-semibold text-gray-700 dark:text-gray-300">
-                  Drop BOM file (.xlsx, .csv) here
-                </p>
-                <p className="text-xs text-gray-400 mt-1">or click to browse</p>
-                <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="bom-file" onChange={handleFileInput} />
-                <label htmlFor="bom-file" className="btn-secondary mt-3 inline-flex items-center gap-2 cursor-pointer">
-                  <FileSpreadsheet className="w-4 h-4" /> Browse files
-                </label>
-                <p className="text-[11px] text-gray-400 mt-2">
-                  Any column order, any language — the AI handles the mapping. 2 credits per upload.
-                </p>
-              </>
-            )}
+              ) : (
+                <>
+                  <Upload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
+                  <p className="font-semibold text-gray-700 dark:text-gray-300">
+                    Upload BOM file
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Drop a .xlsx / .csv here, or</p>
+                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="bom-file" onChange={handleFileInput} />
+                  <label htmlFor="bom-file" className="btn-secondary mt-3 inline-flex items-center gap-2 cursor-pointer">
+                    <FileSpreadsheet className="w-4 h-4" /> Browse files
+                  </label>
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Any column order, any language. 2 credits.
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Generator — fallback path for customers without a BOM file */}
+            <div className="border-2 border-dashed rounded-xl p-6 text-center bg-gradient-to-br from-brand-50/30 to-white dark:from-brand-950/20 dark:to-gray-900 border-brand-200 dark:border-brand-900">
+              <Wand2 className="w-7 h-7 text-brand-500 mx-auto mb-2" />
+              <p className="font-semibold text-gray-700 dark:text-gray-300">
+                Don't have a BOM?
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Describe the product — AI builds the BOM for you</p>
+              <button
+                type="button"
+                onClick={() => setShowGenerator(true)}
+                disabled={uploading}
+                className="btn-primary mt-3 inline-flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" /> Generate from description
+              </button>
+              <p className="text-[11px] text-gray-400 mt-2">
+                Uses industry-standard proportions. 2 credits. Review before use.
+              </p>
+            </div>
           </div>
 
           {/* Upload result summary */}
@@ -334,6 +360,20 @@ export default function ProductDetail() {
       {/* What-If tab */}
       {tab === 'whatif' && (
         <WhatIfTab product={product} boms={boms} setError={setError} />
+      )}
+
+      {/* AI BOM generator modal */}
+      {showGenerator && (
+        <BomGeneratorModal
+          product={product}
+          onClose={() => setShowGenerator(false)}
+          onGenerated={async (result) => {
+            setUploadResult(result);
+            setShowGenerator(false);
+            await load();
+          }}
+          setError={setError}
+        />
       )}
     </div>
   );
@@ -777,6 +817,161 @@ function BomRow({ item, onDelete, showConfidence }) {
       </div>
       {showConfidence && <ConfidencePill value={item.confidence} />}
       <button onClick={() => onDelete(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+    </div>
+  );
+}
+
+// ─── AI BOM Generator modal ─────────────────────────────────────────────────
+// Collects a natural-language description from the user and any structural
+// hints (assembly country, supplier), then POSTs to /bom-generate.  The
+// backend writes the BOM rows directly — the modal closes and the main page
+// re-fetches so the confidence table reflects the new AI-proposed BOM.
+function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
+  const [description, setDescription] = useState('');
+  const [massHint, setMassHint] = useState(product.massKg || '');
+  const [originCountry, setOriginCountry] = useState('');
+  const [supplierHint, setSupplierHint] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [localErr, setLocalErr] = useState('');
+
+  const minChars = 15;
+  const remaining = Math.max(0, minChars - description.trim().length);
+
+  const submit = async () => {
+    if (description.trim().length < minChars) {
+      setLocalErr(`Please add at least ${remaining} more character(s) so the AI has enough context.`);
+      return;
+    }
+    setLocalErr('');
+    setGenerating(true);
+    try {
+      const result = await api.generateBom(product.id, {
+        description: description.trim(),
+        massHint: massHint ? parseFloat(massHint) : null,
+        originCountry: originCountry.trim() || null,
+        supplierHint: supplierHint.trim() || null,
+      });
+      onGenerated(result);
+    } catch (err) {
+      const msg = err.error || 'AI BOM generation failed.';
+      setLocalErr(msg);
+      setError(msg);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const suggestions = [
+    `A consumer-grade 2TB NVMe SSD in an M.2 2280 form factor. Aluminum heatsink, single PCB with DRAM cache, NAND flash chips, a Phison controller, passives. Retail packaging in cardboard with anti-static bag.`,
+    `An industrial temperature sensor with a stainless steel housing, PCB controller, connector, and shielded cable. Approximate mass 0.25 kg. Assembled in Malaysia.`,
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950 flex items-center justify-center shrink-0">
+            <Wand2 className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Generate BOM from description</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Describe your product and the AI will propose a realistic BOM with material classes,
+              typical quantities, and confidence scores. You can edit every row after generation.
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            Product description <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            rows={6}
+            className="input min-h-[120px]"
+            placeholder="e.g., A consumer 2TB NVMe SSD in M.2 2280 form factor. Aluminum heatsink, single PCB with DRAM cache and NAND flash chips, a Phison controller IC, passives, packaged in cardboard with anti-static bag."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[11px] text-gray-400">
+              {description.length} characters · minimum {minChars}
+            </p>
+            {description.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setDescription(suggestions[0])}
+                className="text-[11px] text-brand-600 hover:underline"
+              >
+                Try an example
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Mass hint (kg)</span>
+            <input
+              type="number"
+              step="0.001"
+              min="0"
+              className="input mt-1"
+              placeholder="e.g. 0.12"
+              value={massHint}
+              onChange={(e) => setMassHint(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Assembly country</span>
+            <input
+              className="input mt-1"
+              placeholder="e.g. Vietnam, Malaysia"
+              value={originCountry}
+              onChange={(e) => setOriginCountry(e.target.value)}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Supplier (optional)</span>
+            <input
+              className="input mt-1"
+              placeholder="e.g. Foxconn"
+              value={supplierHint}
+              onChange={(e) => setSupplierHint(e.target.value)}
+            />
+          </label>
+        </div>
+
+        {localErr && (
+          <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {localErr}
+          </div>
+        )}
+
+        <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <strong>AI-generated, never primary data.</strong> The proposed BOM uses industry-average
+            proportions and assumptions, not your actual suppliers' reported data. Review each row
+            and replace with primary data when you have it — this directly affects your ESRS E1
+            §51(g) primary-data share.
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={generating || description.trim().length < minChars}
+            className="btn-primary flex items-center gap-2"
+          >
+            {generating
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating BOM...</>
+              : <><Sparkles className="w-4 h-4" /> Generate (2 credits)</>}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
