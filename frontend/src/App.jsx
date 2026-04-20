@@ -24,6 +24,7 @@ import ActivityLogPage from './pages/ActivityLogPage';
 import ROIDashboard from './pages/ROIDashboard';
 import ProductList from './pages/pcf/ProductList';
 import ProductDetail from './pages/pcf/ProductDetail';
+import SuppliersPage from './pages/SuppliersPage';
 import ComingSoon from './pages/ComingSoon';
 
 function ProtectedRoute({ children }) {
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/roi" element={<ROIDashboard />} />
         <Route path="/pcf" element={<ProductList />} />
         <Route path="/pcf/:id" element={<ProductDetail />} />
+        <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 

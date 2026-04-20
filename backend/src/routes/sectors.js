@@ -87,15 +87,35 @@ router.get('/kpis', async (req, res) => {
     const turnoverCount = turnover.reduce((s, r) => s + r.count, 0);
     const turnoverRate = totalEmployees > 0 ? (turnoverCount / totalEmployees) * 100 : 0;
 
-    // Auto-compute values by KPI code
+    // Auto-compute values by KPI code — works for both electronics + automotive packs
     const computeValue = (code) => {
       switch (code) {
+        // Electronics KPIs
         case 'TC-SC-110a.1': return totalEmissions > 0 ? { value: scope1, detail: `${scope1.toFixed(2)} tCO2e` } : null;
         case 'TC-SC-130a.1': return energyKwh > 0 ? { value: energyKwh * 0.0036, detail: `${(energyKwh * 0.0036).toFixed(1)} GJ (${energyKwh.toFixed(0)} kWh)` } : null;
-        case 'PCF-COVERAGE': return products.length > 0 ? { value: pcfCoveragePct, detail: `${productsWithPcf.length} of ${products.length} products (${pcfCoveragePct.toFixed(0)}%)` } : null;
-        case 'PCF-PRIMARY-DATA': return productsWithPcf.length > 0 ? { value: avgPrimaryDataPct, detail: `${avgPrimaryDataPct.toFixed(1)}% weighted avg` } : null;
         case 'E1-6-ELECT': return totalEmissions > 0 ? { value: totalEmissions, detail: `${totalEmissions.toFixed(2)} tCO2e total` } : null;
-        case 'TC-HW-410a.1': return null; // needs product-level substance data we don't track yet
+        case 'TC-HW-410a.1': return null;
+
+        // Shared (electronics + automotive)
+        case 'PCF-COVERAGE':
+        case 'PCF-COVERAGE-AUTO':
+          return products.length > 0 ? { value: pcfCoveragePct, detail: `${productsWithPcf.length} of ${products.length} products (${pcfCoveragePct.toFixed(0)}%)` } : null;
+        case 'PCF-PRIMARY-DATA':
+          return productsWithPcf.length > 0 ? { value: avgPrimaryDataPct, detail: `${avgPrimaryDataPct.toFixed(1)}% weighted avg` } : null;
+
+        // Automotive KPIs
+        case 'E1-TOTAL-AUTO':
+          return totalEmissions > 0 ? { value: totalEmissions, detail: `${totalEmissions.toFixed(2)} tCO2e (Scope 1+2+3)` } : null;
+        case 'SCOPE3-SUPPLY-CHAIN':
+          return scope3 > 0 ? { value: scope3, detail: `${scope3.toFixed(2)} tCO2e (Scope 3 upstream)` } : null;
+        case 'CATENA-X-READY': {
+          const autoProducts = products.filter(p => p.sector === 'automotive');
+          const cxReady = autoProducts.filter(p => p.calculations[0]).length;
+          return autoProducts.length > 0 ? { value: cxReady, detail: `${cxReady} of ${autoProducts.length} automotive product(s)` } : null;
+        }
+        case 'TR-AU-310a.1':
+          return totalEmployees > 0 ? { value: null, detail: 'Pending: collective bargaining data not yet collected' } : null;
+
         default: return null;
       }
     };

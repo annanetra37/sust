@@ -43,6 +43,8 @@ app.use('/api/roi', require('./routes/roi'));
 app.use('/api/sectors', require('./routes/sectors'));
 app.use('/api/pcf', require('./routes/pcf'));
 app.use('/api/benchmarks', require('./routes/benchmarks'));
+app.use('/api/suppliers', require('./routes/suppliers'));
+app.use('/api/portal', require('./routes/supplierPortal'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
