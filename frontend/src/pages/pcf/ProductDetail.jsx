@@ -572,6 +572,48 @@ function WhatIfTab({ product, boms, setError }) {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState(null);
 
+  // Saved scenarios
+  const [savedScenarios, setSavedScenarios] = useState([]);
+  const [saveName, setSaveName] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.listScenarios(product.id).then(setSavedScenarios).catch(() => {});
+  }, [product.id]);
+
+  const saveScenario = async () => {
+    if (!saveName.trim() || !result) return;
+    setSaving(true);
+    try {
+      const saved = await api.saveScenario(product.id, { name: saveName.trim(), overrides });
+      setSavedScenarios((prev) => [saved, ...prev]);
+      setSaveName('');
+    } catch (err) {
+      setError(err.error || 'Could not save scenario.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteScenario = async (id) => {
+    try {
+      await api.deleteScenario(id);
+      setSavedScenarios((prev) => prev.filter((s) => s.id !== id));
+    } catch (err) {
+      setError(err.error || 'Could not delete scenario.');
+    }
+  };
+
+  const loadSavedScenario = (scenario) => {
+    setScenarioId(scenario.id);
+    setOverrides(scenario.overrides || {});
+    setResult({
+      baseline: scenario.baselineResult,
+      scenario: scenario.scenarioResult,
+      delta: { kgCo2e: scenario.deltaKgCo2e, pct: scenario.deltaPct, direction: scenario.deltaKgCo2e < 0 ? 'reduction' : scenario.deltaKgCo2e > 0 ? 'increase' : 'none' },
+    });
+  };
+
   const applyTemplate = (tpl) => {
     setScenarioId(tpl.id);
     const ov = {};
@@ -774,6 +816,51 @@ function WhatIfTab({ product, boms, setError }) {
             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Stage-by-stage delta</p>
             <StageDelta baseline={result.baseline.breakdownByStage} scenario={result.scenario.breakdownByStage} />
           </div>
+
+          {/* Save this scenario */}
+          <div className="pt-3 border-t dark:border-gray-800 flex items-center gap-2">
+            <input
+              className="input flex-1"
+              placeholder="Name this scenario (e.g. 'Recycled aluminum + EU PPA')..."
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+            />
+            <button
+              onClick={saveScenario}
+              disabled={saving || !saveName.trim()}
+              className="btn-primary flex items-center gap-2 shrink-0"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Save scenario
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Saved scenarios list */}
+      {savedScenarios.length > 0 && (
+        <div className="card space-y-2">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Saved Scenarios</h3>
+          {savedScenarios.map((s) => (
+            <div key={s.id} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadSavedScenario(s)}>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{s.name}</p>
+                <p className="text-[11px] text-gray-400">
+                  {new Date(s.createdAt).toLocaleDateString()} · delta: {s.deltaKgCo2e > 0 ? '+' : ''}{s.deltaKgCo2e} kgCO2e ({s.deltaPct > 0 ? '+' : ''}{s.deltaPct}%)
+                </p>
+              </div>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                s.deltaKgCo2e < 0 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                : s.deltaKgCo2e > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                : 'bg-gray-100 text-gray-500'
+              }`}>
+                {s.deltaKgCo2e < 0 ? 'reduction' : s.deltaKgCo2e > 0 ? 'increase' : 'neutral'}
+              </span>
+              <button onClick={() => deleteScenario(s.id)} className="text-gray-400 hover:text-red-500 shrink-0" title="Delete scenario">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

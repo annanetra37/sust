@@ -231,6 +231,9 @@ const api = {
   deleteBomItem: (id) => request(`/pcf/bom-items/${id}`, { method: 'DELETE' }),
   calculatePcf: (productId) => request(`/pcf/products/${productId}/calculate`, { method: 'POST' }),
   simulatePcf: (productId, overrides) => request(`/pcf/products/${productId}/simulate`, { method: 'POST', body: JSON.stringify(overrides) }),
+  saveScenario: (productId, data) => request(`/pcf/products/${productId}/scenarios`, { method: 'POST', body: JSON.stringify(data) }),
+  listScenarios: (productId) => request(`/pcf/products/${productId}/scenarios`),
+  deleteScenario: (scenarioId) => request(`/pcf/scenarios/${scenarioId}`, { method: 'DELETE' }),
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
