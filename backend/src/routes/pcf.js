@@ -395,4 +395,195 @@ router.get('/factors', async (req, res) => {
   }
 });
 
+// ─── PCF Calculation (PCF-03) ───────────────────────────────────────────────
+
+const pcfEngine = require('../services/pcfEngine');
+
+router.post('/products/:id/calculate', async (req, res) => {
+  try {
+    const product = await prisma.product.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!product) return res.status(404).json({ error: 'Product not found.' });
+
+    // Credit check — 1 credit per calculation run
+    const creditCost = 1;
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { creditBalance: true } });
+    if ((company?.creditBalance ?? 0) < creditCost) {
+      return res.status(403).json({ error: 'Insufficient credits', required: creditCost, available: company?.creditBalance ?? 0 });
+    }
+
+    const calc = await pcfEngine.runAndSave(product.id);
+
+    await deductCredits(req.user.companyId, req.user.id, creditCost, 'PCF_CALCULATION',
+      `PCF calc for ${product.sku}: ${calc.totalKgCo2e} kgCO2e — ${creditCost} credit`, null);
+
+    logActivity(req.user.id, req.user.companyId, 'PCF_CALCULATE',
+      `Calculated PCF for ${product.sku}: ${calc.totalKgCo2e} kgCO2e (p5=${calc.uncertaintyLow}, p95=${calc.uncertaintyHigh})`,
+      { productId: product.id, calculationId: calc.id }, req.ip);
+
+    res.json(calc);
+  } catch (err) {
+    console.error('[PCF] Calculation error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+// ─── PCF Export — PDF + PACT JSON (PCF-07) ──────────────────────────────────
+
+const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
+
+router.get('/calculations/:calcId/export', async (req, res) => {
+  try {
+    const calc = await prisma.pcfCalculation.findUnique({
+      where: { id: req.params.calcId },
+      include: { product: { include: { company: true } } },
+    });
+    if (!calc || calc.product.companyId !== req.user.companyId) {
+      return res.status(404).json({ error: 'Calculation not found.' });
+    }
+
+    const format = (req.query.format || 'pdf').toLowerCase();
+    const product = calc.product;
+    const company = product.company;
+
+    // ─── PACT Pathfinder v2 JSON ────────────────────────────────
+    if (format === 'json' || format === 'pact') {
+      const pact = {
+        specVersion: '2.0.0',
+        id: calc.id,
+        version: 1,
+        created: calc.runAt.toISOString(),
+        status: calc.status === 'verified' ? 'Active' : 'Draft',
+        companyName: company.name,
+        companyIds: company.tickerSymbol ? [`urn:epc:id:sgln:${company.tickerSymbol}`] : [],
+        productDescription: product.name,
+        productIds: [`urn:sku:${product.sku}`],
+        productCategoryCpc: '',
+        productNameCompany: product.name,
+        comment: `Calculated by Triple I ESG Portal (engine v${calc.engineVersion})`,
+        pcf: {
+          declaredUnit: product.declaredUnit || product.functionalUnit,
+          unitaryProductAmount: '1',
+          referencePeriodStart: `${new Date(calc.runAt).getFullYear()}-01-01T00:00:00Z`,
+          referencePeriodEnd: `${new Date(calc.runAt).getFullYear()}-12-31T23:59:59Z`,
+          pcfExcludingBiogenic: String(calc.totalKgCo2e),
+          pcfIncludingBiogenic: String(calc.totalKgCo2e),
+          fossilGhgEmissions: String(calc.totalKgCo2e),
+          biogenicCarbonContent: '0',
+          biogenicCarbonEmissionsOtherThanCO2: '0',
+          biogenicCarbonWithdrawal: '0',
+          dlucGhgEmissions: '0',
+          landManagementGhgEmissions: '0',
+          otherBiogenicGhgEmissions: '0',
+          ipcSubCategory: '',
+          boundaryProcessesDescription: 'Cradle-to-gate (A1-A3)',
+          characterizationFactors: 'AR6',
+          crossSectoralStandardsUsed: [product.methodology || 'ISO Standard 14067'],
+          productOrSectorSpecificRules: [],
+          exemptedEmissionsPercent: 0,
+          exemptedEmissionsDescription: '',
+          primaryDataShare: calc.primaryDataPct,
+          secondaryEmissionFactorSources: [...new Set((calc.factorSnapshot || []).map((f) => f.source))],
+          uncertaintyAssessmentDescription: `Monte Carlo (${1000} iterations): p5=${calc.uncertaintyLow}, p50=${calc.totalKgCo2e}, p95=${calc.uncertaintyHigh}`,
+        },
+        assurance: calc.status === 'verified'
+          ? { coverage: 'product line', level: 'limited', boundary: 'Cradle-to-Gate' }
+          : null,
+      };
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${product.sku}_PCF_PACT.json"`);
+      return res.json(pact);
+    }
+
+    // ─── PDF Product Carbon Footprint Statement ─────────────────
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${product.sku}_PCF_Statement.pdf"`);
+    doc.pipe(res);
+
+    // Company logo
+    if (company.logoPath) {
+      const uploadsDir = path.join(__dirname, '../../uploads');
+      const logoFile = path.join(uploadsDir, company.logoPath);
+      try {
+        if (fs.existsSync(logoFile)) {
+          doc.image(logoFile, { fit: [120, 60], align: 'left' });
+          doc.moveDown(1);
+        }
+      } catch {}
+    }
+
+    // Title
+    doc.fontSize(22).font('Helvetica-Bold').fillColor('#003700')
+       .text('Product Carbon Footprint Statement', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(12).font('Helvetica').fillColor('#666')
+       .text(`${product.name} (${product.sku})`, { align: 'center' });
+    doc.moveDown(2);
+
+    // Summary box
+    doc.fontSize(11).font('Helvetica-Bold').fillColor('#003700').text('Summary');
+    doc.moveDown(0.3);
+    doc.fontSize(10).font('Helvetica').fillColor('#333');
+    doc.text(`Declared unit: ${product.declaredUnit || product.functionalUnit}`);
+    doc.text(`Methodology: ${product.methodology}`);
+    doc.text(`Boundary: Cradle-to-gate (A1–A3)`);
+    doc.text(`Calculation date: ${new Date(calc.runAt).toLocaleDateString()}`);
+    doc.text(`Engine version: ${calc.engineVersion}`);
+    doc.text(`Status: ${calc.status}`);
+    doc.moveDown(1);
+
+    // Big number
+    doc.fontSize(28).font('Helvetica-Bold').fillColor('#003700')
+       .text(`${calc.totalKgCo2e} kgCO2e`, { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).font('Helvetica').fillColor('#666')
+       .text(`Uncertainty range: ${calc.uncertaintyLow} – ${calc.uncertaintyHigh} kgCO2e (p5–p95)`, { align: 'center' });
+    doc.text(`Primary data share: ${Math.round(calc.primaryDataPct * 100)}%`, { align: 'center' });
+    doc.moveDown(2);
+
+    // Breakdown by lifecycle stage
+    const stages = calc.breakdownByStage || {};
+    if (Object.keys(stages).length > 0) {
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#003700').text('Lifecycle Stage Breakdown');
+      doc.moveDown(0.3);
+      doc.fontSize(10).font('Helvetica').fillColor('#333');
+      for (const [stage, kg] of Object.entries(stages)) {
+        const pct = calc.totalKgCo2e > 0 ? ((kg / calc.totalKgCo2e) * 100).toFixed(1) : '0';
+        doc.text(`  ${stage}: ${kg} kgCO2e (${pct}%)`, { indent: 15 });
+      }
+      doc.moveDown(1);
+    }
+
+    // Top 10 components
+    const comps = (calc.breakdownByComp || []).slice(0, 10);
+    if (comps.length > 0) {
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#003700').text('Top Contributing Components');
+      doc.moveDown(0.3);
+      doc.fontSize(10).font('Helvetica').fillColor('#333');
+      for (const c of comps) {
+        doc.text(`  ${c.name} (${c.materialClass}): ${c.kgCo2e} kgCO2e — ${c.pct}%`, { indent: 15 });
+      }
+      doc.moveDown(1);
+    }
+
+    // Footer
+    doc.moveDown(2);
+    doc.fontSize(8).fillColor('#999')
+       .text(`Generated by Triple I ESG Portal on ${new Date().toISOString().split('T')[0]}.`, { align: 'center' });
+    doc.text(`${company.name} | ${product.sku} | Confidential`, { align: 'center' });
+
+    doc.end();
+  } catch (err) {
+    console.error('[PCF] Export error:', err);
+    if (!res.headersSent) {
+      const { status, error } = formatError(err);
+      res.status(status).json({ error });
+    }
+  }
+});
+
 module.exports = router;

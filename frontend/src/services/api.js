@@ -228,6 +228,9 @@ const api = {
   searchFactors: (params) => request(`/pcf/factors?${new URLSearchParams(params || {})}`),
   updateBomItem: (id, data) => request(`/pcf/bom-items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteBomItem: (id) => request(`/pcf/bom-items/${id}`, { method: 'DELETE' }),
+  calculatePcf: (productId) => request(`/pcf/products/${productId}/calculate`, { method: 'POST' }),
+  exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
+  exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
   // Sustainability ROI
   getRoiSummary: (params = {}) => {

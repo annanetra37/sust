@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import {
   Package, Upload, Loader2, AlertCircle, Trash2, ArrowLeft, CheckCircle,
-  XCircle, AlertTriangle, Search, FileSpreadsheet,
+  XCircle, AlertTriangle, Search, FileSpreadsheet, Play, Download, FileText,
+  BarChart3,
 } from 'lucide-react';
 import { HelpBanner } from '../../components/HelpSystem';
 
@@ -319,36 +320,163 @@ export default function ProductDetail() {
 
       {/* Calculations tab */}
       {tab === 'calculations' && (
-        <div className="space-y-4">
-          {boms.length === 0 ? (
-            <div className="card text-center py-8 text-gray-400">
-              <p className="text-sm">Upload a BOM first, then run a PCF calculation.</p>
+        <CalculationsTab
+          product={product}
+          boms={boms}
+          calculations={calculations}
+          onCalculated={load}
+          setError={setError}
+        />
+      )}
+    </div>
+  );
+}
+
+function CalculationsTab({ product, boms, calculations, onCalculated, setError }) {
+  const [calculating, setCalculating] = useState(false);
+  const latestCalc = calculations[0] || null;
+
+  const runCalculation = async () => {
+    setCalculating(true);
+    setError('');
+    try {
+      await api.calculatePcf(product.id);
+      await onCalculated();
+    } catch (err) {
+      setError(err.error || 'Calculation failed.');
+    } finally {
+      setCalculating(false);
+    }
+  };
+
+  if (boms.length === 0) {
+    return (
+      <div className="card text-center py-8 text-gray-400">
+        <p className="text-sm">Upload a BOM first, then run a PCF calculation.</p>
+      </div>
+    );
+  }
+
+  const stages = latestCalc?.breakdownByStage || {};
+  const comps = (latestCalc?.breakdownByComp || []).slice(0, 10);
+  const stageTotal = Object.values(stages).reduce((s, v) => s + v, 0) || 1;
+
+  return (
+    <div className="space-y-4">
+      {/* Run button */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={runCalculation}
+          disabled={calculating}
+          className="btn-primary flex items-center gap-2"
+        >
+          {calculating
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> Calculating...</>
+            : <><Play className="w-4 h-4" /> Run calculation</>}
+        </button>
+        <span className="text-xs text-gray-400">
+          {boms.length} component{boms.length !== 1 ? 's' : ''} in BOM · 1 credit per run
+        </span>
+      </div>
+
+      {/* Latest result */}
+      {latestCalc && (
+        <>
+          {/* Hero metric */}
+          <div className="card bg-gradient-to-br from-brand-50 to-white dark:from-brand-950 dark:to-gray-900 text-center py-8">
+            <p className="text-4xl font-bold text-brand-600 dark:text-brand-400">
+              {latestCalc.totalKgCo2e} <span className="text-lg font-normal">kgCO2e</span>
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Uncertainty: {latestCalc.uncertaintyLow} – {latestCalc.uncertaintyHigh} kgCO2e
+              <span className="ml-2 text-gray-400">(p5 – p95, 1000 Monte Carlo iterations)</span>
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Primary data: {Math.round(latestCalc.primaryDataPct * 100)}% · Engine v{latestCalc.engineVersion} · {latestCalc.status}
+            </p>
+
+            {/* Export buttons */}
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <a
+                href={api.exportPcfPdf(latestCalc.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary inline-flex items-center gap-2 text-sm"
+              >
+                <FileText className="w-4 h-4" /> PDF Statement
+              </a>
+              <a
+                href={api.exportPcfPact(latestCalc.id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary inline-flex items-center gap-2 text-sm"
+              >
+                <Download className="w-4 h-4" /> PACT JSON
+              </a>
             </div>
-          ) : calculations.length === 0 ? (
-            <div className="card text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">
-                BOM has {boms.length} component{boms.length !== 1 ? 's' : ''}. Ready to calculate.
-              </p>
-              <p className="text-xs text-gray-400">PCF calculation engine coming in Sprint 3 (PCF-03).</p>
+          </div>
+
+          {/* Stage breakdown */}
+          {Object.keys(stages).length > 0 && (
+            <div className="card space-y-3">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-brand-600" /> Lifecycle Stage Breakdown
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(stages).sort((a, b) => b[1] - a[1]).map(([stage, kg]) => {
+                  const pct = (kg / stageTotal) * 100;
+                  return (
+                    <div key={stage}>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{stage}</span>
+                        <span className="text-gray-500">{kg.toFixed(4)} kgCO2e ({pct.toFixed(1)}%)</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {calculations.map((c) => (
-                <div key={c.id} className="card flex items-center gap-4">
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">{c.totalKgCo2e.toFixed(2)} kgCO2e</p>
-                    <p className="text-xs text-gray-400">
-                      {new Date(c.runAt).toLocaleString()} · v{c.engineVersion} · {Math.round(c.primaryDataPct * 100)}% primary
-                    </p>
+          )}
+
+          {/* Top 10 components */}
+          {comps.length > 0 && (
+            <div className="card space-y-3">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Top Contributing Components</h3>
+              <div className="space-y-1">
+                {comps.map((c, i) => (
+                  <div key={c.componentId + i} className="flex items-center gap-3 text-sm py-1.5 border-b dark:border-gray-800 last:border-0">
+                    <span className="w-6 text-right text-gray-400 text-xs">{i + 1}</span>
+                    <span className="flex-1 font-medium text-gray-700 dark:text-gray-300 truncate">{c.name}</span>
+                    <span className="font-mono text-[11px] text-gray-400">{c.materialClass}</span>
+                    <span className="text-right w-24">{c.kgCo2e} kgCO2e</span>
+                    <span className="text-right w-14 text-gray-500">{c.pct}%</span>
                   </div>
-                  <span className={`badge text-[10px] ${c.status === 'final' ? 'bg-green-100 text-green-700' : c.status === 'verified' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {c.status}
-                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Calculation history */}
+          {calculations.length > 1 && (
+            <div className="card space-y-2">
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Calculation History</h3>
+              {calculations.map((c) => (
+                <div key={c.id} className="flex items-center gap-4 text-sm py-1.5 border-b dark:border-gray-800 last:border-0">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{c.totalKgCo2e} kgCO2e</span>
+                  <span className="text-xs text-gray-400">{c.uncertaintyLow} – {c.uncertaintyHigh}</span>
+                  <span className="text-xs text-gray-400 flex-1">{new Date(c.runAt).toLocaleString()}</span>
+                  <span className={`badge text-[10px] ${c.status === 'final' ? 'bg-green-100 text-green-700' : c.status === 'verified' ? 'bg-brand-100 text-brand-700' : 'bg-amber-100 text-amber-700'}`}>{c.status}</span>
+                  <a href={api.exportPcfPdf(c.id)} target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:text-brand-700" title="Export PDF">
+                    <FileText className="w-3.5 h-3.5" />
+                  </a>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
