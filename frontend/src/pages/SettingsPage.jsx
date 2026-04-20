@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Trash2, AlertTriangle, Search, Loader2, Upload } from 'lucide-react';
@@ -11,7 +12,9 @@ const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
 export default function SettingsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
-  const [tab, setTab] = useState('org-units');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'org-units';
+  const [tab, setTab] = useState(initialTab);
   const [orgUnits, setOrgUnits] = useState([]);
   const [standard, setStandard] = useState('ESRS');
   const [credits, setCredits] = useState({ transactions: [], balance: 0 });
@@ -212,16 +215,19 @@ export default function SettingsPage() {
       )}
 
       {tab === 'sector' && (
-        <div className="card space-y-4">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Industry sector pack</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Each pack adds sector-specific KPIs, materiality starters, and emission factors to your dashboards and reports.
-              Existing data is preserved when switching.
-            </p>
+        <>
+          <div className="card space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Industry sector pack</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Each pack adds sector-specific KPIs, materiality starters, and emission factors to your dashboards and reports.
+                Existing data is preserved when switching.
+              </p>
+            </div>
+            <SectorPicker />
           </div>
-          <SectorPicker />
-        </div>
+          <BenchmarkOptInCard isAdmin={isAdmin} />
+        </>
       )}
 
       {tab === 'reset' && isAdmin && (
@@ -437,6 +443,77 @@ export default function SettingsPage() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Benchmark opt-in card (PCF-08) ────────────────────────────────────────
+// Lives inside the Sector Pack tab because benchmark cohorts are scoped
+// per-sector — it's the natural spot for users to reason about both.
+function BenchmarkOptInCard({ isAdmin }) {
+  const [optedIn, setOptedIn] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    api.getBenchmarkOptIn().then((r) => setOptedIn(r.optedIn)).catch(() => setOptedIn(false));
+  }, []);
+
+  const toggle = async () => {
+    if (!isAdmin) return;
+    setSaving(true);
+    setErr('');
+    try {
+      const r = await api.setBenchmarkOptIn(!optedIn);
+      setOptedIn(r.optedIn);
+    } catch (e) {
+      setErr(e.error || 'Could not update benchmark opt-in.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card space-y-3">
+      <div>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Anonymous benchmark cohort</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Share anonymised KPI values to unlock peer benchmarks. Your data is never linked to your
+          company name and only aggregated statistics (p25 / p50 / p75) are ever shown to anyone —
+          never raw values. Cohorts with fewer than 10 companies are hidden entirely (k-anonymity).
+          You can withdraw at any time; withdrawal is retroactive.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={!isAdmin || saving || optedIn === null}
+          className={`relative inline-flex h-6 w-11 rounded-full transition-colors ${
+            optedIn ? 'bg-brand-500' : 'bg-gray-300 dark:bg-gray-600'
+          } ${!isAdmin && 'opacity-50 cursor-not-allowed'}`}
+        >
+          <span
+            className={`inline-block w-5 h-5 bg-white rounded-full transform transition-transform mt-0.5 ${
+              optedIn ? 'translate-x-5' : 'translate-x-0.5'
+            }`}
+          />
+        </button>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            {optedIn === null ? 'Loading...' : optedIn ? 'Opted in — contributing to cohorts' : 'Not opted in'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {optedIn
+              ? 'Your aggregated data counts toward sector benchmarks and you can see percentile rankings on dashboards.'
+              : 'You can contribute and see peer benchmarks once you opt in.'}
+          </p>
+        </div>
+      </div>
+
+      {err && <p className="text-xs text-red-500">{err}</p>}
+      {!isAdmin && <p className="text-xs text-gray-400">Only admins can change the opt-in setting.</p>}
     </div>
   );
 }

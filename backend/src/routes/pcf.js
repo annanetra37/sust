@@ -428,6 +428,34 @@ router.post('/products/:id/calculate', async (req, res) => {
   }
 });
 
+// ─── PCF What-If Simulator (PCF-04) ─────────────────────────────────────────
+// Stateless — nothing is persisted.  Runs the engine twice (baseline +
+// scenario) in memory and returns a diff.  No credit cost.
+
+router.post('/products/:id/simulate', async (req, res) => {
+  try {
+    const product = await prisma.product.findFirst({ where: { id: req.params.id, companyId: req.user.companyId } });
+    if (!product) return res.status(404).json({ error: 'Product not found.' });
+
+    const overrides = req.body || {};
+    // Basic shape validation — reject unknown top-level keys to fail fast
+    // on client bugs instead of silently ignoring them.
+    const allowedKeys = new Set(['factorSwaps', 'materialSwaps', 'scrapRateChanges', 'processOverrides', 'regionSwap']);
+    for (const k of Object.keys(overrides)) {
+      if (!allowedKeys.has(k)) {
+        return res.status(400).json({ error: `Unknown override key: "${k}". Allowed: ${[...allowedKeys].join(', ')}` });
+      }
+    }
+
+    const result = await pcfEngine.simulatePcf(product.id, overrides);
+    res.json(result);
+  } catch (err) {
+    console.error('[PCF] Simulate error:', err);
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
 // ─── PCF Export — PDF + PACT JSON (PCF-07) ──────────────────────────────────
 
 const PDFDocument = require('pdfkit');

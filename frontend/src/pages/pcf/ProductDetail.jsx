@@ -7,6 +7,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { HelpBanner } from '../../components/HelpSystem';
+import BenchmarkBadge from '../../components/BenchmarkBadge';
 
 const CONFIDENCE_COLORS = {
   high: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
@@ -137,6 +138,7 @@ export default function ProductDetail() {
   const tabs = [
     { key: 'bom', label: 'BOM', count: boms.length },
     { key: 'calculations', label: 'Calculations', count: calculations.length },
+    { key: 'whatif', label: 'What-If', count: 0 },
   ];
 
   return (
@@ -328,6 +330,11 @@ export default function ProductDetail() {
           setError={setError}
         />
       )}
+
+      {/* What-If tab */}
+      {tab === 'whatif' && (
+        <WhatIfTab product={product} boms={boms} setError={setError} />
+      )}
     </div>
   );
 }
@@ -394,6 +401,9 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
             <p className="text-xs text-gray-400 mt-1">
               Primary data: {Math.round(latestCalc.primaryDataPct * 100)}% · Engine v{latestCalc.engineVersion} · {latestCalc.status}
             </p>
+            <div className="mt-2 flex items-center justify-center">
+              <BenchmarkBadge kpiCode="PCF_TOTAL" value={latestCalc.totalKgCo2e} region="GLO" />
+            </div>
 
             {/* Export buttons */}
             <div className="flex items-center justify-center gap-3 mt-4">
@@ -478,6 +488,278 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// ─── What-If Simulator (PCF-04) ────────────────────────────────────────────
+// Side-by-side layout: baseline on the left, scenario on the right, delta
+// badge in the middle.  Three pre-built scenario templates (recycled
+// materials, site energy switch, supplier relocation) that populate the
+// overrides in one click.
+
+const SCENARIO_TEMPLATES = [
+  {
+    id: 'recycled',
+    title: 'Recycled materials',
+    description: 'Swap primary metals for their recycled equivalents.',
+    // Each swap maps "if you see this materialClass, try this one instead"
+    materialSwaps: [
+      { from: 'aluminum_6061', to: 'aluminum_6061_rec' },
+      { from: 'copper_primary', to: 'copper_recycled' },
+      { from: 'aluminum_adc12', to: 'aluminum_6061_rec' },
+    ],
+  },
+  {
+    id: 'renewable_ppa',
+    title: 'Renewable PPA at all sites',
+    description: 'Swap every region\'s grid electricity to EU-mix as a proxy for PPA-backed supply.',
+    regionSwap: { toRegion: 'EU' },
+  },
+  {
+    id: 'supplier_relocation',
+    title: 'Relocate assembly to Vietnam',
+    description: 'Swap every grid electricity factor to VN.',
+    regionSwap: { toRegion: 'VN' },
+  },
+];
+
+function WhatIfTab({ product, boms, setError }) {
+  const [scenarioId, setScenarioId] = useState(null);
+  const [overrides, setOverrides] = useState({});
+  const [scrapOverrideBomId, setScrapOverrideBomId] = useState('');
+  const [scrapRate, setScrapRate] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const applyTemplate = (tpl) => {
+    setScenarioId(tpl.id);
+    const ov = {};
+
+    if (tpl.materialSwaps) {
+      // Translate "from material class" to a list of bomId overrides.
+      const swaps = [];
+      for (const { from, to } of tpl.materialSwaps) {
+        const matches = boms.filter((b) => b.component?.materialClass === from);
+        for (const b of matches) swaps.push({ bomId: b.id, newMaterialClass: to });
+      }
+      if (swaps.length > 0) ov.materialSwaps = swaps;
+    }
+    if (tpl.regionSwap) {
+      ov.regionSwap = tpl.regionSwap;
+    }
+
+    setOverrides(ov);
+    setResult(null);
+  };
+
+  const addScrapOverride = () => {
+    if (!scrapOverrideBomId) return;
+    setOverrides((prev) => ({
+      ...prev,
+      scrapRateChanges: [
+        ...(prev.scrapRateChanges || []).filter((s) => s.bomId !== scrapOverrideBomId),
+        { bomId: scrapOverrideBomId, newScrapRatePct: parseFloat(scrapRate) || 0 },
+      ],
+    }));
+  };
+
+  const clearOverrides = () => {
+    setScenarioId(null);
+    setOverrides({});
+    setResult(null);
+  };
+
+  const run = async () => {
+    setRunning(true);
+    setError('');
+    try {
+      const r = await api.simulatePcf(product.id, overrides);
+      setResult(r);
+    } catch (err) {
+      setError(err.error || 'Simulation failed.');
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  if (boms.length === 0) {
+    return (
+      <div className="card text-center py-8 text-gray-400">
+        <p className="text-sm">Upload a BOM first to explore what-if scenarios.</p>
+      </div>
+    );
+  }
+
+  const overrideCount =
+    (overrides.materialSwaps?.length || 0) +
+    (overrides.factorSwaps?.length || 0) +
+    (overrides.scrapRateChanges?.length || 0) +
+    (overrides.processOverrides?.length || 0) +
+    (overrides.regionSwap ? 1 : 0);
+
+  return (
+    <div className="space-y-4">
+      <HelpBanner id="pcf-whatif-guide" title="Pose a question, see the delta" variant="tip">
+        What if you swap to recycled aluminum? What if assembly moves to Vietnam?
+        Pick a template or build a custom scenario — the simulator re-runs the LCA
+        engine in-memory and shows you the delta against your current baseline.
+        Nothing is persisted until you accept the scenario.
+      </HelpBanner>
+
+      {/* Template picker */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {SCENARIO_TEMPLATES.map((tpl) => (
+          <button
+            key={tpl.id}
+            type="button"
+            onClick={() => applyTemplate(tpl)}
+            className={`p-3 rounded-xl border-2 text-left transition-colors ${
+              scenarioId === tpl.id
+                ? 'border-brand-500 bg-brand-50 dark:bg-brand-950'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{tpl.title}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{tpl.description}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Manual scrap-rate override */}
+      <div className="card space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Custom scrap-rate override</p>
+        <div className="flex items-center gap-2">
+          <select
+            className="input flex-1"
+            value={scrapOverrideBomId}
+            onChange={(e) => setScrapOverrideBomId(e.target.value)}
+          >
+            <option value="">Select a component...</option>
+            {boms.map((b) => (
+              <option key={b.id} value={b.id}>{b.component?.name || b.id}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            step="1"
+            min="0"
+            max="100"
+            className="input w-24"
+            placeholder="%"
+            value={scrapRate}
+            onChange={(e) => setScrapRate(e.target.value)}
+          />
+          <button type="button" onClick={addScrapOverride} className="btn-secondary text-sm">Add</button>
+        </div>
+        {overrides.scrapRateChanges?.length > 0 && (
+          <div className="text-xs text-gray-500">
+            {overrides.scrapRateChanges.map((s) => {
+              const b = boms.find((x) => x.id === s.bomId);
+              return (
+                <span key={s.bomId} className="inline-block mr-2 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
+                  {b?.component?.name || s.bomId}: {s.newScrapRatePct}%
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Run + clear */}
+      <div className="flex items-center gap-3">
+        <button onClick={run} disabled={running || overrideCount === 0} className="btn-primary flex items-center gap-2">
+          {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+          Run scenario
+        </button>
+        {overrideCount > 0 && (
+          <button onClick={clearOverrides} className="btn-secondary text-sm">Clear</button>
+        )}
+        <span className="text-xs text-gray-400">
+          {overrideCount} override{overrideCount !== 1 ? 's' : ''} · stateless (nothing saved)
+        </span>
+      </div>
+
+      {/* Result: side-by-side + delta */}
+      {result && (
+        <div className="card p-6 space-y-4">
+          <div className="grid grid-cols-3 gap-4 items-center">
+            <div className="text-center">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Baseline</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {result.baseline.totalKgCo2e} <span className="text-sm font-normal text-gray-500">kgCO2e</span>
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                p5–p95: {result.baseline.uncertaintyLow} – {result.baseline.uncertaintyHigh}
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className={`inline-flex items-center justify-center gap-1 px-4 py-2 rounded-full ${
+                result.delta.direction === 'reduction'
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                  : result.delta.direction === 'increase'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                    : 'bg-gray-100 text-gray-500'
+              }`}>
+                <span className="text-lg font-bold">
+                  {result.delta.kgCo2e > 0 ? '+' : ''}{result.delta.kgCo2e}
+                </span>
+                <span className="text-xs">kgCO2e</span>
+              </div>
+              <p className="text-[10px] font-semibold mt-1 text-gray-500">
+                {result.delta.pct > 0 ? '+' : ''}{result.delta.pct}%
+              </p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Scenario</p>
+              <p className={`text-2xl font-bold ${
+                result.delta.direction === 'reduction'
+                  ? 'text-green-600 dark:text-green-400'
+                  : result.delta.direction === 'increase'
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-gray-900 dark:text-gray-100'
+              }`}>
+                {result.scenario.totalKgCo2e} <span className="text-sm font-normal">kgCO2e</span>
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                p5–p95: {result.scenario.uncertaintyLow} – {result.scenario.uncertaintyHigh}
+              </p>
+            </div>
+          </div>
+
+          {/* Stage-level delta */}
+          <div className="pt-3 border-t dark:border-gray-800">
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Stage-by-stage delta</p>
+            <StageDelta baseline={result.baseline.breakdownByStage} scenario={result.scenario.breakdownByStage} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StageDelta({ baseline, scenario }) {
+  const allStages = [...new Set([...Object.keys(baseline), ...Object.keys(scenario)])].sort();
+  return (
+    <div className="space-y-1">
+      {allStages.map((stage) => {
+        const b = baseline[stage] || 0;
+        const s = scenario[stage] || 0;
+        const delta = s - b;
+        return (
+          <div key={stage} className="flex items-center gap-3 text-xs">
+            <span className="w-8 font-mono text-gray-500">{stage}</span>
+            <span className="w-24 text-right text-gray-500">{b.toFixed(3)}</span>
+            <span className="text-gray-400">→</span>
+            <span className="w-24 text-right font-semibold text-gray-800 dark:text-gray-200">{s.toFixed(3)}</span>
+            <span className={`w-24 text-right font-semibold ${delta < 0 ? 'text-green-600' : delta > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+              {delta > 0 ? '+' : ''}{delta.toFixed(3)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

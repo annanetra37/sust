@@ -33,6 +33,13 @@ model Company {
   // canonical tier → features map lives in services/tierFeatures.js.
   tier             String   @default("STARTER")
 
+  // ─── Anonymous benchmark cohort opt-in ───────────────────────
+  // When true, this company's aggregated KPI values contribute to the
+  // sector benchmark cohorts (see BenchmarkCohort).  Only opted-in
+  // companies can read cohort stats.  Withdrawal is retroactive — a
+  // nightly job recomputes cohorts excluding withdrawn contributors.
+  benchmarkOptIn   Boolean  @default(false)
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -592,4 +599,25 @@ model CompanySectorSelection {
   sectorKey   String
   selectedAt  DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ─── Benchmark Cohorts (PCF-08) ─────────────────────────────────
+// Per-sector × KPI × region aggregated statistics.  Recomputed nightly
+// (or on demand) by `services/benchmarkEngine.js`.  k-anonymity: a row
+// only exists — and is only returned — when cohortSize ≥ K_MIN (10).
+// Cohorts with <50 contributors have small Laplace noise added to p50.
+model BenchmarkCohort {
+  id            String   @id @default(uuid())
+  sectorKey     String
+  kpiCode       String   // matches SectorKpi.code (or a product-level synthetic key)
+  region        String   // GLO for global, or ISO 2-letter / region code
+  cohortSize    Int      // number of unique companies contributing
+  p25           Float
+  p50           Float
+  p75           Float
+  unit          String
+  lastUpdatedAt DateTime @default(now())
+
+  @@unique([sectorKey, kpiCode, region])
+  @@index([sectorKey, region])
 }
