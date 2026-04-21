@@ -88,7 +88,7 @@ router.get('/kpis', async (req, res) => {
     const turnoverRate = totalEmployees > 0 ? (turnoverCount / totalEmployees) * 100 : 0;
 
     // Auto-compute values by KPI code — works for both electronics + automotive packs
-    const computeValue = (code) => {
+    const computeValue = async (code) => {
       switch (code) {
         // Electronics KPIs
         case 'TC-SC-110a.1': return totalEmissions > 0 ? { value: scope1, detail: `${scope1.toFixed(2)} tCO2e` } : null;
@@ -116,14 +116,58 @@ router.get('/kpis', async (req, res) => {
         case 'TR-AU-310a.1':
           return totalEmployees > 0 ? { value: null, detail: 'Pending: collective bargaining data not yet collected' } : null;
 
+        // Real estate KPIs
+        case 'RE-EUI': {
+          // Energy Use Intensity from real estate assets
+          const assets = await prisma.realEstateAsset.findMany({ where: { companyId }, include: { energyRecords: { where: { year } } } });
+          if (assets.length === 0) return null;
+          let totalKwh = 0, totalM2 = 0;
+          for (const a of assets) {
+            const kwh = a.energyRecords.reduce((s, r) => s + (r.unit === 'MWh' ? r.quantity * 1000 : r.quantity), 0);
+            totalKwh += kwh;
+            totalM2 += a.grossFloorAreaM2;
+          }
+          if (totalM2 === 0) return null;
+          const eui = totalKwh / totalM2;
+          return { value: eui, detail: `${eui.toFixed(1)} kWh/m² across ${assets.length} asset(s)` };
+        }
+        case 'RE-GHG-INTENSITY': {
+          const assets2 = await prisma.realEstateAsset.findMany({ where: { companyId }, include: { crremPathways: true } });
+          if (assets2.length === 0) return null;
+          const withData = assets2.filter(a => a.crremPathways.length > 0);
+          if (withData.length === 0) return null;
+          const avg = withData.reduce((s, a) => s + (a.crremPathways[0]?.currentKgCo2ePerM2 || 0), 0) / withData.length;
+          return { value: avg, detail: `${avg.toFixed(1)} kgCO2e/m² avg across ${withData.length} asset(s)` };
+        }
+        case 'RE-ASSETS': {
+          const count = await prisma.realEstateAsset.count({ where: { companyId } });
+          return count > 0 ? { value: count, detail: `${count} asset(s) in portfolio` } : null;
+        }
+
+        // Financial services KPIs
+        case 'PCAF-TOTAL-FINANCED': {
+          const calcs = await prisma.financedEmissionsCalc.findMany({
+            where: { exposure: { companyId } },
+            select: { financedScope1: true, financedScope2: true, financedScope3: true },
+          });
+          if (calcs.length === 0) return null;
+          const total = calcs.reduce((s, c) => s + c.financedScope1 + c.financedScope2 + (c.financedScope3 || 0), 0);
+          return { value: total, detail: `${total.toFixed(1)} tCO2e across ${calcs.length} exposure(s)` };
+        }
+        case 'PCAF-EXPOSURES': {
+          const expCount = await prisma.financialExposure.count({ where: { companyId } });
+          return expCount > 0 ? { value: expCount, detail: `${expCount} exposure(s)` } : null;
+        }
+
         default: return null;
       }
     };
 
     // Build enriched KPI list
-    const kpis = pack.kpis.map((kpi) => {
-      const computed = computeValue(kpi.code);
-      return {
+    const kpis = [];
+    for (const kpi of pack.kpis) {
+      const computed = await computeValue(kpi.code);
+      kpis.push({
         id: kpi.id,
         code: kpi.code,
         name: kpi.name,
@@ -134,8 +178,8 @@ router.get('/kpis', async (req, res) => {
         computed: computed !== null,
         value: computed?.value ?? null,
         detail: computed?.detail ?? null,
-      };
-    });
+      });
+    }
 
     // Summary stats for the sector header
     const summary = {

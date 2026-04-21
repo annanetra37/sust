@@ -66,6 +66,8 @@ model Company {
   components       Component[]
   sectorSelection  CompanySectorSelection?
   suppliers        Supplier[]
+  realEstateAssets RealEstateAsset[]
+  financialExposures FinancialExposure[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -685,4 +687,115 @@ model SupplierDataRequest {
 
   @@index([supplierId])
   @@index([token])
+}
+
+// ─── Real Estate (RE-01) ────────────────────────────────────────
+// Asset-level granularity — each building is a reporting unit with its
+// own energy records, certifications, and CRREM stranding pathway.
+
+model RealEstateAsset {
+  id               String   @id @default(uuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name             String
+  assetClass       String   // office | retail | residential | industrial | logistics | hotel | mixed
+  tenure           String   // owned | leased
+  grossFloorAreaM2 Float
+  netLeasableM2    Float?
+  yearBuilt        Int?
+  yearAcquired     Int?
+  country          String
+  city             String
+  latitude         Float?
+  longitude        Float?
+  certifications   Json?    // [{ scheme: "LEED", level: "Gold", year: 2021 }]
+  tenantCount      Int?
+  occupancyPct     Float?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  energyRecords    AssetEnergyRecord[]
+  crremPathways    AssetCrremPathway[]
+
+  @@index([companyId])
+  @@index([companyId, assetClass])
+}
+
+model AssetEnergyRecord {
+  id         String          @id @default(uuid())
+  assetId    String
+  asset      RealEstateAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  year       Int
+  month      Int?
+  fuel       String   // electricity | natural_gas | district_heat | district_cool | oil
+  quantity   Float
+  unit       String   // kWh | m3 | litre | MWh
+  cost       Float?
+  currency   String?
+  sourceDoc  String?
+  createdAt  DateTime @default(now())
+
+  @@index([assetId, year])
+}
+
+model AssetCrremPathway {
+  id                 String          @id @default(uuid())
+  assetId            String
+  asset              RealEstateAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  pathway            String   // 1.5C | 2.0C
+  strandedFromYear   Int?     // null = safe past 2050
+  currentKgCo2ePerM2 Float
+  updatedAt          DateTime @updatedAt
+
+  @@unique([assetId, pathway])
+}
+
+// ─── Financial Services (FS-01) ─────────────────────────────────
+// PCAF methodology: 7 asset classes, each with its own attribution
+// formula.  FinancialExposure holds the position; FinancedEmissionsCalc
+// holds the per-exposure computed financed emissions.
+
+model FinancialExposure {
+  id                String   @id @default(uuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assetClass        String   // listed_equity | corp_bonds | business_loans | project_finance | commercial_re | mortgages | motor_vehicle_loans | sovereign
+  counterpartyName  String
+  counterpartyIsin  String?
+  counterpartyLei   String?
+  sector            String?  // NACE code
+  country           String?
+  outstandingAmount Float
+  currency          String
+  equityValue       Float?   // for attribution factor (listed equity)
+  totalBalanceSheet Float?   // for corp loans
+  epc               String?  // EPC rating for mortgages/CRE
+  evic              Float?   // enterprise value including cash
+  reportingYear     Int
+  dataQualityScore  Int      // PCAF 1 (best) to 5 (worst)
+  createdAt         DateTime @default(now())
+
+  financedEmissions FinancedEmissionsCalc[]
+
+  @@index([companyId, reportingYear])
+  @@index([companyId, assetClass])
+}
+
+model FinancedEmissionsCalc {
+  id                    String            @id @default(uuid())
+  exposureId            String
+  exposure              FinancialExposure @relation(fields: [exposureId], references: [id], onDelete: Cascade)
+  reportingYear         Int
+  attributionFactor     Float   // outstanding / EVIC or similar per PCAF
+  counterpartyScope1    Float?  // tCO2e total
+  counterpartyScope2    Float?
+  counterpartyScope3    Float?
+  financedScope1        Float
+  financedScope2        Float
+  financedScope3        Float?
+  waci                  Float?  // weighted avg carbon intensity
+  calcAt                DateTime @default(now())
+  factorSnapshot        Json
+
+  @@index([exposureId])
 }
