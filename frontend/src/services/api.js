@@ -238,6 +238,23 @@ const api = {
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
+  // Real Estate
+  getAssets: () => request('/real-estate/assets'),
+  getAsset: (id) => request(`/real-estate/assets/${id}`),
+  createAsset: (data) => request('/real-estate/assets', { method: 'POST', body: JSON.stringify(data) }),
+  deleteAsset: (id) => request(`/real-estate/assets/${id}`, { method: 'DELETE' }),
+  addEnergyRecord: (assetId, data) => request(`/real-estate/assets/${assetId}/energy`, { method: 'POST', body: JSON.stringify(data) }),
+  runCrrem: (assetId, scenario) => request(`/real-estate/assets/${assetId}/crrem`, { method: 'POST', body: JSON.stringify({ scenario }) }),
+  getPortfolioCrrem: () => request('/real-estate/portfolio/crrem'),
+
+  // Financial Services
+  getExposures: (year) => request(`/financial/exposures${year ? `?year=${year}` : ''}`),
+  getExposure: (id) => request(`/financial/exposures/${id}`),
+  createExposure: (data) => request('/financial/exposures', { method: 'POST', body: JSON.stringify(data) }),
+  deleteExposure: (id) => request(`/financial/exposures/${id}`, { method: 'DELETE' }),
+  calculatePcaf: (id, data) => request(`/financial/exposures/${id}/calculate`, { method: 'POST', body: JSON.stringify(data) }),
+  getFinancialPortfolio: (year) => request(`/financial/portfolio${year ? `?year=${year}` : ''}`),
+
   // Suppliers
   getSuppliers: () => request('/suppliers'),
   getSupplier: (id) => request(`/suppliers/${id}`),

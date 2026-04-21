@@ -45,6 +45,8 @@ app.use('/api/pcf', require('./routes/pcf'));
 app.use('/api/benchmarks', require('./routes/benchmarks'));
 app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/portal', require('./routes/supplierPortal'));
+app.use('/api/real-estate', require('./routes/realEstate'));
+app.use('/api/financial', require('./routes/financial'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
