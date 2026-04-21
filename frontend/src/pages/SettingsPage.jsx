@@ -197,7 +197,7 @@ export default function SettingsPage() {
             {STANDARDS.map((s) => (
               <button
                 key={s}
-                className={`p-3 rounded-lg border text-left transition-colors ${standard === s ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}
+                className={`p-3 rounded-lg border text-left transition-colors ${standard === s ? 'border-brand-500 bg-brand-50 dark:bg-brand-950' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
                 onClick={async () => { if (isAdmin) { await api.setEsgStandard(s); setStandard(s); } }}
               >
                 <p className="font-medium">{s}</p>
@@ -420,23 +420,23 @@ export default function SettingsPage() {
             </div>
           </div>
           <table className="w-full text-sm">
-            <thead className="border-b">
-              <tr>
-                <th className="text-left py-2">Type</th>
-                <th className="text-left py-2">Credits</th>
-                <th className="text-left py-2">User</th>
-                <th className="text-left py-2">Description</th>
-                <th className="text-left py-2">Date</th>
+            <thead className="border-b dark:border-gray-700">
+              <tr className="text-gray-700 dark:text-gray-300">
+                <th className="text-left py-2 font-medium">Type</th>
+                <th className="text-left py-2 font-medium">Credits</th>
+                <th className="text-left py-2 font-medium">User</th>
+                <th className="text-left py-2 font-medium">Description</th>
+                <th className="text-left py-2 font-medium">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody className="divide-y dark:divide-gray-800">
               {credits.transactions?.map((t) => (
                 <tr key={t.id}>
-                  <td className="py-2"><span className="badge bg-gray-100">{t.transactionType}</span></td>
-                  <td className="py-2 font-medium text-red-600">-{t.creditsUsed}</td>
-                  <td className="py-2 text-gray-500">{t.user?.firstName} {t.user?.lastName}</td>
-                  <td className="py-2 text-gray-500">{t.description}</td>
-                  <td className="py-2 text-gray-400">{new Date(t.createdAt).toLocaleDateString()}</td>
+                  <td className="py-2"><span className="badge bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{t.transactionType}</span></td>
+                  <td className="py-2 font-medium text-red-600 dark:text-red-400">-{t.creditsUsed}</td>
+                  <td className="py-2 text-gray-600 dark:text-gray-400">{t.user?.firstName} {t.user?.lastName}</td>
+                  <td className="py-2 text-gray-600 dark:text-gray-400">{t.description}</td>
+                  <td className="py-2 text-gray-500 dark:text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
