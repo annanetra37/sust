@@ -121,6 +121,8 @@ async function buildReportDocx({
   data,
   generateWithoutMissing,
   logoFilePath,
+  sectorKpiData,
+  pcfProducts,
 }) {
   const round = (n) => Math.round(n * 10000) / 10000;
 
@@ -269,8 +271,60 @@ async function buildReportDocx({
     }
   }
 
-  // ═══════════════ TOPIC SECTIONS ═══════════════
+  // ═══════════════ SECTOR KPIs + PCF SUMMARY (DOCX) ═══════════════
   let sectionNum = std.crossCutting.length > 0 ? 3 : 2;
+
+  if (sectorKpiData && sectorKpiData.kpis && sectorKpiData.kpis.length > 0) {
+    children.push(heading(`${sectionNum}. Industry-Specific Disclosures (${sectorKpiData.packName})`));
+    children.push(text(`This section presents the KPIs required by the ${sectorKpiData.packName} sector pack, spanning multiple reporting frameworks applicable to the ${company.industry} sector.`));
+    children.push(spacer());
+
+    const byFramework = {};
+    for (const kpi of sectorKpiData.kpis) {
+      if (!byFramework[kpi.framework]) byFramework[kpi.framework] = [];
+      byFramework[kpi.framework].push(kpi);
+    }
+    for (const [framework, kpis] of Object.entries(byFramework)) {
+      children.push(heading(framework, HeadingLevel.HEADING_2));
+      for (const kpi of kpis) {
+        children.push(text(`${kpi.code}: ${kpi.name}`, { bold: true }));
+        if (kpi.unit === 'narrative') {
+          children.push(text('[Narrative disclosure — to be completed]', { italics: true, color: '888888' }));
+        } else {
+          children.push(text(`Unit: ${kpi.unit} | Category: ${kpi.category}`, { color: '666666', size: 18 }));
+        }
+      }
+      children.push(spacer());
+    }
+    sectionNum++;
+  }
+
+  const productsWithCalcDocx = (pcfProducts || []).filter(p => p.calculations && p.calculations.length > 0);
+  if (productsWithCalcDocx.length > 0) {
+    children.push(heading(`${sectionNum}. Product Carbon Footprints`));
+    children.push(text(`${productsWithCalcDocx.length} product(s) have calculated carbon footprints using ISO 14067 / cradle-to-gate (A1–A3) methodology with Monte Carlo uncertainty analysis.`));
+    children.push(spacer());
+
+    for (const product of productsWithCalcDocx) {
+      const calc = product.calculations[0];
+      children.push(text(`${product.name} (${product.sku})`, { bold: true }));
+      children.push(text(`Functional unit: ${product.functionalUnit}`));
+      children.push(text(`Total PCF: ${calc.totalKgCo2e} kgCO2e (p50)  |  Range: ${calc.uncertaintyLow} – ${calc.uncertaintyHigh} kgCO2e (p5–p95)`));
+      children.push(text(`Primary data share: ${Math.round((calc.primaryDataPct || 0) * 100)}%  |  Status: ${calc.status}`));
+      const stages = calc.breakdownByStage || {};
+      if (Object.keys(stages).length > 0) {
+        children.push(text('Lifecycle stage breakdown:', { bold: true }));
+        for (const [stage, kg] of Object.entries(stages)) {
+          const pct = calc.totalKgCo2e > 0 ? ((kg / calc.totalKgCo2e) * 100).toFixed(1) : '0';
+          children.push(bullet(`${stage}: ${kg} kgCO2e (${pct}%)`));
+        }
+      }
+      children.push(spacer());
+    }
+    sectionNum++;
+  }
+
+  // ═══════════════ TOPIC SECTIONS ═══════════════
   for (const topicKey of selectedTopics) {
     const topic = std.topics[topicKey];
     if (!topic) continue;
@@ -876,6 +930,28 @@ router.post('/generate', async (req, res) => {
       }
     }
 
+    // ─── Sector KPI + PCF data for the report ──────────────────
+    // Fetch the company's active sector pack KPIs and any PCF calculations
+    // so they can be included in the report alongside standard disclosures.
+    let sectorKpiData = null;
+    let pcfProducts = [];
+    try {
+      const sectorSel = await prisma.companySectorSelection.findUnique({ where: { companyId: req.user.companyId } });
+      if (sectorSel) {
+        const pack = await prisma.sectorPack.findUnique({
+          where: { key: sectorSel.sectorKey },
+          include: { kpis: { orderBy: { sortOrder: 'asc' } } },
+        });
+        if (pack) sectorKpiData = { packName: pack.name, sectorKey: sectorSel.sectorKey, kpis: pack.kpis };
+      }
+      pcfProducts = await prisma.product.findMany({
+        where: { companyId: req.user.companyId },
+        include: { calculations: { orderBy: { runAt: 'desc' }, take: 1 } },
+      });
+    } catch (err) {
+      console.warn('[Report] Sector/PCF data fetch failed (non-fatal):', err.message);
+    }
+
     // ─── DOCX branch ──────────────────────────────────────────
     // Build a Word document from the same data and return early.  Credit
     // deduction + activity logging mirror the PDF path below.
@@ -899,6 +975,8 @@ router.post('/generate', async (req, res) => {
         data,
         generateWithoutMissing,
         logoFilePath,
+        sectorKpiData,
+        pcfProducts,
       });
 
       res.setHeader(
@@ -1075,6 +1153,88 @@ router.post('/generate', async (req, res) => {
         doc.text(`  • ${m.code} — ${m.name}`, { indent: 10 });
       }
       doc.moveDown(1);
+    }
+
+    // ═══════════════ SECTOR KPIs + PCF SUMMARY ═══════════════
+    // Include industry-specific KPIs and product carbon footprint data
+    // in the report when a sector pack is active or PCF data exists.
+    if (sectorKpiData || pcfProducts.length > 0) {
+      doc.addPage();
+      let sectorSectionNum = std.crossCutting.length > 0 ? 3 : 2;
+
+      if (sectorKpiData && sectorKpiData.kpis.length > 0) {
+        doc.fontSize(20).font('Helvetica-Bold').fillColor('#003700')
+           .text(`${sectorSectionNum}. Industry-Specific Disclosures (${sectorKpiData.packName})`);
+        doc.moveDown(0.5);
+        doc.fontSize(10).font('Helvetica').fillColor('#333');
+        doc.text(`This section presents the KPIs required by the ${sectorKpiData.packName} sector pack. These metrics span multiple reporting frameworks applicable to the ${company.industry} sector.`);
+        doc.moveDown(1);
+
+        // Group KPIs by framework
+        const byFramework = {};
+        for (const kpi of sectorKpiData.kpis) {
+          if (!byFramework[kpi.framework]) byFramework[kpi.framework] = [];
+          byFramework[kpi.framework].push(kpi);
+        }
+
+        for (const [framework, kpis] of Object.entries(byFramework)) {
+          if (doc.y > 680) doc.addPage();
+          doc.fontSize(12).font('Helvetica-Bold').fillColor('#003700').text(framework);
+          doc.moveDown(0.3);
+
+          for (const kpi of kpis) {
+            if (doc.y > 720) doc.addPage();
+            doc.fontSize(10).font('Helvetica-Bold').fillColor('#333').text(`${kpi.code}: ${kpi.name}`);
+            doc.fontSize(9).font('Helvetica').fillColor('#666');
+            if (kpi.unit === 'narrative') {
+              doc.text(`  [Narrative disclosure — to be completed]`);
+            } else {
+              doc.text(`  Unit: ${kpi.unit} | Category: ${kpi.category}`);
+              if (kpi.formula) doc.text(`  Computation: ${kpi.formula}`);
+            }
+            doc.moveDown(0.5);
+          }
+          doc.moveDown(0.5);
+        }
+        sectorSectionNum++;
+      }
+
+      // PCF summary
+      const productsWithCalc = pcfProducts.filter(p => p.calculations && p.calculations.length > 0);
+      if (productsWithCalc.length > 0) {
+        if (doc.y > 600) doc.addPage();
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('#003700')
+           .text(`${sectorSectionNum}. Product Carbon Footprints`);
+        doc.moveDown(0.5);
+        doc.fontSize(10).font('Helvetica').fillColor('#333');
+        doc.text(`${productsWithCalc.length} product(s) have calculated carbon footprints using the ISO 14067 / cradle-to-gate (A1–A3) methodology with Monte Carlo uncertainty analysis (1,000 iterations).`);
+        doc.moveDown(0.5);
+
+        for (const product of productsWithCalc) {
+          if (doc.y > 680) doc.addPage();
+          const calc = product.calculations[0];
+          doc.fontSize(11).font('Helvetica-Bold').fillColor('#333')
+             .text(`${product.name} (${product.sku})`);
+          doc.fontSize(10).font('Helvetica').fillColor('#333');
+          doc.text(`  Functional unit: ${product.functionalUnit}`);
+          doc.text(`  Total PCF: ${calc.totalKgCo2e} kgCO2e (p50)`);
+          doc.text(`  Uncertainty range: ${calc.uncertaintyLow} – ${calc.uncertaintyHigh} kgCO2e (p5–p95)`);
+          doc.text(`  Primary data share: ${Math.round((calc.primaryDataPct || 0) * 100)}%`);
+          doc.text(`  Status: ${calc.status}`);
+
+          // Stage breakdown
+          const stages = calc.breakdownByStage || {};
+          if (Object.keys(stages).length > 0) {
+            doc.moveDown(0.2);
+            doc.text(`  Lifecycle stage breakdown:`);
+            for (const [stage, kg] of Object.entries(stages)) {
+              const pct = calc.totalKgCo2e > 0 ? ((kg / calc.totalKgCo2e) * 100).toFixed(1) : '0';
+              doc.text(`    ${stage}: ${kg} kgCO2e (${pct}%)`, { indent: 15 });
+            }
+          }
+          doc.moveDown(0.8);
+        }
+      }
     }
 
     // ═══════════════ TOPIC SECTIONS ═══════════════
