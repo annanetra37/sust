@@ -183,7 +183,7 @@ export default function Connections() {
             <connector.icon className={`w-6 h-6 ${connector.color}`} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Connect to {connector.label}</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Connect to {connector.label}</h1>
             <p className="text-sm text-gray-500">{connector.desc}</p>
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function Connections() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Data Connections</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Connections</h1>
         <p className="text-gray-500">Connect your source systems to automatically pull sustainability data</p>
       </div>
 
@@ -342,7 +342,7 @@ export default function Connections() {
                     <ConnIcon className={`w-5 h-5 ${connInfo?.color || 'text-gray-500'}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{c.name}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{c.name}</p>
                     <p className="text-xs text-gray-400">{connInfo?.label || c.type} {c.lastSyncAt ? `· Last sync: ${new Date(c.lastSyncAt).toLocaleDateString()}` : ''}</p>
                   </div>
                   <span className={`badge flex items-center gap-1 ${c.status === 'connected' ? 'bg-green-100 text-green-700' : c.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -384,7 +384,7 @@ export default function Connections() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-gray-900">{connector.label}</p>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">{connector.label}</p>
                       {connector.coming && <span className="badge bg-gray-100 text-gray-500">Coming Soon</span>}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{connector.desc}</p>

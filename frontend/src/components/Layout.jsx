@@ -102,7 +102,9 @@ export default function Layout() {
                     onClick={() => toggle(item.label)}
                     className={clsx(
                       'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
-                      isActive || isExpanded ? item.activeBg || 'bg-gray-100' : `hover:${item.bg || 'bg-gray-50'} text-gray-700 dark:text-gray-300`,
+                      isActive || isExpanded
+                        ? item.activeBg || 'bg-gray-100 dark:bg-gray-800'
+                        : `hover:${item.bg || 'bg-gray-50 dark:bg-gray-800'} text-gray-700 dark:text-gray-300`,
                     )}
                   >
                     <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', item.iconBg)}>
@@ -144,7 +146,9 @@ export default function Layout() {
                 title={locked ? `Upgrade required to unlock ${item.label}` : undefined}
                 className={clsx(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  location.pathname === item.path ? 'bg-brand-50 text-brand-700' : 'text-gray-600 hover:bg-gray-50',
+                  location.pathname === item.path
+                    ? 'bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
                   locked && 'opacity-60'
                 )}
               >

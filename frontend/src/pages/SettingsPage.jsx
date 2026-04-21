@@ -108,11 +108,11 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
 
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit flex-wrap">
         {tabs.map((t) => (
-          <button key={t.key} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${tab === t.key ? 'bg-white shadow-sm' : 'text-gray-500'}`} onClick={() => setTab(t.key)}>
+          <button key={t.key} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${tab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`} onClick={() => setTab(t.key)}>
             {t.label}
             {t.tip && <InfoTip>{t.tip}</InfoTip>}
           </button>

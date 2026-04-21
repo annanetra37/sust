@@ -65,7 +65,7 @@ export default function SBTiTargets() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">SBTi Decarbonization Targets</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SBTi Decarbonization Targets</h1>
           <p className="text-gray-500">Set Science Based Targets for emissions reduction</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
@@ -202,7 +202,7 @@ export default function SBTiTargets() {
                       <Target className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{t.scope} — {methodInfo.label || t.method}</h3>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t.scope} — {methodInfo.label || t.method}</h3>
                       <p className="text-sm text-gray-500 mt-0.5">{t.description || `${t.reductionPct}% reduction from ${t.baseYear} to ${t.targetYear}`}</p>
                     </div>
                   </div>
