@@ -40,7 +40,7 @@ export default function S1Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">S1 — Own Workforce</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">S1 — Own Workforce</h1>
           <p className="text-gray-500">Workforce composition, diversity, training, and turnover analytics</p>
         </div>
         <div className="flex flex-col gap-2">

@@ -115,7 +115,7 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">User Management</h1>
         <button className="btn-primary flex items-center gap-2" onClick={openInviteModal}>
           <UserPlus className="w-4 h-4" /> Invite User
         </button>
@@ -200,7 +200,7 @@ export default function UsersPage() {
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
                           <tr>
                             <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
                             <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
@@ -265,7 +265,7 @@ export default function UsersPage() {
             <h2 className="text-lg font-bold">Edit Permissions</h2>
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
                     <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">View</th>
