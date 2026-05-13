@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useT } from '../i18n';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck
+  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -13,62 +14,66 @@ import { LogoFull } from './Logo';
 import TierBadge from './TierBadge';
 import { hasFeature, normaliseTier } from '../config/tierFeatures';
 
-const NAV = [
-  { label: 'Home', path: '/', icon: LayoutDashboard },
-  { label: 'Analytics', path: '/analytics', icon: BarChart3 },
-  {
-    label: 'Environmental', icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',
-    bg: 'bg-emerald-50 dark:bg-emerald-950/50', activeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
-    iconBg: 'bg-emerald-100 dark:bg-emerald-900',
-    children: [
-      { label: 'Climate & Emissions', path: '/dashboard/E/environmental-1' },
-      { label: 'Product Carbon Footprint', path: '/pcf' },
-      { label: 'Pollution & Waste', path: '/coming-soon', badge: 'Soon' },
-      { label: 'Water Resources', path: '/coming-soon', badge: 'Soon' },
-      { label: 'Biodiversity', path: '/coming-soon', badge: 'Soon' },
-      { label: 'Circular Economy', path: '/coming-soon', badge: 'Soon' },
-    ],
-  },
-  {
-    label: 'Social', icon: Users2, color: 'text-indigo-600 dark:text-indigo-400',
-    bg: 'bg-indigo-50 dark:bg-indigo-950/50', activeBg: 'bg-indigo-100 dark:bg-indigo-900/50',
-    iconBg: 'bg-indigo-100 dark:bg-indigo-900',
-    children: [
-      { label: 'Workforce & Employees', path: '/dashboard/S/social-1' },
-      { label: 'Supply Chain Labor', path: '/coming-soon', badge: 'Soon' },
-      { label: 'Community Impact', path: '/coming-soon', badge: 'Soon' },
-      { label: 'Consumer Protection', path: '/coming-soon', badge: 'Soon' },
-    ],
-  },
-  {
-    label: 'Governance', icon: Shield, color: 'text-amber-600 dark:text-amber-400',
-    bg: 'bg-amber-50 dark:bg-amber-950/50', activeBg: 'bg-amber-100 dark:bg-amber-900/50',
-    iconBg: 'bg-amber-100 dark:bg-amber-900',
-    children: [
-      { label: 'Board & Leadership', path: '/coming-soon', badge: 'Enterprise' },
-      { label: 'Ethics & Compliance', path: '/coming-soon', badge: 'Enterprise' },
-    ],
-  },
-  { label: 'SBTi Targets', path: '/sbti-targets', icon: Target },
-  { label: 'Reports', path: '/reports', icon: FileText },
-  { label: 'Sustainability ROI', path: '/roi', icon: TrendingUp, feature: 'sustainability_roi' },
-  { label: 'Suppliers', path: '/suppliers', icon: Truck },
-  { label: 'Data Connections', path: '/connections', icon: Database, feature: 'db_connections' },
-  { label: 'Data Lineage', path: '/lineage', icon: GitBranch, feature: 'audit_lineage' },
-  { label: 'History', path: '/history', icon: History },
-  { label: 'Activity Log', path: '/activity-log', icon: Activity, adminOnly: true },
-  { label: 'Users', path: '/users', icon: Users2, adminOnly: true },
-  { label: 'Settings', path: '/settings', icon: Settings },
-];
+function buildNav(t) {
+  return [
+    { label: t('nav.home'), path: '/', icon: LayoutDashboard },
+    { label: t('nav.analytics'), path: '/analytics', icon: BarChart3 },
+    {
+      label: t('nav.environmental'), icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-50 dark:bg-emerald-950/50', activeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900',
+      children: [
+        { label: t('nav.climateEmissions'), path: '/dashboard/E/environmental-1' },
+        { label: t('nav.productCarbonFootprint'), path: '/pcf' },
+        { label: t('nav.pollutionWaste'), path: '/coming-soon', badge: t('nav.soon') },
+        { label: t('nav.waterResources'), path: '/coming-soon', badge: t('nav.soon') },
+        { label: t('nav.biodiversity'), path: '/coming-soon', badge: t('nav.soon') },
+        { label: t('nav.circularEconomy'), path: '/coming-soon', badge: t('nav.soon') },
+      ],
+    },
+    {
+      label: t('nav.social'), icon: Users2, color: 'text-indigo-600 dark:text-indigo-400',
+      bg: 'bg-indigo-50 dark:bg-indigo-950/50', activeBg: 'bg-indigo-100 dark:bg-indigo-900/50',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-900',
+      children: [
+        { label: t('nav.workforceEmployees'), path: '/dashboard/S/social-1' },
+        { label: t('nav.supplyChainLabor'), path: '/coming-soon', badge: t('nav.soon') },
+        { label: t('nav.communityImpact'), path: '/coming-soon', badge: t('nav.soon') },
+        { label: t('nav.consumerProtection'), path: '/coming-soon', badge: t('nav.soon') },
+      ],
+    },
+    {
+      label: t('nav.governance'), icon: Shield, color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-50 dark:bg-amber-950/50', activeBg: 'bg-amber-100 dark:bg-amber-900/50',
+      iconBg: 'bg-amber-100 dark:bg-amber-900',
+      children: [
+        { label: t('nav.boardLeadership'), path: '/coming-soon', badge: t('nav.enterprise') },
+        { label: t('nav.ethicsCompliance'), path: '/coming-soon', badge: t('nav.enterprise') },
+      ],
+    },
+    { label: t('nav.sbtiTargets'), path: '/sbti-targets', icon: Target },
+    { label: t('nav.reports'), path: '/reports', icon: FileText },
+    { label: t('nav.sustainabilityRoi'), path: '/roi', icon: TrendingUp, feature: 'sustainability_roi' },
+    { label: t('nav.suppliers'), path: '/suppliers', icon: Truck },
+    { label: t('nav.dataConnections'), path: '/connections', icon: Database, feature: 'db_connections' },
+    { label: t('nav.dataLineage'), path: '/lineage', icon: GitBranch, feature: 'audit_lineage' },
+    { label: t('nav.history'), path: '/history', icon: History },
+    { label: t('nav.activityLog'), path: '/activity-log', icon: Activity, adminOnly: true },
+    { label: t('nav.users'), path: '/users', icon: Users2, adminOnly: true },
+    { label: t('nav.settings'), path: '/settings', icon: Settings },
+  ];
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { dark, toggle: toggleTheme } = useTheme();
+  const { t, lang, setLang } = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expanded, setExpanded] = useState({});
   const currentTier = normaliseTier(user?.company?.tier);
+  const NAV = buildNav(t);
 
   const toggle = (label) => setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
 
@@ -185,6 +190,14 @@ export default function Layout() {
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3 text-sm">
+            {/* Language switcher */}
+            <button
+              onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title={t('language.' + (lang === 'de' ? 'en' : 'de'))}
+            >
+              <span className="text-[10px] font-bold uppercase">{lang === 'de' ? 'EN' : 'DE'}</span>
+            </button>
             <button
               onClick={toggleTheme}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -194,7 +207,7 @@ export default function Layout() {
             </button>
             <TierBadge tier={currentTier} size="md" />
             <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
-              {user?.company?.creditBalance ?? 0} credits
+              {user?.company?.creditBalance ?? 0} {t('common.credits')}
             </span>
             <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{user?.role}</span>
           </div>

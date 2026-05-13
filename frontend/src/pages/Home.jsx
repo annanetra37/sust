@@ -7,6 +7,7 @@ import { HelpBanner, InfoTip } from '../components/HelpSystem';
 import api from '../services/api';
 import SectorPicker from '../components/SectorPicker';
 import SectorKpiTiles from '../components/SectorKpiTiles';
+import { useT } from '../i18n';
 
 const PILLARS = [
   {
@@ -42,6 +43,7 @@ const PILLARS = [
 
 export default function Home() {
   const { user } = useAuth();
+  const { t } = useT();
   const [expanded, setExpanded] = useState({ E: true, S: true, G: false });
   const [standard, setStandard] = useState('');
   const [sectorStatus, setSectorStatus] = useState(null);
@@ -57,18 +59,16 @@ export default function Home() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Welcome back, {user?.firstName}</h1>
-        <p className="text-gray-500 mt-1">ESG Data Management & Reporting Platform</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('home.welcomeBack', { name: user?.firstName })}</h1>
+        <p className="text-gray-500 mt-1">{t('home.subtitle')}</p>
       </div>
 
       <HelpBanner
         id="home-welcome"
-        title="Welcome to the Triple I ESG Portal"
+        title={t('home.welcomeTitle')}
         variant="tip"
       >
-        Start by uploading workforce data (S1) or emissions data (E1) using the modules below.
-        Our AI will automatically clean and structure your data, no matter the format or language.
-        Click the chat bubble in the bottom-right corner anytime to ask your AI assistant for help.
+        {t('home.welcomeBody')}
       </HelpBanner>
 
       {/* Sector pack onboarding — only shown if the company hasn't picked one yet. */}
@@ -80,7 +80,7 @@ export default function Home() {
                 <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400" />
               </div>
               <div>
-                <h3 className="font-bold text-gray-900 dark:text-gray-100">Pick your industry to unlock sector-specific KPIs</h3>
+                <h3 className="font-bold text-gray-900 dark:text-gray-100">{t('home.pickIndustry')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                   Each pack adds the right materiality starters, emission factors, and disclosure templates
                   for your sector. You can change this later in Settings.
@@ -112,7 +112,7 @@ export default function Home() {
               onClick={() => setShowSectorPicker(true)}
               className="btn-primary inline-flex items-center gap-2"
             >
-              Choose sector
+              {t('home.chooseSector')}
               <ArrowRight className="w-4 h-4" />
             </button>
           )}
