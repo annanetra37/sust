@@ -395,6 +395,10 @@
 
   "language": {
     "en": "English",
-    "de": "Deutsch"
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "sv": "Svenska",
+    "ar": "العربية"
   }
 }
