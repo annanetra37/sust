@@ -5,8 +5,10 @@ import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import CreditPreview from '../components/CreditPreview';
 import TierBadge from '../components/TierBadge';
+import { useT } from '../i18n';
 
 export default function Reports() {
+  const { t } = useT();
   const [standards, setStandards] = useState([]);
   const [selectedStandard, setSelectedStandard] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
@@ -132,8 +134,8 @@ export default function Reports() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">ESG Report Generation</h1>
-        <p className="text-gray-500 dark:text-gray-400">Generate standard-compliant sustainability reports from your connected data</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('reports.title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400">{t('reports.subtitle')}</p>
       </div>
 
       {/* Success message */}
@@ -141,9 +143,9 @@ export default function Reports() {
         <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
           <CheckCircle className="w-6 h-6 text-green-500 shrink-0" />
           <div>
-            <p className="font-semibold text-green-800 dark:text-green-300">Report generated and downloaded!</p>
+            <p className="font-semibold text-green-800 dark:text-green-300">{t('reports.reportGenerated')}</p>
             <p className="text-sm text-green-600 dark:text-green-400">
-              Check your downloads folder for the {exportFormat === 'docx' ? 'Word document' : 'PDF'}.
+              {t('reports.checkDownloads', { format: exportFormat === 'docx' ? t('reports.wordDocument') : 'PDF' })}
             </p>
           </div>
         </div>
@@ -220,7 +222,7 @@ export default function Reports() {
 
         {/* Export format selection */}
         <div>
-          <FieldLabel label="Export Format" required info="Choose whether to download the report as a PDF or editable Word document (.docx)." />
+          <FieldLabel label={t('reports.exportFormat')} required info={t('reports.exportFormatInfo')} />
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -233,9 +235,9 @@ export default function Reports() {
             >
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-red-500" />
-                <p className="font-semibold text-sm">PDF Document</p>
+                <p className="font-semibold text-sm">{t('reports.pdfDocument')}</p>
               </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Print-ready report with charts and visualisations (.pdf)</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{t('reports.pdfDesc')}</p>
             </button>
             <button
               type="button"
@@ -248,9 +250,9 @@ export default function Reports() {
             >
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-500" />
-                <p className="font-semibold text-sm">Word Document</p>
+                <p className="font-semibold text-sm">{t('reports.wordDocument')}</p>
               </div>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Editable Microsoft Word file you can customise (.docx)</p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{t('reports.wordDesc')}</p>
             </button>
           </div>
         </div>

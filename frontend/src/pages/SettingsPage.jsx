@@ -6,11 +6,13 @@ import { Plus, Trash2, AlertTriangle, Search, Loader2, Upload } from 'lucide-rea
 import { InfoTip } from '../components/HelpSystem';
 import COUNTRIES from '../utils/countries';
 import SectorPicker from '../components/SectorPicker';
+import { useT } from '../i18n';
 
 const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { t } = useT();
   const isAdmin = user?.role === 'ADMIN';
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'org-units';
@@ -98,17 +100,17 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { key: 'org-units', label: 'Organizational Units', tip: 'Business units, offices, or subsidiaries' },
-    { key: 'branding', label: 'Company Branding', tip: 'Upload company logo for reports' },
-    { key: 'standards', label: 'ESG Standards', tip: 'The reporting framework used for compliance reports' },
-    { key: 'sector', label: 'Sector Pack', tip: 'Which industry pack (KPIs, materiality starters, factors) is active' },
-    { key: 'reset', label: 'Data Reset', tip: 'Permanently delete uploaded data by year' },
-    { key: 'credits', label: 'Credit Transactions', tip: 'View credit usage history and remaining balance' },
+    { key: 'org-units', label: t('settings.orgUnits'), tip: t('settings.orgUnitsDesc') },
+    { key: 'branding', label: t('settings.branding'), tip: t('settings.brandingDesc') },
+    { key: 'standards', label: t('settings.standards'), tip: t('settings.standardsDesc') },
+    { key: 'sector', label: t('settings.sectorPack'), tip: t('settings.sectorPackDesc') },
+    { key: 'reset', label: t('settings.dataReset'), tip: t('settings.dataResetDesc') },
+    { key: 'credits', label: t('settings.creditTransactions'), tip: t('settings.creditTransactionsDesc') },
   ];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h1>
 
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit flex-wrap">
         {tabs.map((t) => (

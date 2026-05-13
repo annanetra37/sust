@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import { useT } from '../i18n';
 import {
   Loader2, CheckCircle, Clock, Sparkles, ChevronDown, ChevronUp,
   Info, X, FileText, BarChart3, Hash, Filter, Layers,
@@ -116,6 +117,7 @@ function KpiPopup({ kpi, onClose }) {
 }
 
 export default function SectorKpiTiles({ year, className = '' }) {
+  const { t } = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sectionOpen, setSectionOpen] = useState(false);
@@ -165,7 +167,7 @@ export default function SectorKpiTiles({ year, className = '' }) {
               {data.packName} KPIs
             </h3>
             <p className="text-[10px] text-gray-500 dark:text-gray-400">
-              {sectionOpen ? 'Click to collapse' : `${data.kpis.length} industry metrics · Click to expand`}
+              {sectionOpen ? t('sectorKpis.clickToCollapse') : `${data.kpis.length} ${t('sectorKpis.industryMetrics')} · ${t('sectorKpis.clickToExpand')}`}
             </p>
           </div>
           <span className="text-[10px] text-gray-400 hidden sm:inline">v{data.packVersion}</span>
@@ -254,7 +256,7 @@ export default function SectorKpiTiles({ year, className = '' }) {
             <div className="space-y-2">
               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-500" />
-                Not yet reported ({pendingKpis.length})
+                {t('sectorKpis.notYetReported')} ({pendingKpis.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 {visiblePending.map((kpi) => (
