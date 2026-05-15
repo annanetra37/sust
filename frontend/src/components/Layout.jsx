@@ -16,10 +16,10 @@ import { hasFeature, normaliseTier } from '../config/tierFeatures';
 
 function buildNav(t) {
   return [
-    { label: t('nav.home'), path: '/', icon: LayoutDashboard },
-    { label: t('nav.analytics'), path: '/analytics', icon: BarChart3 },
+    { key: 'home', label: t('nav.home'), path: '/', icon: LayoutDashboard },
+    { key: 'analytics', label: t('nav.analytics'), path: '/analytics', icon: BarChart3 },
     {
-      label: t('nav.environmental'), icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',
+      key: 'environmental', label: t('nav.environmental'), icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-50 dark:bg-emerald-950/50', activeBg: 'bg-emerald-100 dark:bg-emerald-900/50',
       iconBg: 'bg-emerald-100 dark:bg-emerald-900',
       children: [
@@ -32,7 +32,7 @@ function buildNav(t) {
       ],
     },
     {
-      label: t('nav.social'), icon: Users2, color: 'text-indigo-600 dark:text-indigo-400',
+      key: 'social', label: t('nav.social'), icon: Users2, color: 'text-indigo-600 dark:text-indigo-400',
       bg: 'bg-indigo-50 dark:bg-indigo-950/50', activeBg: 'bg-indigo-100 dark:bg-indigo-900/50',
       iconBg: 'bg-indigo-100 dark:bg-indigo-900',
       children: [
@@ -43,7 +43,7 @@ function buildNav(t) {
       ],
     },
     {
-      label: t('nav.governance'), icon: Shield, color: 'text-amber-600 dark:text-amber-400',
+      key: 'governance', label: t('nav.governance'), icon: Shield, color: 'text-amber-600 dark:text-amber-400',
       bg: 'bg-amber-50 dark:bg-amber-950/50', activeBg: 'bg-amber-100 dark:bg-amber-900/50',
       iconBg: 'bg-amber-100 dark:bg-amber-900',
       children: [
@@ -67,7 +67,7 @@ function buildNav(t) {
 export default function Layout() {
   const { user, logout } = useAuth();
   const { dark, toggle: toggleTheme } = useTheme();
-  const { t, lang, setLang } = useT();
+  const { t, lang, setLang, supportedLangs } = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -75,7 +75,7 @@ export default function Layout() {
   const currentTier = normaliseTier(user?.company?.tier);
   const NAV = buildNav(t);
 
-  const toggle = (label) => setExpanded((prev) => ({ ...prev, [label]: !prev[label] }));
+  const toggle = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const handleLogout = async () => {
     await logout();
@@ -98,13 +98,14 @@ export default function Layout() {
             if (item.adminOnly && user?.role !== 'ADMIN') return null;
 
             if (item.children) {
-              const isExpanded = expanded[item.label];
+              const navKey = item.key || item.label;
+              const isExpanded = expanded[navKey];
               const isActive = item.children.some((c) => location.pathname === c.path);
 
               return (
-                <div key={item.label} className="mt-1">
+                <div key={navKey} className="mt-1">
                   <button
-                    onClick={() => toggle(item.label)}
+                    onClick={() => toggle(navKey)}
                     className={clsx(
                       'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all',
                       isActive || isExpanded
@@ -190,14 +191,19 @@ export default function Layout() {
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3 text-sm">
-            {/* Language switcher */}
-            <button
-              onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              title={t('language.' + (lang === 'de' ? 'en' : 'de'))}
-            >
-              <span className="text-[10px] font-bold uppercase">{lang === 'de' ? 'EN' : 'DE'}</span>
-            </button>
+            {/* Language switcher dropdown */}
+            <div className="relative">
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value)}
+                className="appearance-none bg-transparent text-[11px] font-bold uppercase text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer pr-4 pl-1 py-1 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                title="Language"
+              >
+                {supportedLangs.map((l) => (
+                  <option key={l} value={l}>{l.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={toggleTheme}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

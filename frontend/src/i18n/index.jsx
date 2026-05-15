@@ -1,9 +1,14 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import en from './en.json';
 import de from './de.json';
+import fr from './fr.json';
+import es from './es.json';
+import sv from './sv.json';
+import ar from './ar.json';
 
-const TRANSLATIONS = { en, de };
-const SUPPORTED_LANGS = ['en', 'de'];
+const TRANSLATIONS = { en, de, fr, es, sv, ar };
+const SUPPORTED_LANGS = ['en', 'de', 'fr', 'es', 'sv', 'ar'];
+const LANG_LABELS = { en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español', sv: 'Svenska', ar: 'العربية' };
 const STORAGE_KEY = 'triplei_lang';
 
 function getInitialLang() {
@@ -50,7 +55,7 @@ export function LanguageProvider({ children }) {
   }, [lang]);
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, t, supportedLangs: SUPPORTED_LANGS }}>
+    <LanguageContext.Provider value={{ lang, setLang, t, supportedLangs: SUPPORTED_LANGS, langLabels: LANG_LABELS }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -60,4 +65,4 @@ export function useT() {
   return useContext(LanguageContext);
 }
 
-export { SUPPORTED_LANGS };
+export { SUPPORTED_LANGS, LANG_LABELS };

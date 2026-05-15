@@ -53,7 +53,6 @@
     "learnMore": "Learn more",
     "tryExample": "Try an example"
   },
-
   "nav": {
     "home": "Home",
     "analytics": "Analytics",
@@ -86,7 +85,6 @@
     "soon": "Soon",
     "enterprise": "Enterprise"
   },
-
   "home": {
     "welcomeBack": "Welcome back, {name}",
     "subtitle": "ESG Data Management & Reporting Platform",
@@ -101,7 +99,6 @@
     "activeModulesTooltip": "Currently E1 (Climate Change) and S1 (Own Workforce) are active. Other modules are coming soon or available with Enterprise.",
     "reportingStandard": "Reporting Standard"
   },
-
   "dashboard": {
     "e1Title": "Environmental: Climate Change",
     "e1Subtitle": "GHG emissions, carbon footprint analysis, and SBTi targets",
@@ -131,7 +128,6 @@
     "visuals": "Visuals",
     "data": "Data"
   },
-
   "reports": {
     "title": "ESG Report Generation",
     "subtitle": "Generate standard-compliant sustainability reports from your connected data",
@@ -165,7 +161,6 @@
     "buildingReport": "Building your {standard} report for {year}",
     "compilingDisclosures": "Compiling disclosures, formatting metrics, generating narrative sections, and assembling the final document..."
   },
-
   "settings": {
     "title": "Settings",
     "orgUnits": "Organizational Units",
@@ -206,7 +201,6 @@
     "confirmDelete": "Confirm & Delete",
     "typeYearToConfirm": "This action cannot be undone. Type the year below to confirm:"
   },
-
   "pcf": {
     "title": "Product Carbon Footprints",
     "subtitle": "Manage products and their lifecycle carbon footprints",
@@ -280,7 +274,6 @@
     "generateCredits": "Generate (2 credits)",
     "generatingBom": "Generating BOM..."
   },
-
   "roi": {
     "title": "Sustainability ROI Module",
     "subtitle": "Let the platform prove the business case for sustainability.",
@@ -313,7 +306,6 @@
     "saveAssumptions": "Save assumptions",
     "addRevenue": "Add revenue"
   },
-
   "suppliers": {
     "title": "Supplier Scope 3 Portal",
     "subtitle": "Collect primary emissions data directly from your supply chain",
@@ -337,7 +329,6 @@
     "approveIngest": "Approve & Ingest",
     "responseRate": "Response rate"
   },
-
   "auth": {
     "createAccount": "Create Account",
     "step1": "Step 1 of 2 — Personal Information",
@@ -362,7 +353,6 @@
     "login": "Sign In",
     "forgotPassword": "Forgot Password?"
   },
-
   "sectorKpis": {
     "kpis": "KPIs",
     "industryMetrics": "industry metrics",
@@ -380,7 +370,6 @@
     "notReportedDesc": "Not yet reported — this metric doesn't have data in the system yet. Upload the relevant data through the appropriate module, or enter it manually in your next reporting cycle.",
     "quantitative": "Quantitative"
   },
-
   "featureLock": {
     "isFeature": "is a {tier} feature",
     "currentPlan": "You're currently on the {current} plan. Upgrade to {required} to unlock {feature} and the rest of the {required} feature set.",
@@ -392,9 +381,12 @@
     "requestSentDesc": "Our team has been notified and will reach out to you shortly to discuss upgrading to the {tier} plan.",
     "teamContact": "Our team will contact you within 1 business day."
   },
-
   "language": {
     "en": "English",
-    "de": "Deutsch"
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "sv": "Svenska",
+    "ar": "العربية"
   }
 }

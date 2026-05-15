@@ -10,11 +10,13 @@ import {
 } from 'recharts';
 import OrgYearFilter from '../components/OrgYearFilter';
 import SectorKpiTiles from '../components/SectorKpiTiles';
+import { useT } from '../i18n';
 
 const SCOPE_COLORS = { 'Scope 1': '#ef4444', 'Scope 2': '#f59e0b', 'Scope 3': '#3b82f6' };
 const TREE_COLORS = ['#10b981', '#06b6d4', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#64748b'];
 
 export default function E1Dashboard() {
+  const { t } = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
@@ -47,16 +49,16 @@ export default function E1Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Environmental: Climate Change</h1>
-          <p className="text-gray-500">GHG emissions, carbon footprint analysis, and SBTi targets</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('dashboard.e1Title')}</h1>
+          <p className="text-gray-500">{t('dashboard.e1Subtitle')}</p>
         </div>
         <div className="flex flex-col gap-2">
           <Link to="/platform/E/environmental-1" className="btn-primary flex items-center justify-center gap-2">
-            <Upload className="w-4 h-4" /> Connect Data
+            <Upload className="w-4 h-4" /> {t('dashboard.connectData')}
           </Link>
           <div className="flex gap-1.5">
             <button onClick={() => { window.print(); }} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Save dashboard with all visuals as PDF (browser print dialog)">
-              <FileImage className="w-3.5 h-3.5" /> Visuals
+              <FileImage className="w-3.5 h-3.5" /> {t('dashboard.visuals')}
             </button>
             <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Download raw KPI data as Excel spreadsheet">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Data
@@ -76,7 +78,7 @@ export default function E1Dashboard() {
         <div className="stat-card">
           <Factory className="w-5 h-5 text-emerald-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Total GHG Emissions</span>
+            <span className="text-sm text-gray-500">{t('dashboard.totalGhg')}</span>
             <InfoTip>Total across all scopes for the selected year.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEmissions < 0.1 ? stats.totalEmissions.toFixed(4) : stats.totalEmissions.toFixed(2)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
@@ -84,7 +86,7 @@ export default function E1Dashboard() {
         <div className="stat-card">
           <TrendingUp className="w-5 h-5 text-amber-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">GHG Intensity</span>
+            <span className="text-sm text-gray-500">{t('dashboard.ghgIntensity')}</span>
             <InfoTip>Emissions per employee. Lower is better.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.intensity} <span className="text-sm font-normal text-gray-400">tCO2e/emp</span></span>
@@ -92,7 +94,7 @@ export default function E1Dashboard() {
         <div className="stat-card">
           <Factory className="w-5 h-5 text-orange-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Total Energy Consumption</span>
+            <span className="text-sm text-gray-500">{t('dashboard.totalEnergy')}</span>
             <InfoTip>Total energy consumed across all sources (electricity, heating, fuel) converted to MWh.</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEnergyMwh > 0 ? stats.totalEnergyMwh.toFixed(2) : '0'} <span className="text-sm font-normal text-gray-400">MWh</span></span>
@@ -100,7 +102,7 @@ export default function E1Dashboard() {
         <div className="stat-card">
           <Target className="w-5 h-5 text-purple-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">SBTi Progress</span>
+            <span className="text-sm text-gray-500">{t('dashboard.sbtiProgress')}</span>
             <InfoTip>Progress toward your decarbonization target.</InfoTip>
           </div>
           {sbti ? (
@@ -111,7 +113,7 @@ export default function E1Dashboard() {
               </span>
             </div>
           ) : (
-            <span className="text-sm text-gray-400">No target set</span>
+            <span className="text-sm text-gray-400">{t('dashboard.noTargetSet')}</span>
           )}
         </div>
       </div>
@@ -121,41 +123,41 @@ export default function E1Dashboard() {
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">Scope 1</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope1} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
-          <span className="text-[10px] text-gray-400">Direct emissions</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.directEmissions')}</span>
         </div>
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">Scope 2</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope2} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
-          <span className="text-[10px] text-gray-400">Purchased energy</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.purchasedEnergy')}</span>
         </div>
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Scope 3</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope3} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
-          <span className="text-[10px] text-gray-400">Value chain</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.valueChain')}</span>
         </div>
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">YoY Change</span>
           <span className={`text-lg font-bold ${stats.yoyChange === null ? 'text-gray-400' : stats.yoyChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {stats.yoyChange === null ? '—' : `${stats.yoyChange > 0 ? '+' : ''}${stats.yoyChange}%`}
           </span>
-          <span className="text-[10px] text-gray-400">vs previous year</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.vsPreviousYear')}</span>
         </div>
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Activities</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.activityCount}</span>
-          <span className="text-[10px] text-gray-400">data records</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.dataRecords')}</span>
         </div>
         <div className="stat-card py-3 px-4">
           <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Employees</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.totalEmployees?.toLocaleString() || 0}</span>
-          <span className="text-[10px] text-gray-400">from S1 data</span>
+          <span className="text-[10px] text-gray-400">{t('dashboard.fromS1Data')}</span>
         </div>
       </div>
 
       {/* Top Emission Sources */}
       {charts.topSources?.length > 0 && (
         <div className="card">
-          <h3 className="font-semibold mb-3">Top Emission Sources</h3>
+          <h3 className="font-semibold mb-3">{t('dashboard.topEmissionSources')}</h3>
           <div className="space-y-2">
             {charts.topSources.map((s, i) => {
               const maxVal = charts.topSources[0]?.value || 1;

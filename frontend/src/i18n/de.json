@@ -53,7 +53,6 @@
     "learnMore": "Mehr erfahren",
     "tryExample": "Beispiel ausprobieren"
   },
-
   "nav": {
     "home": "Startseite",
     "analytics": "Analysen",
@@ -86,7 +85,6 @@
     "soon": "Bald",
     "enterprise": "Enterprise"
   },
-
   "home": {
     "welcomeBack": "Willkommen zurück, {name}",
     "subtitle": "ESG-Datenmanagement- & Berichtsplattform",
@@ -101,7 +99,6 @@
     "activeModulesTooltip": "Derzeit sind E1 (Klimawandel) und S1 (Eigene Belegschaft) aktiv. Weitere Module sind bald verfügbar oder mit Enterprise erhältlich.",
     "reportingStandard": "Berichtsstandard"
   },
-
   "dashboard": {
     "e1Title": "Umwelt: Klimawandel",
     "e1Subtitle": "THG-Emissionen, CO₂-Fußabdruckanalyse und SBTi-Ziele",
@@ -131,7 +128,6 @@
     "visuals": "Visualisierungen",
     "data": "Daten"
   },
-
   "reports": {
     "title": "ESG-Berichtserstellung",
     "subtitle": "Erstellen Sie standardkonforme Nachhaltigkeitsberichte aus Ihren verbundenen Daten",
@@ -165,7 +161,6 @@
     "buildingReport": "Ihr {standard}-Bericht für {year} wird erstellt",
     "compilingDisclosures": "Angaben werden zusammengestellt, Kennzahlen formatiert, narrative Abschnitte generiert und das endgültige Dokument zusammengestellt..."
   },
-
   "settings": {
     "title": "Einstellungen",
     "orgUnits": "Organisationseinheiten",
@@ -206,7 +201,6 @@
     "confirmDelete": "Bestätigen & Löschen",
     "typeYearToConfirm": "Diese Aktion kann nicht rückgängig gemacht werden. Geben Sie das Jahr zur Bestätigung ein:"
   },
-
   "pcf": {
     "title": "Produkt-CO₂-Fußabdrücke",
     "subtitle": "Produkte und ihre Lebenszyklusemissionen verwalten",
@@ -280,7 +274,6 @@
     "generateCredits": "Generieren (2 Credits)",
     "generatingBom": "Stückliste wird generiert..."
   },
-
   "roi": {
     "title": "Nachhaltigkeits-ROI-Modul",
     "subtitle": "Lassen Sie die Plattform den Business Case für Nachhaltigkeit beweisen.",
@@ -313,7 +306,6 @@
     "saveAssumptions": "Annahmen speichern",
     "addRevenue": "Umsatz hinzufügen"
   },
-
   "suppliers": {
     "title": "Lieferanten-Scope-3-Portal",
     "subtitle": "Sammeln Sie primäre Emissionsdaten direkt aus Ihrer Lieferkette",
@@ -337,7 +329,6 @@
     "approveIngest": "Genehmigen & Einlesen",
     "responseRate": "Rücklaufquote"
   },
-
   "auth": {
     "createAccount": "Konto erstellen",
     "step1": "Schritt 1 von 2 — Persönliche Daten",
@@ -362,7 +353,6 @@
     "login": "Anmelden",
     "forgotPassword": "Passwort vergessen?"
   },
-
   "sectorKpis": {
     "kpis": "KPIs",
     "industryMetrics": "Branchenkennzahlen",
@@ -380,7 +370,6 @@
     "notReportedDesc": "Noch nicht berichtet — diese Kennzahl hat noch keine Daten im System. Laden Sie die relevanten Daten über das entsprechende Modul hoch oder geben Sie sie manuell in Ihrem nächsten Berichtszyklus ein.",
     "quantitative": "Quantitativ"
   },
-
   "featureLock": {
     "isFeature": "ist eine {tier}-Funktion",
     "currentPlan": "Sie befinden sich derzeit im {current}-Tarif. Upgraden Sie auf {required}, um {feature} und die restlichen Funktionen des {required}-Tarifs freizuschalten.",
@@ -392,9 +381,12 @@
     "requestSentDesc": "Unser Team wurde benachrichtigt und wird sich in Kürze mit Ihnen in Verbindung setzen, um das Upgrade auf den {tier}-Tarif zu besprechen.",
     "teamContact": "Unser Team wird Sie innerhalb von 1 Werktag kontaktieren."
   },
-
   "language": {
     "en": "English",
-    "de": "Deutsch"
+    "de": "Deutsch",
+    "fr": "Français",
+    "es": "Español",
+    "sv": "Svenska",
+    "ar": "العربية"
   }
 }
