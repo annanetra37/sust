@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { HelpBanner } from '../../components/HelpSystem';
 import BenchmarkBadge from '../../components/BenchmarkBadge';
+import { useT } from '../../i18n';
 
 const CONFIDENCE_COLORS = {
   high: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
@@ -31,6 +32,7 @@ function ConfidencePill({ value }) {
 }
 
 export default function ProductDetail() {
+  const { t } = useT();
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
@@ -137,9 +139,9 @@ export default function ProductDetail() {
   const confirmed = bomWithConfidence.filter((b) => b.confidence >= 0.70);
 
   const tabs = [
-    { key: 'bom', label: 'BOM', count: boms.length },
-    { key: 'calculations', label: 'Calculations', count: calculations.length },
-    { key: 'whatif', label: 'What-If', count: 0 },
+    { key: 'bom', label: t('pcf.bom'), count: boms.length },
+    { key: 'calculations', label: t('pcf.calculations'), count: calculations.length },
+    { key: 'whatif', label: t('pcf.whatIf'), count: 0 },
   ];
 
   return (
@@ -165,11 +167,11 @@ export default function ProductDetail() {
               <p className="text-2xl font-bold text-brand-600 dark:text-brand-400">
                 {latestCalc.totalKgCo2e.toFixed(2)} <span className="text-sm font-normal">kgCO2e</span>
               </p>
-              <p className="text-xs text-gray-400">{Math.round(latestCalc.primaryDataPct * 100)}% primary data</p>
+              <p className="text-xs text-gray-400">{Math.round(latestCalc.primaryDataPct * 100)}% {t('pcf.primaryData')}</p>
             </div>
           )}
         </div>
-        <button onClick={handleDeleteProduct} className="text-gray-400 hover:text-red-500 mt-1" title="Delete product">
+        <button onClick={handleDeleteProduct} className="text-gray-400 hover:text-red-500 mt-1" title={t('common.delete')}>
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
@@ -216,23 +218,23 @@ export default function ProductDetail() {
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
                   <div>
-                    <p className="font-semibold text-gray-700 dark:text-gray-300">AI is classifying your BOM...</p>
-                    <p className="text-xs text-gray-400 mt-1">Upload → AI map → Material classify</p>
+                    <p className="font-semibold text-gray-700 dark:text-gray-300">{t('pcf.classifyingBom')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('pcf.uploadMapClassify')}</p>
                   </div>
                 </div>
               ) : (
                 <>
                   <Upload className="w-7 h-7 text-gray-400 mx-auto mb-2" />
                   <p className="font-semibold text-gray-700 dark:text-gray-300">
-                    Upload BOM file
+                    {t('pcf.uploadBom')}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Drop a .xlsx / .csv here, or</p>
+                  <p className="text-xs text-gray-400 mt-1">{t('pcf.dropBomFile')}</p>
                   <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="bom-file" onChange={handleFileInput} />
                   <label htmlFor="bom-file" className="btn-secondary mt-3 inline-flex items-center gap-2 cursor-pointer">
-                    <FileSpreadsheet className="w-4 h-4" /> Browse files
+                    <FileSpreadsheet className="w-4 h-4" /> {t('pcf.browseFiles')}
                   </label>
                   <p className="text-[11px] text-gray-400 mt-2">
-                    Any column order, any language. 2 credits.
+                    {t('pcf.anyColumnOrder')}
                   </p>
                 </>
               )}
@@ -242,19 +244,19 @@ export default function ProductDetail() {
             <div className="border-2 border-dashed rounded-xl p-6 text-center bg-gradient-to-br from-brand-50/30 to-white dark:from-brand-950/20 dark:to-gray-900 border-brand-200 dark:border-brand-900">
               <Wand2 className="w-7 h-7 text-brand-500 mx-auto mb-2" />
               <p className="font-semibold text-gray-700 dark:text-gray-300">
-                Don't have a BOM?
+                {t('pcf.noBomFile')}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Describe the product — AI builds the BOM for you</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('pcf.describeProduct')}</p>
               <button
                 type="button"
                 onClick={() => setShowGenerator(true)}
                 disabled={uploading}
                 className="btn-primary mt-3 inline-flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4" /> Generate from description
+                <Sparkles className="w-4 h-4" /> {t('pcf.generateFromDescription')}
               </button>
               <p className="text-[11px] text-gray-400 mt-2">
-                Uses industry-standard proportions. 2 credits. Review before use.
+                {t('pcf.industryProportions')}
               </p>
             </div>
           </div>
@@ -274,7 +276,7 @@ export default function ProductDetail() {
           {needsReview.length > 0 && (
             <div className="space-y-1">
               <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" /> Needs review ({needsReview.length})
+                <AlertTriangle className="w-3.5 h-3.5" /> {t('pcf.needsReview')} ({needsReview.length})
               </p>
               {needsReview.map((b) => (
                 <BomRow key={b.id} item={b} onDelete={handleDeleteBomItem} showConfidence />
@@ -287,7 +289,7 @@ export default function ProductDetail() {
             <div className="space-y-1">
               {needsReview.length > 0 && (
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-4">
-                  Confirmed ({confirmed.length})
+                  {t('pcf.confirmed')} ({confirmed.length})
                 </p>
               )}
               <div className="overflow-x-auto">
@@ -340,7 +342,7 @@ export default function ProductDetail() {
           {boms.length === 0 && !uploadResult && (
             <div className="card text-center py-8 text-gray-400">
               <Package className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No BOM data yet. Upload a spreadsheet above to get started.</p>
+              <p className="text-sm">{t('pcf.noBomData')}</p>
             </div>
           )}
         </div>
@@ -380,6 +382,7 @@ export default function ProductDetail() {
 }
 
 function CalculationsTab({ product, boms, calculations, onCalculated, setError }) {
+  const { t } = useT();
   const [calculating, setCalculating] = useState(false);
   const latestCalc = calculations[0] || null;
 
@@ -418,11 +421,11 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
           className="btn-primary flex items-center gap-2"
         >
           {calculating
-            ? <><Loader2 className="w-4 h-4 animate-spin" /> Calculating...</>
-            : <><Play className="w-4 h-4" /> Run calculation</>}
+            ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('pcf.calculating')}</>
+            : <><Play className="w-4 h-4" /> {t('pcf.runCalculation')}</>}
         </button>
         <span className="text-xs text-gray-400">
-          {boms.length} component{boms.length !== 1 ? 's' : ''} in BOM · 1 credit per run
+          {boms.length} {t('pcf.components')} · {t('pcf.creditPerRun')}
         </span>
       </div>
 
@@ -435,11 +438,11 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
               {latestCalc.totalKgCo2e} <span className="text-lg font-normal">kgCO2e</span>
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Uncertainty: {latestCalc.uncertaintyLow} – {latestCalc.uncertaintyHigh} kgCO2e
-              <span className="ml-2 text-gray-400">(p5 – p95, 1000 Monte Carlo iterations)</span>
+              {t('pcf.uncertainty')}: {latestCalc.uncertaintyLow} – {latestCalc.uncertaintyHigh} kgCO2e
+              <span className="ml-2 text-gray-400">(p5 – p95, 1000 {t('pcf.monteCarloIterations')})</span>
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              Primary data: {Math.round(latestCalc.primaryDataPct * 100)}% · Engine v{latestCalc.engineVersion} · {latestCalc.status}
+              {t('pcf.primaryData')}: {Math.round(latestCalc.primaryDataPct * 100)}% · {t('pcf.engineVersion')} v{latestCalc.engineVersion} · {latestCalc.status}
             </p>
             <div className="mt-2 flex items-center justify-center">
               <BenchmarkBadge kpiCode="PCF_TOTAL" value={latestCalc.totalKgCo2e} region="GLO" />
@@ -453,7 +456,7 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
                 rel="noopener noreferrer"
                 className="btn-secondary inline-flex items-center gap-2 text-sm"
               >
-                <FileText className="w-4 h-4" /> PDF Statement
+                <FileText className="w-4 h-4" /> {t('pcf.pdfStatement')}
               </a>
               <a
                 href={api.exportPcfPact(latestCalc.id)}
@@ -461,7 +464,7 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
                 rel="noopener noreferrer"
                 className="btn-secondary inline-flex items-center gap-2 text-sm"
               >
-                <Download className="w-4 h-4" /> PACT JSON
+                <Download className="w-4 h-4" /> {t('pcf.pactJson')}
               </a>
             </div>
           </div>
@@ -470,7 +473,7 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
           {Object.keys(stages).length > 0 && (
             <div className="card space-y-3">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-brand-600" /> Lifecycle Stage Breakdown
+                <BarChart3 className="w-4 h-4 text-brand-600" /> {t('pcf.lifecycleBreakdown')}
               </h3>
               <div className="space-y-2">
                 {Object.entries(stages).sort((a, b) => b[1] - a[1]).map(([stage, kg]) => {
@@ -494,7 +497,7 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
           {/* Top 10 components */}
           {comps.length > 0 && (
             <div className="card space-y-3">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Top Contributing Components</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('pcf.topComponents')}</h3>
               <div className="space-y-1">
                 {comps.map((c, i) => (
                   <div key={c.componentId + i} className="flex items-center gap-3 text-sm py-1.5 border-b dark:border-gray-800 last:border-0">
@@ -512,7 +515,7 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
           {/* Calculation history */}
           {calculations.length > 1 && (
             <div className="card space-y-2">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100">Calculation History</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('pcf.calcHistory')}</h3>
               {calculations.map((c) => (
                 <div key={c.id} className="flex items-center gap-4 text-sm py-1.5 border-b dark:border-gray-800 last:border-0">
                   <span className="font-medium text-gray-700 dark:text-gray-300">{c.totalKgCo2e} kgCO2e</span>
@@ -537,6 +540,12 @@ function CalculationsTab({ product, boms, calculations, onCalculated, setError }
 // badge in the middle.  Three pre-built scenario templates (recycled
 // materials, site energy switch, supplier relocation) that populate the
 // overrides in one click.
+
+const SCENARIO_TEMPLATE_KEYS = {
+  recycled: { title: 'pcf.recycledMaterials', description: 'pcf.recycledDesc' },
+  renewable_ppa: { title: 'pcf.renewablePpa', description: 'pcf.renewableDesc' },
+  supplier_relocation: { title: 'pcf.supplierRelocation', description: 'pcf.relocationDesc' },
+};
 
 const SCENARIO_TEMPLATES = [
   {
@@ -565,6 +574,7 @@ const SCENARIO_TEMPLATES = [
 ];
 
 function WhatIfTab({ product, boms, setError }) {
+  const { t } = useT();
   const [scenarioId, setScenarioId] = useState(null);
   const [overrides, setOverrides] = useState({});
   const [scrapOverrideBomId, setScrapOverrideBomId] = useState('');
@@ -702,22 +712,22 @@ function WhatIfTab({ product, boms, setError }) {
                 : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
             }`}
           >
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{tpl.title}</p>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{tpl.description}</p>
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{SCENARIO_TEMPLATE_KEYS[tpl.id] ? t(SCENARIO_TEMPLATE_KEYS[tpl.id].title) : tpl.title}</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{SCENARIO_TEMPLATE_KEYS[tpl.id] ? t(SCENARIO_TEMPLATE_KEYS[tpl.id].description) : tpl.description}</p>
           </button>
         ))}
       </div>
 
       {/* Manual scrap-rate override */}
       <div className="card space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Custom scrap-rate override</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('pcf.customScrapRate')}</p>
         <div className="flex items-center gap-2">
           <select
             className="input flex-1"
             value={scrapOverrideBomId}
             onChange={(e) => setScrapOverrideBomId(e.target.value)}
           >
-            <option value="">Select a component...</option>
+            <option value="">{t('pcf.selectComponent')}</option>
             {boms.map((b) => (
               <option key={b.id} value={b.id}>{b.component?.name || b.id}</option>
             ))}
@@ -732,7 +742,7 @@ function WhatIfTab({ product, boms, setError }) {
             value={scrapRate}
             onChange={(e) => setScrapRate(e.target.value)}
           />
-          <button type="button" onClick={addScrapOverride} className="btn-secondary text-sm">Add</button>
+          <button type="button" onClick={addScrapOverride} className="btn-secondary text-sm">{t('common.add')}</button>
         </div>
         {overrides.scrapRateChanges?.length > 0 && (
           <div className="text-xs text-gray-500">
@@ -752,13 +762,13 @@ function WhatIfTab({ product, boms, setError }) {
       <div className="flex items-center gap-3">
         <button onClick={run} disabled={running || overrideCount === 0} className="btn-primary flex items-center gap-2">
           {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-          Run scenario
+          {t('pcf.runScenario')}
         </button>
         {overrideCount > 0 && (
-          <button onClick={clearOverrides} className="btn-secondary text-sm">Clear</button>
+          <button onClick={clearOverrides} className="btn-secondary text-sm">{t('pcf.clearScenario')}</button>
         )}
         <span className="text-xs text-gray-400">
-          {overrideCount} override{overrideCount !== 1 ? 's' : ''} · stateless (nothing saved)
+          {overrideCount} {t('pcf.overrides')} · {t('pcf.stateless')}
         </span>
       </div>
 
@@ -767,7 +777,7 @@ function WhatIfTab({ product, boms, setError }) {
         <div className="card p-6 space-y-4">
           <div className="grid grid-cols-3 gap-4 items-center">
             <div className="text-center">
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Baseline</p>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('pcf.baseline')}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {result.baseline.totalKgCo2e} <span className="text-sm font-normal text-gray-500">kgCO2e</span>
               </p>
@@ -795,7 +805,7 @@ function WhatIfTab({ product, boms, setError }) {
             </div>
 
             <div className="text-center">
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Scenario</p>
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">{t('pcf.scenario')}</p>
               <p className={`text-2xl font-bold ${
                 result.delta.direction === 'reduction'
                   ? 'text-green-600 dark:text-green-400'
@@ -813,7 +823,7 @@ function WhatIfTab({ product, boms, setError }) {
 
           {/* Stage-level delta */}
           <div className="pt-3 border-t dark:border-gray-800">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">Stage-by-stage delta</p>
+            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('pcf.stageByStage')}</p>
             <StageDelta baseline={result.baseline.breakdownByStage} scenario={result.scenario.breakdownByStage} />
           </div>
 
@@ -831,7 +841,7 @@ function WhatIfTab({ product, boms, setError }) {
               className="btn-primary flex items-center gap-2 shrink-0"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Save scenario
+              {t('pcf.saveScenario')}
             </button>
           </div>
         </div>
@@ -840,7 +850,7 @@ function WhatIfTab({ product, boms, setError }) {
       {/* Saved scenarios list */}
       {savedScenarios.length > 0 && (
         <div className="card space-y-2">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Saved Scenarios</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t('pcf.savedScenarios')}</h3>
           {savedScenarios.map((s) => (
             <div key={s.id} className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => loadSavedScenario(s)}>
@@ -854,7 +864,7 @@ function WhatIfTab({ product, boms, setError }) {
                 : s.deltaKgCo2e > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                 : 'bg-gray-100 text-gray-500'
               }`}>
-                {s.deltaKgCo2e < 0 ? 'reduction' : s.deltaKgCo2e > 0 ? 'increase' : 'neutral'}
+                {s.deltaKgCo2e < 0 ? t('pcf.reduction') : s.deltaKgCo2e > 0 ? t('pcf.increase') : 'neutral'}
               </span>
               <button onClick={() => deleteScenario(s.id)} className="text-gray-400 hover:text-red-500 shrink-0" title="Delete scenario">
                 <Trash2 className="w-3.5 h-3.5" />

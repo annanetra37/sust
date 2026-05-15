@@ -158,7 +158,7 @@ export default function ProductList() {
                     <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
                       {p.latestCalc.totalKgCo2e.toFixed(2)} <span className="text-xs font-normal text-gray-400">kgCO2e</span>
                     </p>
-                    <p className="text-[10px] text-gray-400">{Math.round(p.latestCalc.primaryDataPct * 100)}% primary data</p>
+                    <p className="text-[10px] text-gray-400">{Math.round(p.latestCalc.primaryDataPct * 100)}% {t('pcf.primaryData')}</p>
                   </>
                 ) : (
                   <p className="text-sm text-gray-400">—</p>
