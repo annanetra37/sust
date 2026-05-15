@@ -1048,15 +1048,12 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
         <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-lg text-xs text-amber-700 dark:text-amber-400 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
-            <strong>AI-generated, never primary data.</strong> The proposed BOM uses industry-average
-            proportions and assumptions, not your actual suppliers' reported data. Review each row
-            and replace with primary data when you have it — this directly affects your ESRS E1
-            §51(g) primary-data share.
+            {t('pcf.aiGeneratedWarning')}
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
+          <button type="button" onClick={onClose} className="btn-secondary">{t('common.cancel')}</button>
           <button
             type="button"
             onClick={submit}
@@ -1064,8 +1061,8 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
             className="btn-primary flex items-center gap-2"
           >
             {generating
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating BOM...</>
-              : <><Sparkles className="w-4 h-4" /> Generate (2 credits)</>}
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('pcf.generatingBom')}</>
+              : <><Sparkles className="w-4 h-4" /> {t('pcf.generateCredits')}</>}
           </button>
         </div>
       </div>
