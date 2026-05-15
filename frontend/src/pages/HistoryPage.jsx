@@ -158,7 +158,7 @@ export default function HistoryPage() {
                     {t('history.deletedBy')} <strong>{upload.deletedBy}</strong> — {new Date(upload.deletedAt).toLocaleString()}
                   </p>
                   {upload.deletedNote && <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">{upload.deletedNote}</p>}
-                  <p className="text-[10px] text-orange-500 mt-1">The original source file is still available for audit purposes.</p>
+                  <p className="text-[10px] text-orange-500 mt-1">{t('history.auditFileAvailable')}</p>
                 </div>
               </div>
             </div>
@@ -166,20 +166,20 @@ export default function HistoryPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Type</p>
-              <p className="font-semibold">{upload.fileType === 'E1' ? 'Environmental' : 'Social'}</p>
+              <p className="text-xs text-gray-500">{t('history.type')}</p>
+              <p className="font-semibold">{upload.fileType === 'E1' ? t('history.environmental') : t('history.social')}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Org Unit</p>
+              <p className="text-xs text-gray-500">{t('history.orgUnit')}</p>
               <p className="font-semibold">{upload.orgUnit || '—'}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Uploaded By</p>
+              <p className="text-xs text-gray-500">{t('history.uploadedBy')}</p>
               <p className="font-semibold">{upload.user?.firstName} {upload.user?.lastName}</p>
               <p className="text-xs text-gray-400">{upload.user?.email}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Processing</p>
+              <p className="text-xs text-gray-500">{t('history.processing')}</p>
               <p className="font-semibold">{upload.processedRows || 0} / {upload.totalRows || 0} rows</p>
             </div>
           </div>
@@ -238,14 +238,14 @@ export default function HistoryPage() {
 
           {creditTransaction && (
             <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300">
-              <strong>Credits used:</strong> {creditTransaction.creditsUsed} — {creditTransaction.description}
+              <strong>{t('history.creditsUsed')}</strong> {creditTransaction.creditsUsed} — {creditTransaction.description}
             </div>
           )}
 
           {/* Source file — download/view directly */}
           {files.length > 0 && (
             <div className="mt-4 border-t dark:border-gray-700 pt-4">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Source File{files.length > 1 ? 's' : ''}</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{files.length > 1 ? t('history.sourceFiles') : t('history.sourceFile')}</p>
               <div className="space-y-2">
                 {files.map((f, i) => {
                   const ext = (f.name || '').split('.').pop()?.toLowerCase();
@@ -263,7 +263,7 @@ export default function HistoryPage() {
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex-1 truncate">{f.name}</span>
                     <a href={isViewable ? f.viewUrl : viewHref} target="_blank" rel="noopener noreferrer"
                       className="text-xs px-3 py-1.5 rounded-md bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-800 font-medium transition-colors">
-                      {isViewable ? 'View' : 'Preview'}
+                      {isViewable ? t('history.view') : t('history.preview')}
                     </a>
                     <a href={f.downloadUrl}
                       className="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors flex items-center gap-1">

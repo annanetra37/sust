@@ -225,9 +225,9 @@ export default function SuppliersPage() {
 
             {/* Request history */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Data Requests</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('suppliers.dataRequests')}</p>
               {(detail.requests || []).length === 0 ? (
-                <p className="text-sm text-gray-400">No requests sent yet.</p>
+                <p className="text-sm text-gray-400">{t('suppliers.noRequests')}</p>
               ) : detail.requests.map(r => (
                 <div key={r.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
                   <div className="flex items-center gap-2 text-sm">
@@ -241,7 +241,7 @@ export default function SuppliersPage() {
                         className="btn-primary text-xs flex items-center gap-1"
                       >
                         {approving === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                        Approve & Ingest
+                        {t('suppliers.approveIngest')}
                       </button>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import {
 import { HelpBanner, InfoTip, FieldLabel } from '../components/HelpSystem';
 import FeatureLock from '../components/FeatureLock';
 import useFeature from '../hooks/useFeature';
+import { useT } from '../i18n';
 
 const CONNECTORS = [
   {
@@ -90,6 +91,7 @@ const ALL_CONNECTOR_MAP = {};
 CONNECTORS.forEach((cat) => cat.items.forEach((c) => { ALL_CONNECTOR_MAP[c.value] = c; }));
 
 export default function Connections() {
+  const { t } = useT();
   const connectionsFeature = useFeature('db_connections');
   const [connections, setConnections] = useState([]);
   const [setupType, setSetupType] = useState(null);
@@ -105,12 +107,12 @@ export default function Connections() {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Connections</h1>
-          <p className="text-gray-500 dark:text-gray-400">Pipe data directly from your warehouses and SaaS tools.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('connections.title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400">{t('connections.featureSubtitle')}</p>
         </div>
         <FeatureLock
           feature="db_connections"
-          description="Connect PostgreSQL, MySQL, SQL Server, Snowflake, BigQuery, and more. AI auto-maps your tables to the correct ESG schemas — no manual mapping. Upgrade to Professional to enable data connections."
+          description={t('connections.featureDescription')}
         />
       </div>
     );
