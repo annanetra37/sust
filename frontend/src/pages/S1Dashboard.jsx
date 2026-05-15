@@ -6,10 +6,12 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { InfoTip } from '../components/HelpSystem';
 import CopyableChart from '../components/CopyableChart';
 import OrgYearFilter from '../components/OrgYearFilter';
+import { useT } from '../i18n';
 
 const COLORS = ['#6366f1', '#ec4899', '#8b5cf6', '#64748b'];
 
 export default function S1Dashboard() {
+  const { t } = useT();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ year: new Date().getFullYear(), orgUnits: '' });
@@ -32,7 +34,7 @@ export default function S1Dashboard() {
   }, [filterKey, ready]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
-  if (!data) return <div className="text-center text-gray-500 py-12">No data available. Upload workforce data to get started.</div>;
+  if (!data) return <div className="text-center text-gray-500 py-12">{t('s1Dashboard.noDataAvailable')}</div>;
 
   const { stats, charts } = data;
 
@@ -40,22 +42,22 @@ export default function S1Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">S1 — Own Workforce</h1>
-          <p className="text-gray-500">Workforce composition, diversity, training, and turnover analytics</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('s1Dashboard.title')}</h1>
+          <p className="text-gray-500">{t('s1Dashboard.subtitle')}</p>
         </div>
         <div className="flex flex-col gap-2">
           <Link to="/platform/S/social-1" className="btn-primary flex items-center justify-center gap-2">
-            <Upload className="w-4 h-4" /> Connect Data
+            <Upload className="w-4 h-4" /> {t('s1Dashboard.connectData')}
           </Link>
           <div className="flex gap-1.5">
             <button onClick={() => { window.print(); }} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Save dashboard with all visuals as PDF (browser print dialog)">
-              <FileImage className="w-3.5 h-3.5" /> Visuals
+              <FileImage className="w-3.5 h-3.5" /> {t('s1Dashboard.visuals')}
             </button>
             <button onClick={() => api.exportS1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Download raw KPI data as Excel spreadsheet">
-              <FileSpreadsheet className="w-3.5 h-3.5" /> Data
+              <FileSpreadsheet className="w-3.5 h-3.5" /> {t('s1Dashboard.data')}
             </button>
           </div>
-          <p className="text-[9px] text-gray-400 text-center">Visuals = PDF with charts · Data = Excel with numbers</p>
+          <p className="text-[9px] text-gray-400 text-center">{t('s1Dashboard.visualsHint')}</p>
         </div>
       </div>
 
@@ -66,32 +68,32 @@ export default function S1Dashboard() {
         <div className="stat-card">
           <Users className="w-5 h-5 text-indigo-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Total Employees</span>
-            <InfoTip>Total headcount for the selected year and org units.</InfoTip>
+            <span className="text-sm text-gray-500">{t('s1Dashboard.totalEmployees')}</span>
+            <InfoTip>{t('s1Dashboard.totalEmployeesTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEmployees.toLocaleString()}</span>
         </div>
         <div className="stat-card">
           <span className="text-lg">{'♀'}</span>
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Female %</span>
-            <InfoTip>Percentage of female employees. Key ESRS S1 gender diversity metric.</InfoTip>
+            <span className="text-sm text-gray-500">{t('s1Dashboard.femalePct')}</span>
+            <InfoTip>{t('s1Dashboard.femalePctTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.femalePct}%</span>
         </div>
         <div className="stat-card">
           <Clock className="w-5 h-5 text-purple-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Avg Training Hours</span>
-            <InfoTip>Average training hours per trained employee.</InfoTip>
+            <span className="text-sm text-gray-500">{t('s1Dashboard.avgTrainingHours')}</span>
+            <InfoTip>{t('s1Dashboard.avgTrainingHoursTooltip')}</InfoTip>
           </div>
-          <span className="text-2xl font-bold">{stats.avgTrainingHours} <span className="text-sm font-normal text-gray-400">hrs/emp</span></span>
+          <span className="text-2xl font-bold">{stats.avgTrainingHours} <span className="text-sm font-normal text-gray-400">{t('s1Dashboard.hrsPerEmp')}</span></span>
         </div>
         <div className="stat-card">
           <TrendingDown className="w-5 h-5 text-red-500" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Turnover Rate</span>
-            <InfoTip>Percentage of employees who left the company (voluntary + involuntary) divided by total employees.</InfoTip>
+            <span className="text-sm text-gray-500">{t('s1Dashboard.turnoverRate')}</span>
+            <InfoTip>{t('s1Dashboard.turnoverRateTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.turnoverRate}%</span>
         </div>
@@ -100,34 +102,34 @@ export default function S1Dashboard() {
       {/* Secondary KPIs */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">Permanent</span>
+          <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-wide">{t('s1Dashboard.permanent')}</span>
           <span className="text-lg font-bold">{stats.permanentCount?.toLocaleString() || 0}</span>
-          <span className="text-[10px] text-gray-400">{stats.permanentPct || 0}% of total</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.ofTotal', { pct: stats.permanentPct || 0 })}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">Temporary</span>
+          <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">{t('s1Dashboard.temporary')}</span>
           <span className="text-lg font-bold">{stats.temporaryCount?.toLocaleString() || 0}</span>
-          <span className="text-[10px] text-gray-400">{100 - (stats.permanentPct || 0)}% of total</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.ofTotal', { pct: 100 - (stats.permanentPct || 0) })}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide">Voluntary</span>
+          <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide">{t('s1Dashboard.voluntary')}</span>
           <span className="text-lg font-bold">{stats.voluntaryTurnover || 0}</span>
-          <span className="text-[10px] text-gray-400">{stats.voluntaryRate || 0}% rate</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.rate', { pct: stats.voluntaryRate || 0 })}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">Involuntary</span>
+          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">{t('s1Dashboard.involuntary')}</span>
           <span className="text-lg font-bold">{stats.involuntaryTurnover || 0}</span>
-          <span className="text-[10px] text-gray-400">{stats.involuntaryRate || 0}% rate</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.rate', { pct: stats.involuntaryRate || 0 })}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-pink-500 uppercase tracking-wide">Disability</span>
+          <span className="text-[10px] font-semibold text-pink-500 uppercase tracking-wide">{t('s1Dashboard.disability')}</span>
           <span className="text-lg font-bold">{stats.disabilityCount || 0}</span>
-          <span className="text-[10px] text-gray-400">{stats.disabilityRate || 0}% rate</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.rate', { pct: stats.disabilityRate || 0 })}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">LTIR</span>
+          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">{t('s1Dashboard.ltir')}</span>
           <span className="text-lg font-bold">{stats.ltir || 0}</span>
-          <span className="text-[10px] text-gray-400">per 200K hours</span>
+          <span className="text-[10px] text-gray-400">{t('s1Dashboard.perHours')}</span>
         </div>
       </div>
 
@@ -136,23 +138,23 @@ export default function S1Dashboard() {
         <div className={`card py-4 ${stats.fatalInjuries > 0 ? 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/30' : ''}`}>
           <div className="flex items-center gap-6">
             <div>
-              <span className="text-xs text-gray-500">Total Incidents</span>
+              <span className="text-xs text-gray-500">{t('s1Dashboard.totalIncidents')}</span>
               <p className="text-xl font-bold">{stats.totalInjuries}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Fatalities</span>
+              <span className="text-xs text-gray-500">{t('s1Dashboard.fatalities')}</span>
               <p className={`text-xl font-bold ${stats.fatalInjuries > 0 ? 'text-red-600' : 'text-green-600'}`}>{stats.fatalInjuries}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Lost-time Injuries</span>
+              <span className="text-xs text-gray-500">{t('s1Dashboard.lostTimeInjuries')}</span>
               <p className="text-xl font-bold">{stats.lostTimeInjuries || 0}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Training Hours</span>
+              <span className="text-xs text-gray-500">{t('s1Dashboard.trainingHours')}</span>
               <p className="text-xl font-bold">{stats.totalTrainingHours?.toLocaleString() || 0}</p>
             </div>
             <div>
-              <span className="text-xs text-gray-500">Trained Employees</span>
+              <span className="text-xs text-gray-500">{t('s1Dashboard.trainedEmployees')}</span>
               <p className="text-xl font-bold">{stats.trainedEmployees?.toLocaleString() || 0}</p>
             </div>
           </div>
@@ -162,7 +164,7 @@ export default function S1Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employees by Gender */}
-        <CopyableChart title="Employees by Gender">
+        <CopyableChart title={t('s1Dashboard.employeesByGender')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.employeesByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -175,7 +177,7 @@ export default function S1Dashboard() {
         </CopyableChart>
 
         {/* Gender Distribution Pie */}
-        <CopyableChart title="Gender Distribution">
+        <CopyableChart title={t('s1Dashboard.genderDistribution')}>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie data={charts.employeesByGender} dataKey="count" nameKey="gender" cx="50%" cy="50%" outerRadius={100} label>
@@ -190,7 +192,7 @@ export default function S1Dashboard() {
         </CopyableChart>
 
         {/* Training by Gender */}
-        <CopyableChart title="Training Hours by Gender">
+        <CopyableChart title={t('s1Dashboard.trainingByGender')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.trainingByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -203,7 +205,7 @@ export default function S1Dashboard() {
         </CopyableChart>
 
         {/* Diversity by Gender */}
-        <CopyableChart title="Disability by Gender">
+        <CopyableChart title={t('s1Dashboard.disabilityByGender')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.diversityByGender}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -211,15 +213,15 @@ export default function S1Dashboard() {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="withDisability" name="With Disability" fill="#ec4899" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="without" name="Without" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="withDisability" name={t('s1Dashboard.withDisability')} fill="#ec4899" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="without" name={t('s1Dashboard.without')} fill="#94a3b8" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CopyableChart>
 
         {/* Contract Type Breakdown */}
         {charts.byContractType?.length > 0 && (
-          <CopyableChart title="Employees by Contract Type">
+          <CopyableChart title={t('s1Dashboard.byContractType')}>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie data={charts.byContractType} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={100}
@@ -237,7 +239,7 @@ export default function S1Dashboard() {
 
         {/* Turnover by Gender */}
         {charts.turnoverByGender?.length > 0 && (
-          <CopyableChart title="Turnover by Gender">
+          <CopyableChart title={t('s1Dashboard.turnoverByGender')}>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={charts.turnoverByGender}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -245,8 +247,8 @@ export default function S1Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="voluntary" name="Voluntary" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="involuntary" name="Involuntary" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="voluntary" name={t('s1Dashboard.voluntary')} fill="#22c55e" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="involuntary" name={t('s1Dashboard.involuntary')} fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CopyableChart>

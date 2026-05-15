@@ -203,7 +203,7 @@ export default function HistoryPage() {
                 {perFile.length > 0 && (
                   <div className="border dark:border-gray-700 rounded-lg overflow-hidden">
                     <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      Per-file extraction status
+                      {t('history.perFileStatus')}
                     </div>
                     <div className="divide-y dark:divide-gray-800">
                       {perFile.map((pf, idx) => (
@@ -215,7 +215,7 @@ export default function HistoryPage() {
                           )}
                           <span className="font-medium text-gray-700 dark:text-gray-300 flex-1 truncate">{pf.file}</span>
                           <span className={`text-xs ${pf.status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
-                            {pf.status === 'success' ? `${pf.records} record(s)` : 'No data'}
+                            {pf.status === 'success' ? `${pf.records} ${t('history.recordCount')}` : t('history.noDataExtracted')}
                           </span>
                           {pf.confidence > 0 && (
                             <span className="text-[10px] text-gray-400">{Math.round(pf.confidence * 100)}%</span>
@@ -267,7 +267,7 @@ export default function HistoryPage() {
                     </a>
                     <a href={f.downloadUrl}
                       className="text-xs px-3 py-1.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium transition-colors flex items-center gap-1">
-                      <Download className="w-3 h-3" /> Download
+                      <Download className="w-3 h-3" /> {t('common.download')}
                     </a>
                   </div>
                   );
@@ -280,40 +280,40 @@ export default function HistoryPage() {
         {/* Audit Trail */}
         <div className="card">
           <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-            <Shield className="w-4 h-4" /> Audit Trail
+            <Shield className="w-4 h-4" /> {t('history.auditTrail')}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Audit Status</p>
+              <p className="text-xs text-gray-500">{t('history.auditStatus')}</p>
               <div className="mt-1">{auditBadge(upload.auditStatus)}</div>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Reviewed By</p>
-              <p className="font-semibold text-sm">{upload.auditedBy || 'Not yet reviewed'}</p>
+              <p className="text-xs text-gray-500">{t('history.reviewedBy')}</p>
+              <p className="font-semibold text-sm">{upload.auditedBy || t('history.notYetReviewed')}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Review Date</p>
+              <p className="text-xs text-gray-500">{t('history.reviewDate')}</p>
               <p className="font-semibold text-sm">{upload.auditedAt ? new Date(upload.auditedAt).toLocaleString() : '—'}</p>
             </div>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Records Created</p>
+              <p className="text-xs text-gray-500">{t('history.recordsCreated')}</p>
               <p className="font-semibold text-sm">{recordCount}</p>
             </div>
           </div>
 
           {user?.role === 'ADMIN' && (
             <div className="border-t dark:border-gray-700 pt-4 space-y-3">
-              <textarea className="input" rows={2} placeholder="Add review notes..."
+              <textarea className="input" rows={2} placeholder={t('history.addReviewNotes')}
                 value={auditNote} onChange={(e) => setAuditNote(e.target.value)} />
               <div className="flex gap-2">
                 <button onClick={() => updateAudit('verified')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 border border-green-200">
-                  <CheckCircle2 className="w-4 h-4" /> Verify
+                  <CheckCircle2 className="w-4 h-4" /> {t('history.verify')}
                 </button>
                 <button onClick={() => updateAudit('flagged')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200">
-                  <AlertTriangle className="w-4 h-4" /> Flag
+                  <AlertTriangle className="w-4 h-4" /> {t('history.flag')}
                 </button>
                 <button onClick={() => updateAudit('rejected')} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-700 hover:bg-red-100 border border-red-200">
-                  <XCircle className="w-4 h-4" /> Reject
+                  <XCircle className="w-4 h-4" /> {t('history.reject')}
                 </button>
               </div>
             </div>
@@ -323,14 +323,14 @@ export default function HistoryPage() {
         {/* ETL Transformation Summary */}
         {recordCount > 0 && (
           <div className="card">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">ETL Transformation Pipeline</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('history.etlPipeline')}</h3>
             <div className="flex items-center gap-2 overflow-x-auto pb-2">
               {[
-                { label: 'Source', desc: files.length > 0 ? `${files.length} file${files.length > 1 ? 's' : ''} uploaded` : 'File uploaded', color: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300', rows: upload.totalRows || '?' },
-                { label: 'AI Mapping', desc: 'Schema auto-detected', color: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' },
-                { label: 'Cleaning', desc: 'Values normalized', color: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300' },
-                { label: 'Validation', desc: 'Types & ranges checked', color: 'bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300' },
-                { label: 'Loaded', desc: `${recordCount} records stored`, color: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300', rows: recordCount },
+                { label: t('history.stepSource'), desc: files.length > 0 ? `${files.length} ${t('history.stepSourceDesc')}` : t('history.stepSourceDescSingle'), color: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300', rows: upload.totalRows || '?' },
+                { label: t('history.stepAiMapping'), desc: t('history.stepAiMappingDesc'), color: 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300' },
+                { label: t('history.stepCleaning'), desc: t('history.stepCleaningDesc'), color: 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300' },
+                { label: t('history.stepValidation'), desc: t('history.stepValidationDesc'), color: 'bg-cyan-100 dark:bg-cyan-900 text-cyan-700 dark:text-cyan-300' },
+                { label: t('history.stepLoaded'), desc: `${recordCount} ${t('history.stepLoadedDesc')}`, color: 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300', rows: recordCount },
               ].map((step, i, arr) => (
                 <div key={step.label} className="flex items-center gap-2 shrink-0">
                   <div className={`px-3 py-2 rounded-lg ${step.color} text-center min-w-[100px]`}>
@@ -348,21 +348,21 @@ export default function HistoryPage() {
         {/* Transformed data */}
         <div className="card p-0 overflow-hidden">
           <div className="px-4 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
-            <h3 className="font-semibold">Transformed Data ({recordCount} records)</h3>
+            <h3 className="font-semibold">{t('history.transformedData')} ({recordCount} {t('history.records')})</h3>
             {files.length > 0 && (
               <a href={files[0].downloadUrl} className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1">
-                <Download className="w-3 h-3" /> Download source
+                <Download className="w-3 h-3" /> {t('history.downloadSource')}
               </a>
             )}
           </div>
           {transformedData.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">No transformed records found.</div>
+            <div className="p-8 text-center text-gray-400">{t('history.noTransformed')}</div>
           ) : upload.fileType === 'E1' ? (
             <div className="overflow-x-auto" style={{ overflow: 'visible' }}>
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
                   <tr>
-                    {['Year', 'Category', 'Subcategory', 'Scope', 'Qty', 'Unit', 'EF', 'tCO2e', 'Method', 'Amount', 'Source'].map((h) => (
+                    {[t('history.colYear'), t('history.colCategory'), t('history.colSubcategory'), t('history.colScope'), t('history.colQty'), t('history.colUnit'), t('history.colEF'), t('history.colTco2e'), t('history.colMethod'), t('history.colAmount'), t('history.colSource')].map((h) => (
                       <th key={h} className="text-left px-3 py-2 text-xs font-medium text-gray-500">{h}</th>
                     ))}
                   </tr>
@@ -406,11 +406,11 @@ export default function HistoryPage() {
                                   <div className="flex gap-2 mt-3">
                                     <a href={file.viewUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                                       className="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-brand-50 dark:bg-brand-900 text-brand-700 dark:text-brand-300 hover:bg-brand-100 font-medium transition-colors">
-                                      View Document
+                                      {t('history.viewDocument')}
                                     </a>
                                     <a href={file.downloadUrl} onClick={(e) => e.stopPropagation()}
                                       className="flex-1 text-center text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 font-medium transition-colors">
-                                      Download
+                                      {t('common.download')}
                                     </a>
                                   </div>
                                 </div>
@@ -429,7 +429,7 @@ export default function HistoryPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
                   <tr>
-                    {['Table', 'Year', 'Gender', 'Details', 'Count'].map((h) => (
+                    {[t('history.colTable'), t('history.colYear'), t('history.colGender'), t('history.colDetails'), t('history.colCount')].map((h) => (
                       <th key={h} className="text-left px-3 py-2 text-xs font-medium text-gray-500">{h}</th>
                     ))}
                   </tr>
@@ -456,24 +456,24 @@ export default function HistoryPage() {
   // ─── List View ──────────────────────────────────
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Upload History</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('history.title')}</h1>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-          <input className="input pl-9" placeholder="Search by file name..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          <input className="input pl-9" placeholder={t('history.searchPlaceholder')} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
         <select className="input w-auto" value={fileType} onChange={(e) => { setFileType(e.target.value); setPage(1); }}>
-          <option value="">All Types</option>
-          <option value="E1">Environmental</option>
-          <option value="S1">Social</option>
+          <option value="">{t('history.allTypes')}</option>
+          <option value="E1">{t('history.environmental')}</option>
+          <option value="S1">{t('history.social')}</option>
         </select>
         <select className="input w-auto" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-          <option value="">All Status</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="PROCESSING">Processing</option>
-          <option value="FAILED">Failed</option>
-          <option value="DELETED">Data Deleted</option>
+          <option value="">{t('history.allStatus')}</option>
+          <option value="COMPLETED">{t('history.completed')}</option>
+          <option value="PROCESSING">{t('history.processing')}</option>
+          <option value="FAILED">{t('history.failed')}</option>
+          <option value="DELETED">{t('history.dataDeleted')}</option>
         </select>
       </div>
 
@@ -481,16 +481,16 @@ export default function HistoryPage() {
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
             <tr>
-              {['File', 'Type', 'Org Unit', 'Uploaded By', 'Rows', 'Status', 'Audit', 'Date', ''].map((h) => (
+              {[t('history.file'), t('history.type'), t('history.orgUnit'), t('history.uploadedBy'), t('history.rows'), t('common.status'), t('history.audit'), t('common.date'), ''].map((h) => (
                 <th key={h} className="text-left px-4 py-3 text-sm font-medium text-gray-500">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y dark:divide-gray-700">
             {loading ? (
-              <tr><td colSpan={9} className="text-center py-8 text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-gray-400">{t('common.loading')}</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={9} className="text-center py-8 text-gray-400">No uploads found</td></tr>
+              <tr><td colSpan={9} className="text-center py-8 text-gray-400">{t('history.noUploads')}</td></tr>
             ) : records.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => openDetail(r.id)}>
                 <td className="px-4 py-3 text-sm"><div className="flex items-center gap-2"><FileSpreadsheet className="w-4 h-4 text-gray-400" /><span className="font-medium">{r.fileName}</span></div></td>
@@ -510,9 +510,9 @@ export default function HistoryPage() {
 
       {total > 20 && (
         <div className="flex justify-center gap-2">
-          <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span className="px-4 py-2 text-sm text-gray-500">Page {page} of {Math.ceil(total / 20)}</span>
-          <button className="btn-secondary" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>Next</button>
+          <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>{t('history.previous')}</button>
+          <span className="px-4 py-2 text-sm text-gray-500">{t('history.pageOf', { page, total: Math.ceil(total / 20) })}</span>
+          <button className="btn-secondary" disabled={page >= Math.ceil(total / 20)} onClick={() => setPage(page + 1)}>{t('common.next')}</button>
         </div>
       )}
 
@@ -520,7 +520,7 @@ export default function HistoryPage() {
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-xl p-6 flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-brand-600" />
-            <span>Loading details...</span>
+            <span>{t('history.loadingDetails')}</span>
           </div>
         </div>
       )}

@@ -5,8 +5,10 @@ import { HelpBanner, FieldLabel } from '../components/HelpSystem';
 import ProcessingScreen from '../components/ProcessingScreen';
 import DatabaseImport from '../components/DatabaseImport';
 import CreditPreview from '../components/CreditPreview';
+import { useT } from '../i18n';
 
 export default function S1Upload() {
+  const { t } = useT();
   const [orgUnits, setOrgUnits] = useState([]);
   const [orgUnitId, setOrgUnitId] = useState('');
   const [reportingYear, setReportingYear] = useState(new Date().getFullYear());
@@ -64,21 +66,21 @@ export default function S1Upload() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">S1 — Connect Workforce Data</h1>
-        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets or pull from a connected database</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('upload.s1Title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400">{t('upload.s1Subtitle')}</p>
       </div>
 
       {/* Two ways to connect — visual cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900 p-4 text-center">
           <FileSpreadsheet className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Spreadsheets</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Upload Excel or CSV files with HR / workforce data</p>
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{t('upload.spreadsheetsCard')}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t('upload.spreadsheetsS1Desc')}</p>
         </div>
         <a href="/connections" className="rounded-xl border border-purple-200 dark:border-purple-800 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950 dark:to-gray-900 p-4 text-center hover:shadow-md transition-shadow group">
           <Database className="w-7 h-7 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
-          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-purple-700">Source Systems</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Pull directly from connected HR databases</p>
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-purple-700">{t('upload.sourceSystemsCard')}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t('upload.sourceSystemsS1Desc')}</p>
         </a>
       </div>
 
@@ -89,12 +91,8 @@ export default function S1Upload() {
             <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Smart Data Processing</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Upload your workforce data in <strong>any format, any language, any structure</strong>. Our algorithms
-              automatically recognize columns, clean values, normalize gender codes, contract types, and more — then
-              load everything into the correct data model.
-            </p>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('upload.smartDataProcessing')}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1" dangerouslySetInnerHTML={{ __html: t('upload.smartDataS1Desc') }} />
           </div>
         </div>
       </div>
@@ -105,13 +103,13 @@ export default function S1Upload() {
         <div className="card">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <FieldLabel label="Reporting Year" required info="The ESG reporting year this data represents." />
+              <FieldLabel label={t('upload.reportingYear')} required info={t('upload.reportingYearS1Info')} />
               <select className="input" value={reportingYear} onChange={(e) => setReportingYear(parseInt(e.target.value))}>
                 {years.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
             <div>
-              <FieldLabel label="Organizational Unit" required info="Select which business unit or office this workforce data belongs to." />
+              <FieldLabel label={t('upload.orgUnit')} required info={t('upload.orgUnitS1Info')} />
               <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
                 {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.country})</option>)}
               </select>
@@ -122,10 +120,10 @@ export default function S1Upload() {
         {/* Tabs */}
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
           <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('excel')}>
-            <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Spreadsheet
+            <FileSpreadsheet className="w-4 h-4 inline mr-1" /> {t('upload.spreadsheetTab')}
           </button>
           <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'database' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('database')}>
-            <Database className="w-4 h-4 inline mr-1" /> Database
+            <Database className="w-4 h-4 inline mr-1" /> {t('upload.databaseTab')}
           </button>
         </div>
 
@@ -150,8 +148,8 @@ export default function S1Upload() {
             ) : (
               <>
                 <Upload className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">Drop any spreadsheet here or click to browse</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">.xlsx, .xls, .csv — any column names, any language — cost preview shown before processing</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('upload.dropSpreadsheet')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('upload.dropSpreadsheetHint')}</p>
               </>
             )}
           </div>
@@ -160,7 +158,7 @@ export default function S1Upload() {
             <CreditPreview
               action="excel-s1"
               params={{ fileSizeBytes: file.size }}
-              label="Processing this spreadsheet will cost"
+              label={t('upload.processingCost')}
               onEstimate={setExcelEstimate}
             />
           )}
@@ -174,12 +172,12 @@ export default function S1Upload() {
           >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {uploading
-              ? 'Starting AI processing...'
+              ? t('upload.startingAi')
               : excelEstimate && !excelEstimate.sufficient
-                ? `Insufficient credits — need ${excelEstimate.credits.toLocaleString()}`
+                ? t('upload.insufficientCredits', { amount: excelEstimate.credits.toLocaleString() })
                 : excelEstimate
-                  ? `Process with AI for ${reportingYear} — ${excelEstimate.credits.toLocaleString()} credits`
-                  : `Process with AI for ${reportingYear}`}
+                  ? t('upload.processWithAiCredits', { year: reportingYear, credits: excelEstimate.credits.toLocaleString() })
+                  : t('upload.processWithAi', { year: reportingYear })}
           </button>
         </div>
         ) : tab === 'database' ? (
@@ -199,23 +197,23 @@ export default function S1Upload() {
       {/* What can I upload */}
       {!uploadId && (
         <div className="card border-gray-200 dark:border-gray-700">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">What can I upload?</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">{t('upload.whatCanIUpload')}</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="font-medium text-gray-700 dark:text-gray-200">Any column names</p>
-              <p className="text-gray-500 dark:text-gray-400">"Geschlecht", "Genre", "Gender" — all mapped correctly</p>
+              <p className="font-medium text-gray-700 dark:text-gray-200">{t('upload.anyColumnNames')}</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('upload.anyColumnNamesDesc')}</p>
             </div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="font-medium text-gray-700 dark:text-gray-200">Any data format</p>
-              <p className="text-gray-500 dark:text-gray-400">"M/F", "Male/Female", date formats, number formats</p>
+              <p className="font-medium text-gray-700 dark:text-gray-200">{t('upload.anyDataFormat')}</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('upload.anyDataFormatDesc')}</p>
             </div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="font-medium text-gray-700 dark:text-gray-200">Multiple data types</p>
-              <p className="text-gray-500 dark:text-gray-400">Composition + training + turnover across sheets</p>
+              <p className="font-medium text-gray-700 dark:text-gray-200">{t('upload.multipleDataTypes')}</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('upload.multipleDataTypesDesc')}</p>
             </div>
             <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="font-medium text-gray-700 dark:text-gray-200">Messy real-world data</p>
-              <p className="text-gray-500 dark:text-gray-400">Missing values, inconsistent formatting — handled</p>
+              <p className="font-medium text-gray-700 dark:text-gray-200">{t('upload.messyData')}</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('upload.messyDataDesc')}</p>
             </div>
           </div>
         </div>

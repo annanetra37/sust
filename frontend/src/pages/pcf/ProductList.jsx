@@ -6,8 +6,10 @@ import {
   Package, Plus, Loader2, AlertCircle, CheckCircle, Clock, ChevronRight,
 } from 'lucide-react';
 import { HelpBanner } from '../../components/HelpSystem';
+import { useT } from '../../i18n';
 
 export default function ProductList() {
+  const { t } = useT();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
@@ -55,18 +57,16 @@ export default function ProductList() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Product Carbon Footprints</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage products and their lifecycle carbon footprints</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('pcf.title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('pcf.subtitle')}</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> New Product
+          <Plus className="w-4 h-4" /> {t('pcf.newProduct')}
         </button>
       </div>
 
-      <HelpBanner id="pcf-products-guide" title="How it works" variant="info">
-        Create a product, upload its Bill of Materials (BOM) spreadsheet, and our AI will classify
-        materials and match emission factors automatically. Then run a calculation to get the
-        product's carbon footprint with uncertainty ranges.
+      <HelpBanner id="pcf-products-guide" title={t('pcf.howItWorks')} variant="info">
+        {t('pcf.howItWorksBody')}
       </HelpBanner>
 
       {error && (
@@ -79,7 +79,7 @@ export default function ProductList() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowCreate(false)}>
           <form onSubmit={handleCreate} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">New Product</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pcf.newProduct')}</h2>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">SKU *</span>

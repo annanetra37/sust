@@ -7,8 +7,10 @@ import DatabaseImport from '../components/DatabaseImport';
 import CreditPreview from '../components/CreditPreview';
 import FeatureLock from '../components/FeatureLock';
 import useFeature from '../hooks/useFeature';
+import { useT } from '../i18n';
 
 export default function E1Upload() {
+  const { t } = useT();
   const [orgUnits, setOrgUnits] = useState([]);
   const [tab, setTab] = useState('excel');
   const [orgUnitId, setOrgUnitId] = useState('');
@@ -104,8 +106,8 @@ export default function E1Upload() {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">E1 — Connect Emissions Data</h1>
-          <p className="text-gray-500 dark:text-gray-400">Processing your data for reporting year {reportingYear}...</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('upload.e1Title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400">{t('upload.e1ProcessingSubtitle', { year: reportingYear })}</p>
         </div>
         <ProcessingScreen progress={progress} status={progress?.status || 'PROCESSING'} type="E1" />
       </div>
@@ -115,26 +117,26 @@ export default function E1Upload() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">E1 — Connect Emissions Data</h1>
-        <p className="text-gray-500 dark:text-gray-400">Upload spreadsheets, scan invoices, or pull from a connected database</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('upload.e1Title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400">{t('upload.e1Subtitle')}</p>
       </div>
 
       {/* Three ways to connect — visual cards */}
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-brand-200 dark:border-brand-800 bg-gradient-to-b from-brand-50 to-white dark:from-brand-950 dark:to-gray-900 p-4 text-center">
           <FileSpreadsheet className="w-7 h-7 text-brand-600 dark:text-brand-400 mx-auto mb-2" />
-          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Spreadsheets</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Upload Excel or CSV files with emissions data</p>
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{t('upload.spreadsheetsCard')}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t('upload.spreadsheetsE1Desc')}</p>
         </div>
         <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950 dark:to-gray-900 p-4 text-center">
           <ScanSearch className="w-7 h-7 text-amber-600 dark:text-amber-400 mx-auto mb-2" />
-          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">Invoices & Bills</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Scan travel, hotel, energy, or vehicle invoices</p>
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{t('upload.invoicesCard')}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t('upload.invoicesDesc')}</p>
         </div>
         <a href="/connections" className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-b from-indigo-50 to-white dark:from-indigo-950 dark:to-gray-900 p-4 text-center hover:shadow-md transition-shadow group">
           <Database className="w-7 h-7 text-indigo-600 dark:text-indigo-400 mx-auto mb-2" />
-          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-indigo-700">Source Systems</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Pull directly from connected databases</p>
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 group-hover:text-indigo-700">{t('upload.sourceSystemsCard')}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">{t('upload.sourceSystemsE1Desc')}</p>
         </a>
       </div>
 
@@ -145,10 +147,9 @@ export default function E1Upload() {
             <Sparkles className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Smart Data Processing</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('upload.smartDataProcessing')}</h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              No rigid templates or specific column names needed. Our algorithms automatically recognize your data structure,
-              map it to the correct emission categories and GHG scopes, and calculate tCO2e — regardless of format or language.
+              {t('upload.smartDataE1Desc')}
             </p>
           </div>
         </div>
@@ -158,13 +159,13 @@ export default function E1Upload() {
       <div className="card">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <FieldLabel label="Reporting Year" required info="The ESG reporting year. All processed data will be assigned to this year for consistent reporting." />
+            <FieldLabel label={t('upload.reportingYear')} required info={t('upload.reportingYearInfo')} />
             <select className="input" value={reportingYear} onChange={(e) => setReportingYear(parseInt(e.target.value))}>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <div>
-            <FieldLabel label="Organizational Unit" required info="The business unit this data belongs to." />
+            <FieldLabel label={t('upload.orgUnit')} required info={t('upload.orgUnitInfo')} />
             <select className="input" value={orgUnitId} onChange={(e) => setOrgUnitId(e.target.value)}>
               {orgUnits.map((u) => <option key={u.id} value={u.id}>{u.name} ({u.country})</option>)}
             </select>
@@ -175,14 +176,14 @@ export default function E1Upload() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
         <button className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === 'excel' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'}`} onClick={() => setTab('excel')}>
-          <FileSpreadsheet className="w-4 h-4 inline mr-1" /> Spreadsheet
+          <FileSpreadsheet className="w-4 h-4 inline mr-1" /> {t('upload.spreadsheetTab')}
         </button>
         <button
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${tab === 'doc-extract' ? 'bg-white dark:bg-gray-700 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'} ${!docExtractFeature.allowed ? 'opacity-70' : ''}`}
           onClick={() => setTab('doc-extract')}
           title={!docExtractFeature.allowed ? `Upgrade to ${docExtractFeature.requiredTierName} to unlock AI invoice extraction` : undefined}
         >
-          <ScanSearch className="w-4 h-4 inline" /> Invoices & Receipts
+          <ScanSearch className="w-4 h-4 inline" /> {t('upload.invoicesTab')}
           {!docExtractFeature.allowed && <Lock className="w-3 h-3 text-gray-400" />}
         </button>
         <button
@@ -190,7 +191,7 @@ export default function E1Upload() {
           onClick={() => setTab('database')}
           title={!dbConnectionsFeature.allowed ? `Upgrade to ${dbConnectionsFeature.requiredTierName} to unlock database connections` : undefined}
         >
-          <Database className="w-4 h-4 inline" /> Database
+          <Database className="w-4 h-4 inline" /> {t('upload.databaseTab')}
           {!dbConnectionsFeature.allowed && <Lock className="w-3 h-3 text-gray-400" />}
         </button>
       </div>
@@ -215,8 +216,8 @@ export default function E1Upload() {
             ) : (
               <>
                 <Upload className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">Drop any emissions spreadsheet — AI auto-detects categories & scopes</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Any column names, any language, any units — cost preview shown before processing</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('upload.dropEmissions')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('upload.dropEmissionsHint')}</p>
               </>
             )}
           </div>
@@ -225,7 +226,7 @@ export default function E1Upload() {
             <CreditPreview
               action="excel-e1"
               params={{ fileSizeBytes: file.size }}
-              label="Processing this spreadsheet will cost"
+              label={t('upload.processingCost')}
               onEstimate={setExcelEstimate}
             />
           )}
@@ -238,29 +239,29 @@ export default function E1Upload() {
           >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {uploading
-              ? 'Starting AI processing...'
+              ? t('upload.startingAi')
               : excelEstimate && !excelEstimate.sufficient
-                ? `Insufficient credits — need ${excelEstimate.credits.toLocaleString()}`
+                ? t('upload.insufficientCredits', { amount: excelEstimate.credits.toLocaleString() })
                 : excelEstimate
-                  ? `Process with AI for ${reportingYear} — ${excelEstimate.credits.toLocaleString()} credits`
-                  : `Process with AI for ${reportingYear}`}
+                  ? t('upload.processWithAiCredits', { year: reportingYear, credits: excelEstimate.credits.toLocaleString() })
+                  : t('upload.processWithAi', { year: reportingYear })}
           </button>
         </div>
       ) : tab === 'doc-extract' ? (
         !docExtractFeature.allowed ? (
           <FeatureLock
             feature="ai_doc_extract"
-            description="AI document extraction reads invoices, receipts, and travel bookings in any language and auto-populates your Scope 1/2/3 emissions. Upgrade to Professional to unlock it."
+            description={t('upload.docExtractLockDesc')}
           />
         ) : (
         <div className="card space-y-4">
           <div>
-            <FieldLabel label="Document Type" info="Select the type of documents you're uploading for better extraction accuracy." />
+            <FieldLabel label={t('upload.documentType')} info={t('upload.documentTypeInfo')} />
             <select className="input" value={extractMode} onChange={(e) => setExtractMode(e.target.value)}>
-              <option value="Travel">Travel (flights, trains, taxis)</option>
-              <option value="Stay">Stay (hotels, accommodation)</option>
-              <option value="Energy">Energy (electricity, gas, fuel bills)</option>
-              <option value="Company Vehicle">Company Vehicle (fuel, mileage)</option>
+              <option value="Travel">{t('upload.travelDocs')}</option>
+              <option value="Stay">{t('upload.stayDocs')}</option>
+              <option value="Energy">{t('upload.energyDocs')}</option>
+              <option value="Company Vehicle">{t('upload.vehicleDocs')}</option>
             </select>
           </div>
 
@@ -280,15 +281,15 @@ export default function E1Upload() {
                       <span className="truncate max-w-[300px]">{f.name}</span>
                       <span className="text-gray-400 text-xs">{(f.size / 1024).toFixed(0)} KB</span>
                     </div>
-                    <button className="text-red-500 hover:text-red-700 text-xs font-medium" onClick={(e) => { e.stopPropagation(); setDocFiles(docFiles.filter((_, j) => j !== i)); }}>Remove</button>
+                    <button className="text-red-500 hover:text-red-700 text-xs font-medium" onClick={(e) => { e.stopPropagation(); setDocFiles(docFiles.filter((_, j) => j !== i)); }}>{t('upload.remove')}</button>
                   </div>
                 ))}
               </div>
             ) : (
               <>
                 <ScanSearch className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                <p className="text-gray-500 dark:text-gray-400">Drop invoices & receipts — AI reads any language, any format</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, JPG, PNG — up to 20 files, 10MB each — cost preview shown before processing</p>
+                <p className="text-gray-500 dark:text-gray-400">{t('upload.dropInvoices')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('upload.dropInvoicesHint')}</p>
               </>
             )}
           </div>
@@ -297,7 +298,7 @@ export default function E1Upload() {
             <CreditPreview
               action="doc-extract"
               params={{ fileCount: docFiles.length, assumeVision: true }}
-              label={`Extracting ${docFiles.length} document${docFiles.length !== 1 ? 's' : ''} will cost`}
+              label={t('upload.extractingDocs', { count: docFiles.length })}
               onEstimate={setDocEstimate}
             />
           )}
@@ -310,12 +311,12 @@ export default function E1Upload() {
           >
             {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             {uploading
-              ? 'AI is reading documents...'
+              ? t('upload.aiReadingDocs')
               : docEstimate && !docEstimate.sufficient
-                ? `Insufficient credits — need ${docEstimate.credits.toLocaleString()}`
+                ? t('upload.insufficientCredits', { amount: docEstimate.credits.toLocaleString() })
                 : docEstimate
-                  ? `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear} — ${docEstimate.credits.toLocaleString()} credits`
-                  : `Extract ${docFiles.length} Document${docFiles.length !== 1 ? 's' : ''} for ${reportingYear}`}
+                  ? t('upload.extractDocsCredits', { count: docFiles.length, year: reportingYear, credits: docEstimate.credits.toLocaleString() })
+                  : t('upload.extractDocs', { count: docFiles.length, year: reportingYear })}
           </button>
         </div>
         )
@@ -323,7 +324,7 @@ export default function E1Upload() {
         !dbConnectionsFeature.allowed ? (
           <FeatureLock
             feature="db_connections"
-            description="Pipe emissions data directly from your Postgres, MySQL, Snowflake, or BigQuery warehouse. Upgrade to Professional to connect a database."
+            description={t('upload.dbConnectionLockDesc')}
           />
         ) : (
           <DatabaseImport
