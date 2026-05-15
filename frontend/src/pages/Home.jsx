@@ -82,8 +82,7 @@ export default function Home() {
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-gray-100">{t('home.pickIndustry')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                  Each pack adds the right materiality starters, emission factors, and disclosure templates
-                  for your sector. You can change this later in Settings.
+                  {t('home.sectorPickDesc')}
                 </p>
               </div>
             </div>

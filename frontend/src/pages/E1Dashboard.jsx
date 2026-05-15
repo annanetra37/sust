@@ -61,10 +61,10 @@ export default function E1Dashboard() {
               <FileImage className="w-3.5 h-3.5" /> {t('dashboard.visuals')}
             </button>
             <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Download raw KPI data as Excel spreadsheet">
-              <FileSpreadsheet className="w-3.5 h-3.5" /> Data
+              <FileSpreadsheet className="w-3.5 h-3.5" /> {t('dashboard.data')}
             </button>
           </div>
-          <p className="text-[9px] text-gray-400 text-center">Visuals = PDF with charts · Data = Excel with numbers</p>
+          <p className="text-[9px] text-gray-400 text-center">{t('dashboard.visualsHint')}</p>
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export default function E1Dashboard() {
             <div>
               <span className="text-2xl font-bold">{sbti.progress}%</span>
               <span className={`ml-2 badge ${sbti.onTrack ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {sbti.onTrack ? 'On Track' : 'Off Track'}
+                {sbti.onTrack ? t('dashboard.onTrack') : t('dashboard.offTrack')}
               </span>
             </div>
           ) : (
@@ -121,34 +121,34 @@ export default function E1Dashboard() {
       {/* Scope breakdown + secondary KPIs */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">Scope 1</span>
+          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wide">{t('dashboard.scope1')}</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope1} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
           <span className="text-[10px] text-gray-400">{t('dashboard.directEmissions')}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">Scope 2</span>
+          <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide">{t('dashboard.scope2')}</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope2} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
           <span className="text-[10px] text-gray-400">{t('dashboard.purchasedEnergy')}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Scope 3</span>
+          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">{t('dashboard.scope3')}</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.scope3} <span className="text-[10px] font-normal text-gray-400">tCO2e</span></span>
           <span className="text-[10px] text-gray-400">{t('dashboard.valueChain')}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">YoY Change</span>
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t('dashboard.yoyChange')}</span>
           <span className={`text-lg font-bold ${stats.yoyChange === null ? 'text-gray-400' : stats.yoyChange <= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {stats.yoyChange === null ? '—' : `${stats.yoyChange > 0 ? '+' : ''}${stats.yoyChange}%`}
           </span>
           <span className="text-[10px] text-gray-400">{t('dashboard.vsPreviousYear')}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Activities</span>
+          <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">{t('dashboard.activities')}</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.activityCount}</span>
           <span className="text-[10px] text-gray-400">{t('dashboard.dataRecords')}</span>
         </div>
         <div className="stat-card py-3 px-4">
-          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">Employees</span>
+          <span className="text-[10px] font-semibold text-blue-500 uppercase tracking-wide">{t('dashboard.employees')}</span>
           <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{stats.totalEmployees?.toLocaleString() || 0}</span>
           <span className="text-[10px] text-gray-400">{t('dashboard.fromS1Data')}</span>
         </div>
@@ -179,7 +179,7 @@ export default function E1Dashboard() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Emissions by Scope - Doughnut */}
-        <CopyableChart title="Emissions by Scope">
+        <CopyableChart title={t('dashboard.emissionsByScope')}>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie data={charts.byScope} dataKey="value" nameKey="scope" cx="50%" cy="50%" innerRadius={60} outerRadius={100}
@@ -195,7 +195,7 @@ export default function E1Dashboard() {
         </CopyableChart>
 
         {/* Emissions by Activity - Treemap */}
-        <CopyableChart title="Emissions by Activity">
+        <CopyableChart title={t('dashboard.emissionsByActivity')}>
           <ResponsiveContainer width="100%" height={280}>
             <Treemap
               data={charts.byActivity.map((a, i) => ({ name: a.activity, size: a.value, fill: TREE_COLORS[i % TREE_COLORS.length] }))}
@@ -215,7 +215,7 @@ export default function E1Dashboard() {
         </CopyableChart>
 
         {/* Emissions Trend */}
-        <CopyableChart title="Emissions Trend (Year-over-Year)">
+        <CopyableChart title={t('dashboard.emissionsTrend')}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={charts.emissionsTrend}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -228,7 +228,7 @@ export default function E1Dashboard() {
         </CopyableChart>
 
         {/* Energy Consumption by Source */}
-        <CopyableChart title="Energy Consumption by Source (MWh)">
+        <CopyableChart title={t('dashboard.energyBySource')}>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={charts.energyBySource || []}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -242,7 +242,7 @@ export default function E1Dashboard() {
 
         {/* SBTi Gauge */}
         {sbti && (
-          <CopyableChart title="SBTi Target Progress">
+          <CopyableChart title={t('dashboard.sbtiTargetProgress')}>
             <div className="flex flex-col items-center justify-center h-[250px]">
               <div className="relative w-48 h-48">
                 <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
