@@ -924,6 +924,7 @@ function BomRow({ item, onDelete, showConfidence }) {
 // backend writes the BOM rows directly — the modal closes and the main page
 // re-fetches so the confidence table reflects the new AI-proposed BOM.
 function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
+  const { t } = useT();
   const [description, setDescription] = useState('');
   const [massHint, setMassHint] = useState(product.massKg || '');
   const [originCountry, setOriginCountry] = useState('');
@@ -971,17 +972,16 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
             <Wand2 className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Generate BOM from description</h2>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pcf.generateBomTitle')}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              Describe your product and the AI will propose a realistic BOM with material classes,
-              typical quantities, and confidence scores. You can edit every row after generation.
+              {t('pcf.generateBomDesc')}
             </p>
           </div>
         </div>
 
         <div>
           <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-            Product description <span className="text-red-500">*</span>
+            {t('pcf.productDescription')} <span className="text-red-500">*</span>
           </label>
           <textarea
             rows={6}
@@ -1000,7 +1000,7 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
                 onClick={() => setDescription(suggestions[0])}
                 className="text-[11px] text-brand-600 hover:underline"
               >
-                Try an example
+                {t('common.tryExample')}
               </button>
             )}
           </div>
@@ -1008,7 +1008,7 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
 
         <div className="grid grid-cols-3 gap-3">
           <label className="block">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Mass hint (kg)</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.massHint')}</span>
             <input
               type="number"
               step="0.001"
@@ -1020,7 +1020,7 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Assembly country</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.assemblyCountry')}</span>
             <input
               className="input mt-1"
               placeholder="e.g. Vietnam, Malaysia"
@@ -1029,7 +1029,7 @@ function BomGeneratorModal({ product, onClose, onGenerated, setError }) {
             />
           </label>
           <label className="block">
-            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Supplier (optional)</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.supplier')}</span>
             <input
               className="input mt-1"
               placeholder="e.g. Foxconn"
