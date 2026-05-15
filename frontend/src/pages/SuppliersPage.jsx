@@ -6,6 +6,7 @@ import {
   ChevronRight, Mail, Globe, Building2,
 } from 'lucide-react';
 import { HelpBanner } from '../components/HelpSystem';
+import { useT } from '../i18n';
 
 const STATUS_COLORS = {
   sent: 'bg-gray-100 text-gray-600',
@@ -16,6 +17,7 @@ const STATUS_COLORS = {
 };
 
 export default function SuppliersPage() {
+  const { t } = useT();
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
   const [suppliers, setSuppliers] = useState([]);
@@ -93,24 +95,22 @@ export default function SuppliersPage() {
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Supplier Scope 3 Portal</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Collect primary emissions data directly from your supply chain</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('suppliers.title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('suppliers.subtitle')}</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Add Supplier
+          <Plus className="w-4 h-4" /> {t('suppliers.addSupplier')}
         </button>
       </div>
 
-      <HelpBanner id="suppliers-guide" title="How it works" variant="info">
-        Add your suppliers, send them a data request, and they submit their emissions data through
-        a simple branded form — no account needed. Once you approve a submission, it flows into your
-        Scope 3 inventory as primary data, boosting your ESRS primary-data coverage.
+      <HelpBanner id="suppliers-guide" title={t('suppliers.howItWorks')} variant="info">
+        {t('suppliers.howItWorksBody')}
       </HelpBanner>
 
       {error && (
         <div className="p-3 bg-red-50 dark:bg-red-950 rounded-lg text-sm text-red-700 dark:text-red-400 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{error}
-          <button onClick={() => setError('')} className="ml-auto text-red-500 text-xs hover:underline">dismiss</button>
+          <button onClick={() => setError('')} className="ml-auto text-red-500 text-xs hover:underline">{t('suppliers.dismiss')}</button>
         </div>
       )}
 
@@ -118,21 +118,21 @@ export default function SuppliersPage() {
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowAdd(false)}>
           <form onSubmit={handleAdd} className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold">Add Supplier</h2>
-            <input className="input" required placeholder="Company name" value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} />
-            <input className="input" required type="email" placeholder="Contact email" value={addForm.contactEmail} onChange={e => setAddForm({...addForm, contactEmail: e.target.value})} />
-            <input className="input" required placeholder="Country" value={addForm.country} onChange={e => setAddForm({...addForm, country: e.target.value})} />
+            <h2 className="text-lg font-bold">{t('suppliers.addSupplier')}</h2>
+            <input className="input" required placeholder={t('suppliers.companyName')} value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} />
+            <input className="input" required type="email" placeholder={t('suppliers.contactEmail')} value={addForm.contactEmail} onChange={e => setAddForm({...addForm, contactEmail: e.target.value})} />
+            <input className="input" required placeholder={t('common.country')} value={addForm.country} onChange={e => setAddForm({...addForm, country: e.target.value})} />
             <select className="input" value={addForm.category} onChange={e => setAddForm({...addForm, category: e.target.value})}>
-              <option value="">Category (optional)</option>
-              <option value="tier1_direct">Tier 1 — Direct materials</option>
-              <option value="tier1_indirect">Tier 1 — Indirect materials</option>
-              <option value="logistics">Logistics / Transport</option>
-              <option value="services">Services</option>
+              <option value="">{t('suppliers.category')}</option>
+              <option value="tier1_direct">{t('suppliers.tier1Direct')}</option>
+              <option value="tier1_indirect">{t('suppliers.tier1Indirect')}</option>
+              <option value="logistics">{t('suppliers.logistics')}</option>
+              <option value="services">{t('suppliers.services')}</option>
             </select>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary">{t('common.cancel')}</button>
               <button type="submit" disabled={adding} className="btn-primary flex items-center gap-2">
-                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} Add
+                {adding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} {t('common.add')}
               </button>
             </div>
           </form>
@@ -143,16 +143,16 @@ export default function SuppliersPage() {
       {requestTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setRequestTarget(null)}>
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-bold">Send Data Request</h2>
-            <p className="text-sm text-gray-500">Sending to <strong>{requestTarget.name}</strong> ({requestTarget.contactEmail})</p>
+            <h2 className="text-lg font-bold">{t('suppliers.sendDataRequest')}</h2>
+            <p className="text-sm text-gray-500">{t('suppliers.sendingTo')} <strong>{requestTarget.name}</strong> ({requestTarget.contactEmail})</p>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Reporting year</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('suppliers.reportingYear')}</span>
               <input type="number" className="input mt-1" value={reqYear} onChange={e => setReqYear(parseInt(e.target.value))} />
             </label>
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setRequestTarget(null)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setRequestTarget(null)} className="btn-secondary">{t('common.cancel')}</button>
               <button onClick={handleSendRequest} disabled={sending} className="btn-primary flex items-center gap-2">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Send request
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {t('suppliers.sendRequest')}
               </button>
             </div>
           </div>
@@ -168,7 +168,7 @@ export default function SuppliersPage() {
           ) : suppliers.length === 0 ? (
             <div className="card text-center py-10">
               <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 text-sm">No suppliers added yet.</p>
+              <p className="text-gray-500 text-sm">{t('suppliers.noSuppliers')}</p>
             </div>
           ) : suppliers.map(s => (
             <div
@@ -192,7 +192,7 @@ export default function SuppliersPage() {
                     {s.responseRate}%
                   </p>
                 ) : (
-                  <p className="text-xs text-gray-400">No requests</p>
+                  <p className="text-xs text-gray-400">{t('suppliers.noRequests')}</p>
                 )}
               </div>
               <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
@@ -213,10 +213,10 @@ export default function SuppliersPage() {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setRequestTarget(detail)} className="btn-primary text-sm flex items-center gap-1">
-                  <Send className="w-3.5 h-3.5" /> Send request
+                  <Send className="w-3.5 h-3.5" /> {t('suppliers.sendRequest')}
                 </button>
                 {isAdmin && (
-                  <button onClick={() => handleDelete(detail.id)} className="text-gray-400 hover:text-red-500" title="Delete">
+                  <button onClick={() => handleDelete(detail.id)} className="text-gray-400 hover:text-red-500" title={t('common.delete')}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}
@@ -225,9 +225,9 @@ export default function SuppliersPage() {
 
             {/* Request history */}
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Data Requests</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('suppliers.dataRequests')}</p>
               {(detail.requests || []).length === 0 ? (
-                <p className="text-sm text-gray-400">No requests sent yet.</p>
+                <p className="text-sm text-gray-400">{t('suppliers.noRequests')}</p>
               ) : detail.requests.map(r => (
                 <div key={r.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
                   <div className="flex items-center gap-2 text-sm">
@@ -241,7 +241,7 @@ export default function SuppliersPage() {
                         className="btn-primary text-xs flex items-center gap-1"
                       >
                         {approving === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                        Approve & Ingest
+                        {t('suppliers.approveIngest')}
                       </button>
                     )}
                   </div>

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { UserPlus, Trash2, Shield, ToggleLeft, ToggleRight, Copy, Check, XCircle } from 'lucide-react';
 import { HelpBanner, InfoTip } from '../components/HelpSystem';
+import { useT } from '../i18n';
 
 export default function UsersPage() {
+  const { t } = useT();
   const [users, setUsers] = useState([]);
   const [orgUnits, setOrgUnits] = useState([]);
   const [showInvite, setShowInvite] = useState(false);
@@ -93,7 +95,7 @@ export default function UsersPage() {
   };
 
   const deleteUser = async (user) => {
-    if (!confirm(`Delete ${user.firstName} ${user.lastName}? This cannot be undone.`)) return;
+    if (!confirm(t('users.deleteConfirm', { name: `${user.firstName} ${user.lastName}` }))) return;
     await api.deleteUser(user.id);
     load();
   };
@@ -115,15 +117,14 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('users.title')}</h1>
         <button className="btn-primary flex items-center gap-2" onClick={openInviteModal}>
-          <UserPlus className="w-4 h-4" /> Invite User
+          <UserPlus className="w-4 h-4" /> {t('users.inviteUser')}
         </button>
       </div>
 
-      <HelpBanner id="users-guide" title="Managing Users & Permissions" variant="info">
-        Invite team members with Admin (full access) or Custom roles. Custom users can be given specific
-        View, Upload, or Delete permissions per organizational unit. Permissions can be changed anytime.
+      <HelpBanner id="users-guide" title={t('users.helpTitle')} variant="info">
+        {t('users.helpBody')}
       </HelpBanner>
 
       {/* ─── Invite Modal ──────────────────────────── */}
@@ -134,60 +135,60 @@ export default function UsersPage() {
               // Real error — user was NOT created
               <div className="p-6 space-y-4">
                 <XCircle className="w-12 h-12 text-red-500 mx-auto" />
-                <h2 className="text-lg font-bold text-red-700 text-center">Invitation Failed</h2>
+                <h2 className="text-lg font-bold text-red-700 text-center">{t('users.invitationFailed')}</h2>
                 <p className="text-sm text-red-600 text-center">{inviteResult.message}</p>
                 <div className="flex gap-3">
-                  <button className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>Close</button>
-                  <button className="btn-primary flex-1" onClick={() => setInviteResult(null)}>Try Again</button>
+                  <button className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>{t('common.close')}</button>
+                  <button className="btn-primary flex-1" onClick={() => setInviteResult(null)}>{t('users.tryAgain')}</button>
                 </div>
               </div>
             ) : inviteResult?.inviteLink ? (
               // User created but email failed — show manual invite link
               <div className="p-6 space-y-4">
-                <h2 className="text-lg font-bold text-amber-600">User Created — Email Not Sent</h2>
+                <h2 className="text-lg font-bold text-amber-600">{t('users.userCreatedNoEmail')}</h2>
                 <p className="text-sm text-gray-600">{inviteResult.message}</p>
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Share this invite link with the user:</p>
+                  <p className="text-xs text-gray-500 mb-1">{t('users.shareInviteLink')}</p>
                   <div className="flex items-center gap-2">
                     <input className="input text-xs flex-1" readOnly value={inviteResult.inviteLink} />
                     <button className="btn-secondary text-xs flex items-center gap-1" onClick={() => copyLink(inviteResult.inviteLink)}>
                       {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                      {copied ? 'Copied' : 'Copy'}
+                      {copied ? t('users.copied') : t('users.copy')}
                     </button>
                   </div>
                 </div>
-                <button className="btn-primary w-full" onClick={() => setShowInvite(false)}>Done</button>
+                <button className="btn-primary w-full" onClick={() => setShowInvite(false)}>{t('users.done')}</button>
               </div>
             ) : inviteResult ? (
               // Email sent successfully
               <div className="p-6 text-center space-y-3">
                 <Check className="w-12 h-12 text-green-500 mx-auto" />
-                <h2 className="text-lg font-bold text-green-700">Invitation Sent</h2>
+                <h2 className="text-lg font-bold text-green-700">{t('users.invitationSent')}</h2>
                 <p className="text-sm text-gray-600">{inviteResult.message}</p>
               </div>
             ) : (
               // Invite form
               <form onSubmit={handleInvite} className="p-6 space-y-4">
-                <h2 className="text-lg font-bold">Invite User</h2>
+                <h2 className="text-lg font-bold">{t('users.inviteUser')}</h2>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <input className="input" placeholder="First name *" required value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
-                  <input className="input" placeholder="Last name *" required value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
+                  <input className="input" placeholder={`${t('users.firstName')} *`} required value={invite.firstName} onChange={(e) => setInvite({ ...invite, firstName: e.target.value })} />
+                  <input className="input" placeholder={`${t('users.lastName')} *`} required value={invite.lastName} onChange={(e) => setInvite({ ...invite, lastName: e.target.value })} />
                 </div>
-                <input type="email" className="input" placeholder="Email *" required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
+                <input type="email" className="input" placeholder={`${t('common.email')} *`} required value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} />
                 <div className="grid grid-cols-2 gap-3">
-                  <input className="input" placeholder="Phone" value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} />
-                  <input className="input" placeholder="Job title" value={invite.jobTitle} onChange={(e) => setInvite({ ...invite, jobTitle: e.target.value })} />
+                  <input className="input" placeholder={t('users.phone')} value={invite.phone} onChange={(e) => setInvite({ ...invite, phone: e.target.value })} />
+                  <input className="input" placeholder={t('users.jobTitle')} value={invite.jobTitle} onChange={(e) => setInvite({ ...invite, jobTitle: e.target.value })} />
                 </div>
 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
-                    <label className="text-sm font-medium text-gray-700">Role</label>
-                    <InfoTip>Admin has full access to everything. Custom lets you control exactly which org units and actions this user can access.</InfoTip>
+                    <label className="text-sm font-medium text-gray-700">{t('users.role')}</label>
+                    <InfoTip>{t('users.roleTooltip')}</InfoTip>
                   </div>
                   <select className="input" value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value })}>
-                    <option value="CUSTOM">Custom (restricted)</option>
-                    <option value="ADMIN">Admin (full access)</option>
+                    <option value="CUSTOM">{t('users.customRestricted')}</option>
+                    <option value="ADMIN">{t('users.adminFullAccess')}</option>
                   </select>
                 </div>
 
@@ -195,24 +196,24 @@ export default function UsersPage() {
                 {invite.role === 'CUSTOM' && (
                   <div>
                     <div className="flex items-center gap-1 mb-2">
-                      <label className="text-sm font-medium text-gray-700">Permissions by Org Unit</label>
-                      <InfoTip>Select which organizational units this user can access and what they can do in each.</InfoTip>
+                      <label className="text-sm font-medium text-gray-700">{t('users.permissionsByOrgUnit')}</label>
+                      <InfoTip>{t('users.permissionsTooltip')}</InfoTip>
                     </div>
                     <div className="border rounded-lg overflow-hidden">
                       <table className="w-full text-sm">
                         <thead className="bg-gray-50 dark:bg-gray-800">
                           <tr>
-                            <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
+                            <th className="text-left px-3 py-2 font-medium text-gray-500">{t('users.orgUnitHeader')}</th>
                             <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
-                              <span className="flex items-center justify-center gap-0.5">View <InfoTip size="sm">Can see dashboards and data for this unit.</InfoTip></span>
+                              <span className="flex items-center justify-center gap-0.5">{t('users.viewPerm')} <InfoTip size="sm">{t('users.viewTooltip')}</InfoTip></span>
                             </th>
                             <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
-                              <span className="flex items-center justify-center gap-0.5">Upload <InfoTip size="sm">Can upload data (Excel, documents) for this unit.</InfoTip></span>
+                              <span className="flex items-center justify-center gap-0.5">{t('users.uploadPerm')} <InfoTip size="sm">{t('users.uploadTooltip')}</InfoTip></span>
                             </th>
                             <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">
-                              <span className="flex items-center justify-center gap-0.5">Delete <InfoTip size="sm">Can delete/reset data for this unit.</InfoTip></span>
+                              <span className="flex items-center justify-center gap-0.5">{t('users.deletePerm')} <InfoTip size="sm">{t('users.deleteTooltip')}</InfoTip></span>
                             </th>
-                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-14">All</th>
+                            <th className="text-center px-3 py-2 font-medium text-gray-500 w-14">{t('users.allPerm')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -243,14 +244,14 @@ export default function UsersPage() {
                       </table>
                     </div>
                     {invite.permissions.every((p) => !p.canView && !p.canUpload && !p.canDelete) && (
-                      <p className="text-xs text-amber-600 mt-1">No permissions selected — this user won't be able to access any data.</p>
+                      <p className="text-xs text-amber-600 mt-1">{t('users.noPermsWarning')}</p>
                     )}
                   </div>
                 )}
 
                 <div className="flex gap-3 pt-2">
-                  <button type="button" className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>Cancel</button>
-                  <button type="submit" className="btn-primary flex-1">Send Invite</button>
+                  <button type="button" className="btn-secondary flex-1" onClick={() => setShowInvite(false)}>{t('common.cancel')}</button>
+                  <button type="submit" className="btn-primary flex-1">{t('users.sendInvite')}</button>
                 </div>
               </form>
             )}
@@ -262,15 +263,15 @@ export default function UsersPage() {
       {showPerms && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg space-y-4">
-            <h2 className="text-lg font-bold">Edit Permissions</h2>
+            <h2 className="text-lg font-bold">{t('users.editPermissions')}</h2>
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium text-gray-500">Org Unit</th>
-                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">View</th>
-                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">Upload</th>
-                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">Delete</th>
+                    <th className="text-left px-3 py-2 font-medium text-gray-500">{t('users.orgUnitHeader')}</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">{t('users.viewPerm')}</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">{t('users.uploadPerm')}</th>
+                    <th className="text-center px-3 py-2 font-medium text-gray-500 w-16">{t('users.deletePerm')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -293,8 +294,8 @@ export default function UsersPage() {
               </table>
             </div>
             <div className="flex gap-3">
-              <button className="btn-secondary flex-1" onClick={() => setShowPerms(null)}>Cancel</button>
-              <button className="btn-primary flex-1" onClick={savePerms}>Save Permissions</button>
+              <button className="btn-secondary flex-1" onClick={() => setShowPerms(null)}>{t('common.cancel')}</button>
+              <button className="btn-primary flex-1" onClick={savePerms}>{t('users.savePermissions')}</button>
             </div>
           </div>
         </div>
@@ -305,16 +306,16 @@ export default function UsersPage() {
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">User</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Role</th>
-              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
-              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">{t('users.user')}</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">{t('common.email')}</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">{t('users.role')}</th>
+              <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">{t('common.status')}</th>
+              <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {loading ? (
-              <tr><td colSpan={5} className="text-center py-8 text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={5} className="text-center py-8 text-gray-400">{t('common.loading')}</td></tr>
             ) : users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">
@@ -329,23 +330,23 @@ export default function UsersPage() {
                     {u.role}
                   </span>
                   {u.role === 'CUSTOM' && u.permissions?.length > 0 && (
-                    <span className="text-xs text-gray-400 ml-1">({u.permissions.length} unit{u.permissions.length !== 1 ? 's' : ''})</span>
+                    <span className="text-xs text-gray-400 ml-1">({u.permissions.length} {t('users.units')})</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
                   <span className={`badge ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                    {u.isActive ? 'Active' : 'Inactive'}
+                    {u.isActive ? t('users.active') : t('users.inactive')}
                   </span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    <button className="text-gray-400 hover:text-brand-600" title="Edit permissions" onClick={() => openPerms(u)}>
+                    <button className="text-gray-400 hover:text-brand-600" title={t('users.editPermsTooltip')} onClick={() => openPerms(u)}>
                       <Shield className="w-4 h-4" />
                     </button>
-                    <button className="text-gray-400 hover:text-amber-600" title={u.isActive ? 'Deactivate' : 'Activate'} onClick={() => toggleStatus(u)}>
+                    <button className="text-gray-400 hover:text-amber-600" title={u.isActive ? t('users.deactivate') : t('users.activate')} onClick={() => toggleStatus(u)}>
                       {u.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
                     </button>
-                    <button className="text-gray-400 hover:text-red-600" title="Delete user" onClick={() => deleteUser(u)}>
+                    <button className="text-gray-400 hover:text-red-600" title={t('users.deleteUserTooltip')} onClick={() => deleteUser(u)}>
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

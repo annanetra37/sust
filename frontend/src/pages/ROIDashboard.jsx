@@ -16,6 +16,7 @@ import { HelpBanner } from '../components/HelpSystem';
 import FeatureLock from '../components/FeatureLock';
 import useFeature from '../hooks/useFeature';
 import { useAuth } from '../context/AuthContext';
+import { useT } from '../i18n';
 
 // Format a number as a USD currency string.  We keep the symbol in the
 // component (instead of relying on Intl with locale) so the display looks
@@ -35,33 +36,32 @@ function formatNumber(n, suffix = '') {
 }
 
 // ─── Top banner card (mirrors the roadmap mockup) ───────────────────────────
-function HeaderBanner({ onEditFinancials }) {
+function HeaderBanner({ onEditFinancials, t }) {
   return (
     <div className="rounded-2xl overflow-hidden shadow-sm">
       <div className="bg-slate-800 dark:bg-slate-900 px-6 py-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-white">Sustainability ROI Module</h1>
+          <h1 className="text-2xl font-bold text-white">{t('roi.title')}</h1>
           <p className="text-sm text-slate-300 mt-1">
-            Let the platform prove the business case for sustainability.
+            {t('roi.subtitle')}
           </p>
         </div>
         <span className="inline-flex items-center gap-2 bg-brand-500 text-white text-xs font-bold px-4 py-2 rounded">
           <Sparkles className="w-3.5 h-3.5" />
-          LIVE
+          {t('roi.live')}
         </span>
       </div>
       <div className="bg-brand-50 dark:bg-slate-800 px-6 py-5 border-t-4 border-brand-500">
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Connect your{' '}
+          {t('roi.connectFinancial')}{' '}
           <button
             type="button"
             onClick={onEditFinancials}
             className="font-bold underline decoration-2 underline-offset-2 text-slate-800 dark:text-white hover:text-brand-600 transition-colors"
           >
-            financial data
+            {t('roi.financialData')}
           </button>
-          . The platform translates your emissions, energy, and workforce data
-          into USD impact — without any manual spreadsheets.
+          . {t('roi.platformTranslates')}
         </p>
       </div>
     </div>
@@ -110,7 +110,7 @@ function Stat({ label, value }) {
 }
 
 // ─── Financials editor modal ────────────────────────────────────────────────
-function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
+function FinancialsModal({ initial, onClose, onSaved, canEdit, t }) {
   const [form, setForm] = useState({
     electricityPricePerKwh: initial?.electricityPricePerKwh ?? 0.15,
     carbonTaxPerTco2e: initial?.carbonTaxPerTco2e ?? 85,
@@ -139,7 +139,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
       const saved = await api.updateRoiFinancials(payload);
       onSaved(saved);
     } catch (err) {
-      setError(err.error || 'Failed to save financial assumptions.');
+      setError(err.error || t('roi.failedToSave'));
     } finally {
       setSaving(false);
     }
@@ -153,10 +153,9 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
       >
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Financial data</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('roi.financialDataTitle')}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              These assumptions drive the ROI calculations. Update them when your CFO provides
-              current prices or targets.
+              {t('roi.financialDataDesc')}
             </p>
           </div>
         </div>
@@ -164,14 +163,14 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
         {!canEdit && (
           <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg text-sm text-amber-700 dark:text-amber-400 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>Only admins can change the financial assumptions. You can still view the current values below.</span>
+            <span>{t('roi.adminOnlyFinancials')}</span>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              Electricity price (USD / kWh)
+              {t('roi.electricityPrice')}
             </span>
             <input
               type="number"
@@ -185,7 +184,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
           </label>
           <label className="block">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              Carbon tax (USD / tCO2e)
+              {t('roi.carbonPrice')}
             </span>
             <input
               type="number"
@@ -199,7 +198,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
           </label>
           <label className="block">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              Avg recruiting cost per hire (USD)
+              {t('roi.recruitingCost')}
             </span>
             <input
               type="number"
@@ -213,7 +212,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
           </label>
           <label className="block">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              Annual revenue (USD)
+              {t('roi.annualRevenue')}
             </span>
             <input
               type="number"
@@ -228,7 +227,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
           </label>
           <label className="block col-span-2">
             <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-              Share of revenue tied to ESG-certified contracts (%)
+              {t('roi.esgRevenueShare')}
             </span>
             <input
               type="number"
@@ -251,12 +250,12 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
 
         <div className="flex items-center justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn-secondary">
-            {canEdit ? 'Cancel' : 'Close'}
+            {canEdit ? t('common.cancel') : t('common.close')}
           </button>
           {canEdit && (
             <button type="button" onClick={save} disabled={saving} className="btn-primary flex items-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save assumptions
+              {t('roi.saveAssumptions')}
             </button>
           )}
         </div>
@@ -267,6 +266,7 @@ function FinancialsModal({ initial, onClose, onSaved, canEdit }) {
 
 // ─── Main page ──────────────────────────────────────────────────────────────
 export default function ROIDashboard() {
+  const { t } = useT();
   const { user } = useAuth();
   const roiFeature = useFeature('sustainability_roi');
   const [summary, setSummary] = useState(null);
@@ -292,7 +292,7 @@ export default function ROIDashboard() {
       if (err.error === 'FEATURE_NOT_IN_PLAN') {
         setSummary(null);
       } else {
-        setError(err.error || 'Failed to load ROI data.');
+        setError(err.error || t('roi.failedToLoad'));
       }
     } finally {
       setLoading(false);
@@ -309,7 +309,7 @@ export default function ROIDashboard() {
   if (!roiFeature.allowed) {
     return (
       <div className="max-w-5xl mx-auto space-y-6">
-        <HeaderBanner onEditFinancials={() => {}} />
+        <HeaderBanner onEditFinancials={() => {}} t={t} />
         <FeatureLock feature="sustainability_roi" />
       </div>
     );
@@ -321,21 +321,17 @@ export default function ROIDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <HeaderBanner onEditFinancials={() => setShowFinancials(true)} />
+      <HeaderBanner onEditFinancials={() => setShowFinancials(true)} t={t} />
 
-      <HelpBanner id="roi-module-guide" title="How the ROI module works" variant="info">
-        Each pillar compares a baseline year against the current year using the data you've
-        already uploaded, then multiplies the delta by a financial assumption (electricity
-        price, carbon tax, recruiting cost, revenue share) to surface USD impact. Update the
-        assumptions any time from the <strong>financial data</strong> link above — the dashboard
-        recalculates instantly.
+      <HelpBanner id="roi-module-guide" title={t('roi.howRoiWorks')} variant="info">
+        {t('roi.howRoiBody')}
       </HelpBanner>
 
       {/* Year + baseline + financials toolbar */}
       {summary?.hasData && (
         <div className="card flex items-center gap-4 flex-wrap">
           <div>
-            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">Baseline year</label>
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">{t('roi.baselineYear')}</label>
             <select
               className="input mt-1"
               value={baselineYear}
@@ -347,7 +343,7 @@ export default function ROIDashboard() {
             </select>
           </div>
           <div>
-            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">Current year</label>
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 block">{t('roi.currentYear')}</label>
             <select
               className="input mt-1"
               value={currentYear}
@@ -361,7 +357,7 @@ export default function ROIDashboard() {
           <div className="flex-1" />
           {summary.totalRoiUsd > 0 && (
             <div className="text-right">
-              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Total annual impact</p>
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">{t('roi.totalAnnualImpact')}</p>
               <p className="text-2xl font-bold text-brand-600 dark:text-brand-400">
                 {formatUsd(summary.totalRoiUsd, currency)}
               </p>
@@ -373,7 +369,7 @@ export default function ROIDashboard() {
             onClick={() => setShowFinancials(true)}
           >
             <Pencil className="w-4 h-4" />
-            Financial data
+            {t('roi.financialDataTitle')}
           </button>
         </div>
       )}
@@ -394,10 +390,9 @@ export default function ROIDashboard() {
       {!loading && summary && !summary.hasData && (
         <div className="card text-center py-12">
           <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No ESG data yet</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('roi.noEsgData')}</h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-md mx-auto">
-            Upload some emissions or workforce data first. As soon as we have one or more reporting
-            years on file, the ROI module will start translating it into USD impact.
+            {t('roi.noEsgDataDesc')}
           </p>
         </div>
       )}
@@ -408,76 +403,73 @@ export default function ROIDashboard() {
           {/* ── 1. Energy cost savings ── */}
           <PillarCard
             icon={Zap}
-            title="Energy cost savings"
-            description="Auto-calculate ROI from energy efficiency initiatives vs. baseline spend. Show CFO the payback period."
+            title={t('roi.energySavings')}
+            description={t('roi.energySavingsDesc')}
           >
             <HeroMetric
               value={formatUsd(pillars.energy.savingsUsd, currency)}
-              caption={`saved vs. ${pillars.energy.baselineYear} baseline`}
+              caption={t('roi.savedVsBaseline', { year: pillars.energy.baselineYear })}
               color="text-emerald-600 dark:text-emerald-400"
             />
             <div className="mt-3">
-              <Stat label="Baseline spend" value={formatUsd(pillars.energy.baselineSpendUsd, currency)} />
-              <Stat label="Current spend" value={formatUsd(pillars.energy.currentSpendUsd, currency)} />
-              <Stat label="Energy reduction" value={`${pillars.energy.reductionPct}%`} />
-              <Stat label="Avoided kWh" value={formatNumber(pillars.energy.avoidedKwh, ' kWh')} />
-              <Stat label="Price assumption" value={`${formatUsd(pillars.energy.electricityPricePerKwh, currency)} / kWh`} />
+              <Stat label={t('roi.baselineSpend')} value={formatUsd(pillars.energy.baselineSpendUsd, currency)} />
+              <Stat label={t('roi.currentSpend')} value={formatUsd(pillars.energy.currentSpendUsd, currency)} />
+              <Stat label={t('roi.energyReduction')} value={`${pillars.energy.reductionPct}%`} />
+              <Stat label={t('roi.avoidedKwh')} value={formatNumber(pillars.energy.avoidedKwh, ' kWh')} />
+              <Stat label={t('roi.priceAssumption')} value={`${formatUsd(pillars.energy.electricityPricePerKwh, currency)} / kWh`} />
             </div>
           </PillarCard>
 
           {/* ── 2. Carbon tax avoidance ── */}
           <PillarCard
             icon={Cloud}
-            title="Carbon tax avoidance"
-            description="Model avoided carbon tax liability as emissions reduce. Translate tCO2e into USD saved."
+            title={t('roi.carbonTax')}
+            description={t('roi.carbonTaxDesc')}
           >
             <HeroMetric
               value={formatUsd(pillars.carbon.avoidedLiabilityUsd, currency)}
-              caption={`avoided vs. ${pillars.carbon.baselineYear} emissions`}
+              caption={t('roi.avoidedVsBaseline', { year: pillars.carbon.baselineYear })}
               color="text-sky-600 dark:text-sky-400"
             />
             <div className="mt-3">
-              <Stat label="Baseline emissions" value={formatNumber(pillars.carbon.baselineTco2, ' tCO2e')} />
-              <Stat label="Current emissions" value={formatNumber(pillars.carbon.currentTco2, ' tCO2e')} />
-              <Stat label="Reduction" value={`${pillars.carbon.reductionPct}%`} />
-              <Stat label="Remaining liability" value={formatUsd(pillars.carbon.currentLiabilityUsd, currency)} />
-              <Stat label="Carbon price" value={`${formatUsd(pillars.carbon.carbonTaxPerTco2e, currency)} / tCO2e`} />
+              <Stat label={t('roi.baselineEmissions')} value={formatNumber(pillars.carbon.baselineTco2, ' tCO2e')} />
+              <Stat label={t('roi.currentEmissions')} value={formatNumber(pillars.carbon.currentTco2, ' tCO2e')} />
+              <Stat label={t('roi.reduction')} value={`${pillars.carbon.reductionPct}%`} />
+              <Stat label={t('roi.remainingLiability')} value={formatUsd(pillars.carbon.currentLiabilityUsd, currency)} />
+              <Stat label={t('roi.carbonPriceLabel')} value={`${formatUsd(pillars.carbon.carbonTaxPerTco2e, currency)} / tCO2e`} />
             </div>
           </PillarCard>
 
           {/* ── 3. Contract eligibility ── */}
           <PillarCard
             icon={FileCheck2}
-            title="Contract eligibility"
-            description="Quantify revenue at risk or unlocked by ESG certification. Show which OEM contracts require it."
+            title={t('roi.contractEligibility')}
+            description={t('roi.contractDesc')}
           >
             {pillars.contract.revenueKnown ? (
               <>
                 <HeroMetric
                   value={formatUsd(pillars.contract.protectedRevenueUsd, currency)}
-                  caption={`of ${formatUsd(pillars.contract.atRiskRevenueUsd, currency)} at risk — currently defended`}
+                  caption={t('roi.protectedRevenue', { amount: formatUsd(pillars.contract.atRiskRevenueUsd, currency) })}
                   color="text-brand-600 dark:text-brand-400"
                 />
                 <div className="mt-3">
-                  <Stat label="Annual revenue" value={formatUsd(pillars.contract.annualRevenue, currency)} />
-                  <Stat label="ESG-dependent share" value={`${pillars.contract.esgDependentRevenueShare}%`} />
-                  <Stat label="Data coverage score" value={`${pillars.contract.coverageScore} / 100`} />
-                  <Stat label="Revenue gap" value={formatUsd(pillars.contract.gapRevenueUsd, currency)} />
-                  <Stat label="Has SBTi target" value={pillars.contract.hasSbti ? 'Yes' : 'No'} />
+                  <Stat label={t('roi.annualRevenueLabel')} value={formatUsd(pillars.contract.annualRevenue, currency)} />
+                  <Stat label={t('roi.esgDependentShare')} value={`${pillars.contract.esgDependentRevenueShare}%`} />
+                  <Stat label={t('roi.dataCoverageScore')} value={`${pillars.contract.coverageScore} / 100`} />
+                  <Stat label={t('roi.revenueGap')} value={formatUsd(pillars.contract.gapRevenueUsd, currency)} />
+                  <Stat label={t('roi.hasSbtiTarget')} value={pillars.contract.hasSbti ? t('common.yes') : t('common.no')} />
                 </div>
               </>
             ) : (
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                <p className="mb-2">
-                  Enter your <strong>annual revenue</strong> in the financial data form to quantify how
-                  much is tied to ESG-certified contracts.
-                </p>
+                <p className="mb-2" dangerouslySetInnerHTML={{ __html: t('roi.enterRevenue') }} />
                 <button
                   type="button"
                   onClick={() => setShowFinancials(true)}
                   className="btn-primary text-xs"
                 >
-                  Add revenue
+                  {t('roi.addRevenue')}
                 </button>
               </div>
             )}
@@ -486,23 +478,23 @@ export default function ROIDashboard() {
           {/* ── 4. HR & talent ROI ── */}
           <PillarCard
             icon={Users}
-            title="HR & talent ROI"
-            description="Link social diversity and wellbeing scores to recruitment cost reductions and retention data."
+            title={t('roi.hrTalent')}
+            description={t('roi.hrTalentDesc')}
           >
             <HeroMetric
               value={formatUsd(pillars.hr.recruitingCostAvoidedUsd, currency)}
-              caption={`${pillars.hr.avoidedLeavers} fewer leavers vs. ${pillars.hr.baselineYear}`}
+              caption={t('roi.fewerLeavers', { count: pillars.hr.avoidedLeavers, year: pillars.hr.baselineYear })}
               color="text-violet-600 dark:text-violet-400"
             />
             <div className="mt-3">
-              <Stat label="Current headcount" value={formatNumber(pillars.hr.totalEmployees)} />
+              <Stat label={t('roi.currentHeadcount')} value={formatNumber(pillars.hr.totalEmployees)} />
               <Stat
-                label="Turnover rate"
+                label={t('roi.turnoverRate')}
                 value={`${pillars.hr.currentTurnoverRate}%  (was ${pillars.hr.baselineTurnoverRate}%)`}
               />
-              <Stat label="Diversity score" value={`${pillars.hr.diversityScore} / 100`} />
-              <Stat label="Training hours" value={formatNumber(pillars.hr.trainingHours, ' hrs')} />
-              <Stat label="Recruiting cost / hire" value={formatUsd(pillars.hr.avgRecruitingCostPerHire, currency)} />
+              <Stat label={t('roi.diversityScore')} value={`${pillars.hr.diversityScore} / 100`} />
+              <Stat label={t('roi.trainingHours')} value={formatNumber(pillars.hr.trainingHours, ' hrs')} />
+              <Stat label={t('roi.recruitingCostPerHire')} value={formatUsd(pillars.hr.avgRecruitingCostPerHire, currency)} />
             </div>
           </PillarCard>
         </div>
@@ -512,6 +504,7 @@ export default function ROIDashboard() {
         <FinancialsModal
           initial={summary.financials}
           canEdit={canEditFinancials}
+          t={t}
           onClose={() => setShowFinancials(false)}
           onSaved={(saved) => {
             setSummary((prev) => (prev ? { ...prev, financials: saved } : prev));

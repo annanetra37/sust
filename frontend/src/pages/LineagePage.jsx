@@ -9,6 +9,7 @@ import {
 import { HelpBanner } from '../components/HelpSystem';
 import FeatureLock from '../components/FeatureLock';
 import useFeature from '../hooks/useFeature';
+import { useT } from '../i18n';
 import clsx from 'clsx';
 
 const TOPIC_META = {
@@ -25,6 +26,7 @@ const AUDIT_COLORS = {
 };
 
 export default function LineagePage() {
+  const { t } = useT();
   const navigate = useNavigate();
   const lineageFeature = useFeature('audit_lineage');
   const [data, setData] = useState(null);
@@ -37,12 +39,12 @@ export default function LineagePage() {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Lineage & Audit Trail</h1>
-          <p className="text-gray-500 dark:text-gray-400">Full provenance of every ESG number in your report.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('lineage.featureTitle')}</h1>
+          <p className="text-gray-500 dark:text-gray-400">{t('lineage.featureSubtitle')}</p>
         </div>
         <FeatureLock
           feature="audit_lineage"
-          description="Trace every metric back to the raw upload, user, and timestamp it came from. Export a signed audit trail for assurance engagements. Upgrade to Professional to enable lineage tracking."
+          description={t('lineage.featureDescription')}
         />
       </div>
     );
@@ -94,9 +96,9 @@ export default function LineagePage() {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <GitBranch className="w-6 h-6 text-brand-600" /> Data Lineage
+            <GitBranch className="w-6 h-6 text-brand-600" /> {t('lineage.title')}
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">Trace ESG data from topic to source</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{t('lineage.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => handleExport('pdf')} disabled={exporting} className="btn-secondary text-xs py-1.5">
@@ -113,38 +115,38 @@ export default function LineagePage() {
         <div className="flex items-center gap-3 flex-wrap">
           <Filter className="w-4 h-4 text-gray-400" />
           <select className="input w-auto text-sm py-1.5" value={filters.topic} onChange={(e) => setFilters({ ...filters, topic: e.target.value })}>
-            <option value="">All Topics</option>
-            <option value="E1">Environmental</option>
-            <option value="S1">Social</option>
+            <option value="">{t('lineage.allTopics')}</option>
+            <option value="E1">{t('lineage.environmental')}</option>
+            <option value="S1">{t('lineage.social')}</option>
           </select>
           <select className="input w-auto text-sm py-1.5" value={filters.orgUnitId} onChange={(e) => setFilters({ ...filters, orgUnitId: e.target.value })}>
-            <option value="">All Org Units</option>
+            <option value="">{t('lineage.allOrgUnits')}</option>
             {filterOptions.orgUnits?.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
           <select className="input w-auto text-sm py-1.5" value={filters.userId} onChange={(e) => setFilters({ ...filters, userId: e.target.value })}>
-            <option value="">All Users</option>
+            <option value="">{t('lineage.allUsers')}</option>
             {filterOptions.users?.map((u) => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
           </select>
           {(filters.topic || filters.orgUnitId || filters.userId) && (
-            <button className="text-xs text-brand-600 hover:underline" onClick={() => setFilters({ topic: '', orgUnitId: '', userId: '' })}>Clear</button>
+            <button className="text-xs text-brand-600 hover:underline" onClick={() => setFilters({ topic: '', orgUnitId: '', userId: '' })}>{t('lineage.clear')}</button>
           )}
 
           <div className="ml-auto flex items-center gap-1 border rounded-lg dark:border-gray-700 overflow-hidden">
-            <button onClick={expandAll} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title="Expand all">
+            <button onClick={expandAll} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title={t('lineage.expandAll')}>
               <Plus className="w-3.5 h-3.5" />
             </button>
-            <button onClick={collapseAll} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title="Collapse all">
+            <button onClick={collapseAll} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title={t('lineage.collapseAll')}>
               <Minus className="w-3.5 h-3.5" />
             </button>
             <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
-            <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title="Zoom out">
+            <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title={t('lineage.zoomOut')}>
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
             <span className="text-xs text-gray-400 w-10 text-center">{Math.round(zoom * 100)}%</span>
-            <button onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title="Zoom in">
+            <button onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title={t('lineage.zoomIn')}>
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
-            <button onClick={() => setZoom(1)} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title="Reset zoom">
+            <button onClick={() => setZoom(1)} className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" title={t('lineage.resetZoom')}>
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -158,7 +160,7 @@ export default function LineagePage() {
         ) : tree.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-gray-400">
             <GitBranch className="w-12 h-12 mb-3 opacity-30" />
-            <p>No data lineage found. Upload data to see the tree.</p>
+            <p>{t('lineage.noData')}</p>
           </div>
         ) : (
           <div className="p-6 transition-transform origin-top-left" style={{ transform: `scale(${zoom})` }}>
@@ -176,7 +178,7 @@ export default function LineagePage() {
                     <TopicIcon className={clsx('w-6 h-6', meta.color)} />
                     <div className="text-left flex-1">
                       <p className="font-bold text-gray-900 dark:text-white">{topic.label}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{topic.orgUnits.length} unit{topic.orgUnits.length !== 1 ? 's' : ''} · {totalUploads} upload{totalUploads !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{topic.orgUnits.length} {topic.orgUnits.length !== 1 ? t('lineage.unitsPlural') : t('lineage.units')} · {totalUploads} {totalUploads !== 1 ? t('lineage.uploadsPlural') : t('lineage.uploads')}</p>
                     </div>
                     {tOpen ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
                   </button>
@@ -198,7 +200,7 @@ export default function LineagePage() {
                               <Building2 className="w-4 h-4 text-gray-400" />
                               <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">{ou.name}</span>
                               <span className="text-xs text-gray-400">{ou.country}</span>
-                              <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] ml-auto">{ou.users.length} user{ou.users.length !== 1 ? 's' : ''}</span>
+                              <span className="badge bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-[10px] ml-auto">{ou.users.length} {ou.users.length !== 1 ? t('lineage.usersPlural') : t('lineage.users')}</span>
                               {ouOpen ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
                             </button>
 
@@ -234,7 +236,7 @@ export default function LineagePage() {
                                               <FileSpreadsheet className="w-4 h-4 text-gray-300 group-hover:text-brand-500 shrink-0" />
                                               <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{upload.fileName}</p>
-                                                <p className="text-[10px] text-gray-400">{new Date(upload.createdAt).toLocaleDateString()} · {upload.processedRows || 0} rows</p>
+                                                <p className="text-[10px] text-gray-400">{new Date(upload.createdAt).toLocaleDateString()} · {upload.processedRows || 0} {t('lineage.rows')}</p>
                                               </div>
                                               <span className={clsx('badge text-[10px]', upload.status === 'COMPLETED' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400' : 'bg-red-100 text-red-700')}>
                                                 {upload.status}
@@ -270,10 +272,10 @@ export default function LineagePage() {
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 shrink-0 px-1">
-        <span>Audit:</span>
+        <span>{t('lineage.auditLegend')}</span>
         {Object.entries(AUDIT_COLORS).map(([k, c]) => <span key={k} className={clsx('badge', c)}>{k}</span>)}
-        <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> = source file</span>
-        <span className="ml-auto">Use +/- to expand/collapse · Zoom: scroll or controls</span>
+        <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> {t('lineage.sourceFile')}</span>
+        <span className="ml-auto">{t('lineage.expandCollapseHint')} · {t('lineage.zoomHint')}</span>
       </div>
     </div>
   );

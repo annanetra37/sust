@@ -7,6 +7,7 @@ import {
 import { HelpBanner, InfoTip, FieldLabel } from '../components/HelpSystem';
 import FeatureLock from '../components/FeatureLock';
 import useFeature from '../hooks/useFeature';
+import { useT } from '../i18n';
 
 const CONNECTORS = [
   {
@@ -89,7 +90,15 @@ const CONNECTORS = [
 const ALL_CONNECTOR_MAP = {};
 CONNECTORS.forEach((cat) => cat.items.forEach((c) => { ALL_CONNECTOR_MAP[c.value] = c; }));
 
+const CATEGORY_KEYS = {
+  'Databases': 'connections.categoryDatabases',
+  'Cloud & APIs': 'connections.categoryCloudApis',
+  'Data Warehouses': 'connections.categoryDataWarehouses',
+  'Sustainability Platforms': 'connections.categorySustainabilityPlatforms',
+};
+
 export default function Connections() {
+  const { t } = useT();
   const connectionsFeature = useFeature('db_connections');
   const [connections, setConnections] = useState([]);
   const [setupType, setSetupType] = useState(null);
@@ -105,12 +114,12 @@ export default function Connections() {
     return (
       <div className="max-w-3xl mx-auto">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Connections</h1>
-          <p className="text-gray-500 dark:text-gray-400">Pipe data directly from your warehouses and SaaS tools.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('connections.title')}</h1>
+          <p className="text-gray-500 dark:text-gray-400">{t('connections.featureSubtitle')}</p>
         </div>
         <FeatureLock
           feature="db_connections"
-          description="Connect PostgreSQL, MySQL, SQL Server, Snowflake, BigQuery, and more. AI auto-maps your tables to the correct ESG schemas — no manual mapping. Upgrade to Professional to enable data connections."
+          description={t('connections.featureDescription')}
         />
       </div>
     );
@@ -143,7 +152,7 @@ export default function Connections() {
     setError('');
     try {
       await api.createConnection(form);
-      setSuccess('Connection created successfully!');
+      setSuccess(t('connections.connectionCreated'));
       load();
       setTimeout(() => { setSetupType(null); setSuccess(''); }, 1500);
     } catch (err) {
@@ -175,7 +184,7 @@ export default function Connections() {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <button onClick={() => setSetupType(null)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-600">
-          <ArrowLeft className="w-4 h-4" /> Back to Connectors
+          <ArrowLeft className="w-4 h-4" /> {t('connections.backToConnectors')}
         </button>
 
         <div className="flex items-center gap-3">
@@ -183,101 +192,101 @@ export default function Connections() {
             <connector.icon className={`w-6 h-6 ${connector.color}`} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Connect to {connector.label}</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('connections.connectTo', { label: connector.label })}</h1>
             <p className="text-sm text-gray-500">{connector.desc}</p>
           </div>
         </div>
 
         <form onSubmit={handleCreate} className="card space-y-4">
-          <FieldLabel label="Connection Name" required info="A friendly name to identify this connection (e.g., 'Production HR Database')." />
-          <input className="input" placeholder="e.g., Production Database" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <FieldLabel label={t('connections.connectionName')} required info={t('connections.connectionNameInfo')} />
+          <input className="input" placeholder={t('connections.connectionNamePlaceholder')} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
 
           {isApi ? (
             <>
-              <FieldLabel label="Base URL" required info="The root URL of the API (e.g., https://api.example.com)" />
+              <FieldLabel label={t('connections.baseUrl')} required info={t('connections.baseUrlInfo')} />
               <input className="input" placeholder="https://api.example.com" required value={form.config.baseUrl || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, baseUrl: e.target.value } })} />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel label="Path" info="API path appended to base URL (e.g., /v1/emissions)" />
+                  <FieldLabel label={t('connections.path')} info={t('connections.pathInfo')} />
                   <input className="input" placeholder="/v1/data" value={form.config.path || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, path: e.target.value } })} />
                 </div>
                 <div>
-                  <FieldLabel label="Method" />
+                  <FieldLabel label={t('connections.method')} />
                   <select className="input" value={form.config.method || 'GET'} onChange={(e) => setForm({ ...form, config: { ...form.config, method: e.target.value } })}>
                     <option>GET</option><option>POST</option><option>PUT</option>
                   </select>
                 </div>
               </div>
 
-              <FieldLabel label="Authentication" info="How the API authenticates requests." />
+              <FieldLabel label={t('connections.authentication')} info={t('connections.authenticationInfo')} />
               <select className="input" value={form.config.authType || 'none'} onChange={(e) => setForm({ ...form, config: { ...form.config, authType: e.target.value } })}>
-                <option value="none">No Authentication</option>
-                <option value="api_key">API Key</option>
-                <option value="basic">Basic Auth (username/password)</option>
-                <option value="bearer">Bearer Token</option>
-                <option value="oauth2">OAuth 2.0</option>
+                <option value="none">{t('connections.noAuthentication')}</option>
+                <option value="api_key">{t('connections.apiKey')}</option>
+                <option value="basic">{t('connections.basicAuth')}</option>
+                <option value="bearer">{t('connections.bearerToken')}</option>
+                <option value="oauth2">{t('connections.oauth2')}</option>
               </select>
 
               {form.config.authType === 'api_key' && (
                 <>
-                  <FieldLabel label="API Key" required />
+                  <FieldLabel label={t('connections.apiKey')} required />
                   <input className="input" type="password" placeholder="Your API key" value={form.config.apiKey || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, apiKey: e.target.value } })} />
                 </>
               )}
               {form.config.authType === 'basic' && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <FieldLabel label="Username" required />
+                    <FieldLabel label={t('connections.username')} required />
                     <input className="input" value={form.config.username || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, username: e.target.value } })} />
                   </div>
                   <div>
-                    <FieldLabel label="Password" required />
+                    <FieldLabel label={t('connections.password')} required />
                     <input className="input" type="password" value={form.config.password || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, password: e.target.value } })} />
                   </div>
                 </div>
               )}
               {form.config.authType === 'bearer' && (
                 <>
-                  <FieldLabel label="Bearer Token" required />
+                  <FieldLabel label={t('connections.bearerToken')} required />
                   <input className="input" type="password" placeholder="Token" value={form.config.apiKey || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, apiKey: e.target.value } })} />
                 </>
               )}
 
-              <FieldLabel label="Custom Headers" info='JSON format: {"X-Custom": "value"}' />
+              <FieldLabel label={t('connections.customHeaders')} info={t('connections.customHeadersInfo')} />
               <input className="input" placeholder='{"Content-Type": "application/json"}' value={form.config.headers || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, headers: e.target.value } })} />
             </>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-2">
-                  <FieldLabel label="Host / Endpoint" required info="Server hostname or IP address." />
+                  <FieldLabel label={t('connections.hostEndpoint')} required info={t('connections.hostEndpointInfo')} />
                   <input className="input" placeholder="db.example.com" required value={form.config.host || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, host: e.target.value } })} />
                 </div>
                 <div>
-                  <FieldLabel label="Port" />
+                  <FieldLabel label={t('connections.port')} />
                   <input type="number" className="input" value={form.config.port || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, port: parseInt(e.target.value) || 5432 } })} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel label="Database" required info="The database name to connect to." />
+                  <FieldLabel label={t('connections.database')} required info={t('connections.databaseInfo')} />
                   <input className="input" placeholder="sustainability_db" required value={form.config.database || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, database: e.target.value } })} />
                 </div>
                 <div>
-                  <FieldLabel label="Schema" info="Database schema (PostgreSQL). Default: public" />
+                  <FieldLabel label={t('connections.schema')} info={t('connections.schemaInfo')} />
                   <input className="input" placeholder="public" value={form.config.schema || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, schema: e.target.value } })} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <FieldLabel label="Username" required />
+                  <FieldLabel label={t('connections.username')} required />
                   <input className="input" placeholder="db_user" value={form.config.username || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, username: e.target.value } })} />
                 </div>
                 <div>
-                  <FieldLabel label="Password" required />
+                  <FieldLabel label={t('connections.password')} required />
                   <input className="input" type="password" placeholder="********" value={form.config.password || ''} onChange={(e) => setForm({ ...form, config: { ...form.config, password: e.target.value } })} />
                 </div>
               </div>
@@ -285,9 +294,9 @@ export default function Connections() {
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" className="w-4 h-4 rounded" checked={form.config.ssl || false} onChange={(e) => setForm({ ...form, config: { ...form.config, ssl: e.target.checked } })} />
-                  Require SSL/TLS
+                  {t('connections.requireSsl')}
                 </label>
-                <InfoTip>Enable SSL for encrypted connections. Required for most cloud-hosted databases.</InfoTip>
+                <InfoTip>{t('connections.sslInfo')}</InfoTip>
               </div>
             </>
           )}
@@ -296,8 +305,8 @@ export default function Connections() {
           {success && <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm flex items-center gap-2"><CheckCircle className="w-4 h-4" />{success}</div>}
 
           <div className="flex gap-3 pt-2">
-            <button type="button" className="btn-secondary flex-1" onClick={() => setSetupType(null)}>Cancel</button>
-            <button type="submit" className="btn-primary flex-1">Create Connection</button>
+            <button type="button" className="btn-secondary flex-1" onClick={() => setSetupType(null)}>{t('common.cancel')}</button>
+            <button type="submit" className="btn-primary flex-1">{t('connections.createConnection')}</button>
           </div>
         </form>
 
@@ -305,8 +314,8 @@ export default function Connections() {
           <div className="flex items-start gap-2">
             <Shield className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
             <div className="text-sm text-blue-700">
-              <p className="font-medium text-blue-900">Security Note</p>
-              <p className="mt-1">Credentials are stored encrypted. We recommend using read-only database users dedicated to ESG data extraction. Never share your root/admin database credentials.</p>
+              <p className="font-medium text-blue-900">{t('connections.securityNote')}</p>
+              <p className="mt-1">{t('connections.securityBody')}</p>
             </div>
           </div>
         </div>
@@ -318,20 +327,18 @@ export default function Connections() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Data Connections</h1>
-        <p className="text-gray-500">Connect your source systems to automatically pull sustainability data</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('connections.title')}</h1>
+        <p className="text-gray-500">{t('connections.subtitle')}</p>
       </div>
 
-      <HelpBanner id="connections-guide" title="How Data Connections Work" variant="info">
-        Connect your databases, APIs, or cloud platforms to pull sustainability data directly into the ESG Portal.
-        Our AI ETL pipeline will automatically clean, structure, and ingest the data — no matter the format.
-        Once connected, you can set up recurring syncs to keep your data current.
+      <HelpBanner id="connections-guide" title={t('connections.howItWorksTitle')} variant="info">
+        {t('connections.howItWorksBody')}
       </HelpBanner>
 
       {/* Active connections */}
       {connections.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Active Connections</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">{t('connections.activeConnections')}</h2>
           <div className="grid gap-3">
             {connections.map((c) => {
               const connInfo = ALL_CONNECTOR_MAP[c.type];
@@ -347,12 +354,12 @@ export default function Connections() {
                   </div>
                   <span className={`badge flex items-center gap-1 ${c.status === 'connected' ? 'bg-green-100 text-green-700' : c.status === 'error' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>
                     {c.status === 'connected' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                    {c.status === 'connected' ? 'Connected' : c.status === 'error' ? 'Error' : 'Disconnected'}
+                    {c.status === 'connected' ? t('connections.connected') : c.status === 'error' ? t('common.error') : t('connections.disconnected')}
                   </span>
                   <button className="btn-secondary text-xs py-1.5" onClick={() => handleTest(c.id)} disabled={testing === c.id}>
-                    {testing === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Test'}
+                    {testing === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('connections.test')}
                   </button>
-                  <button className="text-gray-400 hover:text-red-600" onClick={() => handleDelete(c.id)} title="Delete connection">
+                  <button className="text-gray-400 hover:text-red-600" onClick={() => handleDelete(c.id)} title={t('connections.deleteConnection')}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -365,7 +372,7 @@ export default function Connections() {
       {/* Connector catalog */}
       {CONNECTORS.map((category) => (
         <div key={category.category}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">{category.category}</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">{CATEGORY_KEYS[category.category] ? t(CATEGORY_KEYS[category.category]) : category.category}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {category.items.map((connector) => (
               <button
@@ -385,7 +392,7 @@ export default function Connections() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{connector.label}</p>
-                      {connector.coming && <span className="badge bg-gray-100 text-gray-500">Coming Soon</span>}
+                      {connector.coming && <span className="badge bg-gray-100 text-gray-500">{t('common.comingSoon')}</span>}
                     </div>
                     <p className="text-xs text-gray-500 mt-1">{connector.desc}</p>
                     <p className="text-[10px] text-gray-300 mt-1.5">{connector.fields}</p>

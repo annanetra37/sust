@@ -2,25 +2,28 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Target, Plus, Trash2, TrendingDown, Calendar, Percent, Activity } from 'lucide-react';
 import { HelpBanner, FieldLabel, InfoTip } from '../components/HelpSystem';
-
-const METHODS = [
-  { value: 'absolute', label: 'Absolute Contraction', desc: 'Reduce total emissions by a fixed percentage from base year' },
-  { value: 'intensity', label: 'Intensity-based', desc: 'Reduce emissions per unit of output (e.g., per employee, per revenue)' },
-  { value: 'renewable_share', label: 'Renewable Energy Share', desc: 'Increase the share of renewable energy in total consumption' },
-];
-
-const SCOPES = [
-  { value: 'Scope 1+2', label: 'Scope 1 + 2', desc: 'Direct + purchased energy emissions (required)' },
-  { value: 'Scope 3', label: 'Scope 3', desc: 'Value chain emissions (required if >40% of total)' },
-  { value: 'All', label: 'All Scopes (1+2+3)', desc: 'Comprehensive target covering all emission sources' },
-];
-
-const TIMEFRAMES = [
-  { label: 'Near-term (5-10 years)', desc: 'Required by SBTi. Must be 5-10 years from submission.' },
-  { label: 'Long-term (by 2050)', desc: 'Net-zero target. Must reach at least 90% reduction.' },
-];
+import { useT } from '../i18n';
 
 export default function SBTiTargets() {
+  const { t } = useT();
+
+  const METHODS = [
+    { value: 'absolute', label: t('sbti.absoluteContraction'), desc: t('sbti.absoluteContractionDesc') },
+    { value: 'intensity', label: t('sbti.intensityBased'), desc: t('sbti.intensityBasedDesc') },
+    { value: 'renewable_share', label: t('sbti.renewableShare'), desc: t('sbti.renewableShareDesc') },
+  ];
+
+  const SCOPES = [
+    { value: 'Scope 1+2', label: t('sbti.scope12'), desc: t('sbti.scope12Desc') },
+    { value: 'Scope 3', label: t('sbti.scope3'), desc: t('sbti.scope3Desc') },
+    { value: 'All', label: t('sbti.allScopes'), desc: t('sbti.allScopesDesc') },
+  ];
+
+  const TIMEFRAMES = [
+    { label: t('sbti.nearTerm'), desc: t('sbti.nearTermDesc') },
+    { label: t('sbti.longTerm'), desc: t('sbti.longTermDesc') },
+  ];
+
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -49,12 +52,12 @@ export default function SBTiTargets() {
       setForm({ baseYear: new Date().getFullYear() - 1, targetYear: new Date().getFullYear() + 7, method: 'absolute', reductionPct: 42, absoluteTarget: '', scope: 'Scope 1+2', description: '' });
       load();
     } catch (err) {
-      alert(err.error || 'Failed to create target');
+      alert(err.error || t('sbti.createFailed'));
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this SBTi target?')) return;
+    if (!confirm(t('sbti.deleteConfirm'))) return;
     await api.deleteSBTiTarget(id);
     load();
   };
@@ -65,19 +68,16 @@ export default function SBTiTargets() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SBTi Decarbonization Targets</h1>
-          <p className="text-gray-500">Set Science Based Targets for emissions reduction</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('sbti.title')}</h1>
+          <p className="text-gray-500">{t('sbti.subtitle')}</p>
         </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4" /> New Target
+          <Plus className="w-4 h-4" /> {t('sbti.newTarget')}
         </button>
       </div>
 
-      <HelpBanner id="sbti-guide" title="What are Science Based Targets?" variant="info">
-        Science Based Targets (SBTi) are emission reduction goals aligned with the Paris Agreement's aim to limit
-        warming to 1.5°C. Companies set a base year, choose a target year, and commit to reducing emissions by
-        a specific percentage. SBTi requires near-term targets (5-10 years) with at least 4.2% annual reduction
-        for Scope 1+2, and encourages long-term net-zero targets by 2050.
+      <HelpBanner id="sbti-guide" title={t('sbti.helpTitle')} variant="info">
+        {t('sbti.helpBody')}
       </HelpBanner>
 
       {/* Create target form */}
@@ -85,7 +85,7 @@ export default function SBTiTargets() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <form onSubmit={handleCreate} className="bg-white rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
             <h2 className="text-lg font-bold flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-600" /> Set New SBTi Target
+              <Target className="w-5 h-5 text-purple-600" /> {t('sbti.setNewTarget')}
             </h2>
 
             {/* Timeframe info */}
@@ -100,19 +100,19 @@ export default function SBTiTargets() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <FieldLabel label="Base Year" required info="The reference year from which emission reductions are measured. Should be recent and have reliable data." />
+                <FieldLabel label={t('sbti.baseYear')} required info={t('sbti.baseYearInfo')} />
                 <input type="number" className="input" min="2010" max="2030" required value={form.baseYear}
                   onChange={(e) => setForm({ ...form, baseYear: e.target.value })} />
               </div>
               <div>
-                <FieldLabel label="Target Year" required info="The year by which you aim to achieve the reduction. Near-term: 5-10 years. Net-zero: by 2050." />
+                <FieldLabel label={t('sbti.targetYear')} required info={t('sbti.targetYearInfo')} />
                 <input type="number" className="input" min="2025" max="2060" required value={form.targetYear}
                   onChange={(e) => setForm({ ...form, targetYear: e.target.value })} />
               </div>
             </div>
 
             <div>
-              <FieldLabel label="Reduction Method" required info="How the reduction will be measured." />
+              <FieldLabel label={t('sbti.reductionMethod')} required info={t('sbti.reductionMethodInfo')} />
               <div className="space-y-2">
                 {METHODS.map((m) => (
                   <label key={m.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.method === m.value ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -128,7 +128,7 @@ export default function SBTiTargets() {
             </div>
 
             <div>
-              <FieldLabel label="Scope Coverage" required info="Which emission scopes this target covers. SBTi requires at least Scope 1+2." />
+              <FieldLabel label={t('sbti.scopeCoverage')} required info={t('sbti.scopeCoverageInfo')} />
               <div className="space-y-2">
                 {SCOPES.map((s) => (
                   <label key={s.value} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${form.scope === s.value ? 'border-purple-400 bg-purple-50' : 'border-gray-200 hover:border-gray-300'}`}>
@@ -145,7 +145,7 @@ export default function SBTiTargets() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <FieldLabel label="Reduction Percentage" info="The percentage reduction from base year emissions. SBTi minimum: 4.2% per year for 1.5°C alignment." />
+                <FieldLabel label={t('sbti.reductionPct')} info={t('sbti.reductionPctInfo')} />
                 <div className="relative">
                   <input type="number" className="input pr-8" min="1" max="100" step="0.1" value={form.reductionPct}
                     onChange={(e) => setForm({ ...form, reductionPct: e.target.value })} />
@@ -153,26 +153,26 @@ export default function SBTiTargets() {
                 </div>
                 {form.baseYear && form.targetYear && form.reductionPct && (
                   <p className="text-xs text-gray-400 mt-1">
-                    ≈ {(parseFloat(form.reductionPct) / (parseInt(form.targetYear) - parseInt(form.baseYear))).toFixed(1)}% per year
+                    ≈ {(parseFloat(form.reductionPct) / (parseInt(form.targetYear) - parseInt(form.baseYear))).toFixed(1)}{t('sbti.perYear')}
                   </p>
                 )}
               </div>
               <div>
-                <FieldLabel label="Absolute Target (tCO2e)" info="Optional: Set a specific absolute emission level to reach by the target year instead of a percentage." />
-                <input type="number" className="input" placeholder="Optional" value={form.absoluteTarget}
+                <FieldLabel label={t('sbti.absoluteTargetLabel')} info={t('sbti.absoluteTargetInfo')} />
+                <input type="number" className="input" placeholder={t('common.optional')} value={form.absoluteTarget}
                   onChange={(e) => setForm({ ...form, absoluteTarget: e.target.value })} />
               </div>
             </div>
 
             <div>
-              <FieldLabel label="Description" info="Optional: Describe the target for reporting purposes." />
-              <textarea className="input" rows={2} placeholder="e.g., Near-term SBTi target for Scope 1+2 emissions, aligned with 1.5°C pathway"
+              <FieldLabel label={t('common.description')} info={t('sbti.descriptionInfo')} />
+              <textarea className="input" rows={2} placeholder={t('sbti.descriptionPlaceholder')}
                 value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button type="button" className="btn-secondary flex-1" onClick={() => setShowCreate(false)}>Cancel</button>
-              <button type="submit" className="btn-primary flex-1">Create Target</button>
+              <button type="button" className="btn-secondary flex-1" onClick={() => setShowCreate(false)}>{t('common.cancel')}</button>
+              <button type="submit" className="btn-primary flex-1">{t('sbti.createTarget')}</button>
             </div>
           </form>
         </div>
@@ -180,33 +180,33 @@ export default function SBTiTargets() {
 
       {/* Existing targets */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Loading...</div>
+        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
       ) : targets.length === 0 ? (
         <div className="card text-center py-12">
           <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No SBTi targets set yet.</p>
-          <p className="text-sm text-gray-400 mt-1">Create a decarbonization target to start tracking your progress.</p>
+          <p className="text-gray-500">{t('sbti.noTargets')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('sbti.noTargetsHint')}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {targets.map((t) => {
-            const methodInfo = METHODS.find((m) => m.value === t.method) || {};
-            const yearSpan = t.targetYear - t.baseYear;
-            const annualRate = t.reductionPct ? (t.reductionPct / yearSpan).toFixed(1) : '—';
+          {targets.map((tgt) => {
+            const methodInfo = METHODS.find((m) => m.value === tgt.method) || {};
+            const yearSpan = tgt.targetYear - tgt.baseYear;
+            const annualRate = tgt.reductionPct ? (tgt.reductionPct / yearSpan).toFixed(1) : '—';
 
             return (
-              <div key={t.id} className="card">
+              <div key={tgt.id} className="card">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
                       <Target className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t.scope} — {methodInfo.label || t.method}</h3>
-                      <p className="text-sm text-gray-500 mt-0.5">{t.description || `${t.reductionPct}% reduction from ${t.baseYear} to ${t.targetYear}`}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100">{tgt.scope} — {methodInfo.label || tgt.method}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5">{tgt.description || t('sbti.reductionFromTo', { pct: tgt.reductionPct, from: tgt.baseYear, to: tgt.targetYear })}</p>
                     </div>
                   </div>
-                  <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-600">
+                  <button onClick={() => handleDelete(tgt.id)} className="text-gray-400 hover:text-red-600">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -215,36 +215,36 @@ export default function SBTiTargets() {
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Base Year</p>
-                      <p className="font-semibold">{t.baseYear}</p>
+                      <p className="text-xs text-gray-500">{t('sbti.baseYear')}</p>
+                      <p className="font-semibold">{tgt.baseYear}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Target Year</p>
-                      <p className="font-semibold">{t.targetYear}</p>
+                      <p className="text-xs text-gray-500">{t('sbti.targetYear')}</p>
+                      <p className="font-semibold">{tgt.targetYear}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <Percent className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Total Reduction</p>
-                      <p className="font-semibold">{t.reductionPct}%</p>
+                      <p className="text-xs text-gray-500">{t('sbti.totalReduction')}</p>
+                      <p className="font-semibold">{tgt.reductionPct}%</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <TrendingDown className="w-4 h-4 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Annual Rate</p>
-                      <p className="font-semibold">{annualRate}% / year</p>
+                      <p className="text-xs text-gray-500">{t('sbti.annualRate')}</p>
+                      <p className="font-semibold">{annualRate}{t('sbti.perYear')}</p>
                     </div>
                   </div>
                 </div>
 
-                {t.absoluteTarget && (
+                {tgt.absoluteTarget && (
                   <div className="mt-3 p-2 bg-gray-50 rounded-lg text-sm text-gray-600">
-                    Absolute target: <strong>{t.absoluteTarget.toLocaleString()} tCO2e</strong> by {t.targetYear}
+                    {t('sbti.absoluteTargetBy', { amount: tgt.absoluteTarget.toLocaleString(), year: tgt.targetYear })}
                   </div>
                 )}
               </div>
@@ -255,22 +255,22 @@ export default function SBTiTargets() {
 
       {/* SBTi reference */}
       <div className="card bg-purple-50 border-purple-200">
-        <h3 className="font-semibold text-purple-900 mb-2">SBTi Minimum Requirements</h3>
+        <h3 className="font-semibold text-purple-900 mb-2">{t('sbti.minRequirements')}</h3>
         <div className="grid grid-cols-2 gap-4 text-sm text-purple-700">
           <div>
-            <p className="font-medium">Near-term (1.5°C aligned)</p>
+            <p className="font-medium">{t('sbti.nearTermAligned')}</p>
             <ul className="text-xs mt-1 space-y-0.5 list-disc ml-4">
-              <li>Scope 1+2: at least 4.2% annual reduction</li>
-              <li>Scope 3: at least 2.5% annual reduction (if &gt;40% of total)</li>
-              <li>Target year: 5-10 years from submission</li>
+              <li>{t('sbti.scope12Requirement')}</li>
+              <li>{t('sbti.scope3Requirement')}</li>
+              <li>{t('sbti.targetYearRequirement')}</li>
             </ul>
           </div>
           <div>
-            <p className="font-medium">Long-term (Net-Zero)</p>
+            <p className="font-medium">{t('sbti.longTermNetZero')}</p>
             <ul className="text-xs mt-1 space-y-0.5 list-disc ml-4">
-              <li>At least 90% absolute reduction by target year</li>
-              <li>Target year: no later than 2050</li>
-              <li>Remaining 10% neutralized via carbon removal</li>
+              <li>{t('sbti.netzeroReduction')}</li>
+              <li>{t('sbti.netzeroYear')}</li>
+              <li>{t('sbti.netzeroRemaining')}</li>
             </ul>
           </div>
         </div>
