@@ -6,12 +6,20 @@ import {
   User, Download, Eye, Shield, FileText, AlertTriangle, CheckCircle2, Trash2
 } from 'lucide-react';
 import { InfoTip } from '../components/HelpSystem';
+import { useT } from '../i18n';
+
+const AUDIT_STATUS_KEYS = {
+  pending: 'history.pendingReview',
+  verified: 'history.verified',
+  flagged: 'history.flagged',
+  rejected: 'history.rejected',
+};
 
 const AUDIT_STATUSES = [
-  { value: 'pending', label: 'Pending Review', color: 'bg-gray-100 text-gray-600', icon: '...' },
-  { value: 'verified', label: 'Verified', color: 'bg-green-100 text-green-700', icon: null },
-  { value: 'flagged', label: 'Flagged', color: 'bg-amber-100 text-amber-700', icon: null },
-  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-700', icon: null },
+  { value: 'pending', color: 'bg-gray-100 text-gray-600', icon: '...' },
+  { value: 'verified', color: 'bg-green-100 text-green-700', icon: null },
+  { value: 'flagged', color: 'bg-amber-100 text-amber-700', icon: null },
+  { value: 'rejected', color: 'bg-red-100 text-red-700', icon: null },
 ];
 
 // Helper to build authenticated file URLs via the shared api helper.
@@ -20,6 +28,7 @@ function authUrl(path) {
 }
 
 export default function HistoryPage() {
+  const { t } = useT();
   const { user } = useAuth();
   const [records, setRecords] = useState([]);
   const [total, setTotal] = useState(0);
@@ -48,8 +57,8 @@ export default function HistoryPage() {
   };
 
   const statusLabel = (r) => {
-    if (r?.deletedAt) return 'DATA DELETED';
-    return r?.status || 'PROCESSING';
+    if (r?.deletedAt) return t('history.dataDeletedLabel');
+    return r?.status || t('history.processingLabel');
   };
 
   const statusBadgeClass = (r) => {
@@ -61,7 +70,7 @@ export default function HistoryPage() {
 
   const auditBadge = (s) => {
     const st = AUDIT_STATUSES.find((a) => a.value === s) || AUDIT_STATUSES[0];
-    return <span className={`badge ${st.color}`}>{st.label}</span>;
+    return <span className={`badge ${st.color}`}>{t(AUDIT_STATUS_KEYS[st.value] || 'history.pendingReview')}</span>;
   };
 
   const openDetail = async (id) => {
@@ -71,7 +80,7 @@ export default function HistoryPage() {
       setDetail(data);
       setAuditNote(data.upload.auditNote || '');
     } catch (err) {
-      alert(err.error || 'Failed to load details');
+      alert(err.error || t('history.failedToLoad'));
     } finally {
       setDetailLoading(false);
     }
@@ -83,7 +92,7 @@ export default function HistoryPage() {
       const data = await api.getHistoryDetail(detail.upload.id);
       setDetail(data);
     } catch (err) {
-      alert(err.error || 'Failed to update audit status');
+      alert(err.error || t('history.failedToUpdateAudit'));
     }
   };
 
@@ -121,14 +130,14 @@ export default function HistoryPage() {
     return (
       <div className="space-y-6 max-w-6xl mx-auto">
         <button onClick={() => setDetail(null)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-600 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to History
+          <ArrowLeft className="w-4 h-4" /> {t('history.backToHistory')}
         </button>
 
         <div className="card">
           <div className="flex items-start justify-between mb-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{upload.fileName}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Uploaded on {new Date(upload.createdAt).toLocaleString()}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('history.uploadedOn')} {new Date(upload.createdAt).toLocaleString()}</p>
             </div>
             <div className="flex items-center gap-2">
               {statusIcon(upload.status, upload)}
@@ -144,9 +153,9 @@ export default function HistoryPage() {
               <div className="flex items-start gap-2">
                 <Trash2 className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Data Deleted</p>
+                  <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">{t('history.dataDeletedBanner')}</p>
                   <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
-                    Deleted by <strong>{upload.deletedBy}</strong> on {new Date(upload.deletedAt).toLocaleString()}
+                    {t('history.deletedBy')} <strong>{upload.deletedBy}</strong> — {new Date(upload.deletedAt).toLocaleString()}
                   </p>
                   {upload.deletedNote && <p className="text-xs text-orange-600 dark:text-orange-400 mt-0.5">{upload.deletedNote}</p>}
                   <p className="text-[10px] text-orange-500 mt-1">The original source file is still available for audit purposes.</p>
