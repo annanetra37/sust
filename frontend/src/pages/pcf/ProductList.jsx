@@ -82,21 +82,21 @@ export default function ProductList() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pcf.newProduct')}</h2>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">SKU *</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.sku')} *</span>
                 <input className="input mt-1" required placeholder="e.g. SSD-2TB-NVMe" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Mass (kg)</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.mass')}</span>
                 <input type="number" step="0.001" className="input mt-1" placeholder="0.120" value={form.massKg} onChange={(e) => setForm({ ...form, massKg: e.target.value })} />
               </label>
             </div>
             <label className="block">
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Product Name *</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.productName')} *</span>
               <input className="input mt-1" required placeholder="e.g. Enterprise NVMe SSD 2TB" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Sector</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.sector')}</span>
                 <select className="input mt-1" value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
                   <option value="electronics">Electronics</option>
                   <option value="automotive">Automotive</option>
@@ -104,15 +104,15 @@ export default function ProductList() {
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Functional Unit</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.functionalUnit')}</span>
                 <input className="input mt-1" placeholder="1 SSD module" value={form.functionalUnit} onChange={(e) => setForm({ ...form, functionalUnit: e.target.value })} />
               </label>
             </div>
             <div className="flex gap-2 justify-end pt-2">
-              <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">{t('common.cancel')}</button>
               <button type="submit" disabled={creating} className="btn-primary flex items-center gap-2">
                 {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Create
+                {t('common.create')}
               </button>
             </div>
           </form>
@@ -124,10 +124,10 @@ export default function ProductList() {
       ) : products.length === 0 ? (
         <div className="card text-center py-12">
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">No products yet</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create your first product to start calculating its carbon footprint.</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('pcf.noProducts')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('pcf.noProductsDesc')}</p>
           <button onClick={() => setShowCreate(true)} className="btn-primary mt-4 inline-flex items-center gap-2">
-            <Plus className="w-4 h-4" /> New Product
+            <Plus className="w-4 h-4" /> {t('pcf.newProduct')}
           </button>
         </div>
       ) : (
@@ -148,7 +148,7 @@ export default function ProductList() {
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                   <span>{p.sector}</span>
-                  <span>{p.bomCount} component{p.bomCount !== 1 ? 's' : ''}</span>
+                  <span>{p.bomCount} {t('pcf.components')}</span>
                   {p.massKg && <span>{p.massKg} kg</span>}
                 </div>
               </div>
