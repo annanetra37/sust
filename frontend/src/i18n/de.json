@@ -327,7 +327,10 @@
     "dataRequests": "Datenanfragen",
     "noRequests": "Noch keine Anfragen gesendet.",
     "approveIngest": "Genehmigen & Einlesen",
-    "responseRate": "Rücklaufquote"
+    "responseRate": "Rücklaufquote",
+    "noRequests": "Noch keine Anfragen gesendet.",
+    "dismiss": "Verwerfen",
+    "deleteConfirm": "Diesen Lieferanten und alle zugehörigen Datenanfragen löschen?"
   },
   "auth": {
     "createAccount": "Konto erstellen",
