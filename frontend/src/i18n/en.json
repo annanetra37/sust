@@ -170,7 +170,14 @@
     "allYears": "All Years",
     "connectData": "Connect Data",
     "visuals": "Visuals",
-    "data": "Data"
+    "data": "Data",
+    "noDataE1": "No data available. Upload emissions data to get started.",
+    "ofTarget": "of target",
+    "sbtiGaugeMethod": "{method} reduction: {pct}% by {year}",
+    "sbtiGaugeBaseline": "Base year: {baseYear} | Current: {current} tCO2e",
+    "yearFilterTooltip": "Only years with uploaded data are shown.",
+    "upgradeToUnlock": "Upgrade required to unlock {key}",
+    "professionalPlan": "Professional plan"
   },
   "reports": {
     "title": "ESG Report Generation",

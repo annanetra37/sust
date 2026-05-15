@@ -217,7 +217,11 @@
     "missingDisclosures": "{count} Angabe(n) haben keine quantitativen Daten. Fehlende Abschnitte enthalten eine Auslassungserklärung gemäß dem Standard.",
     "topics": "Themen",
     "howItWorksTitle": "So funktioniert die Berichtserstellung",
-    "howItWorksBody": "Wählen Sie einen Standard, wählen Sie Themen, prüfen Sie die Datenabdeckung und generieren Sie. Der Bericht enthält Deckblatt, Inhaltsverzeichnis, standardkonforme Angaben mit Ihren Daten und einen Compliance-Index."
+    "howItWorksBody": "Wählen Sie einen Standard, wählen Sie Themen, prüfen Sie die Datenabdeckung und generieren Sie. Der Bericht enthält Deckblatt, Inhaltsverzeichnis, standardkonforme Angaben mit Ihren Daten und einen Compliance-Index.",
+    "insufficientCreditsNeed": "Unzureichende Credits — {amount} benötigt",
+    "generateFullReportCredits": "Vollständigen Bericht erstellen — {credits} Credits",
+    "generateWithOmissionsCredits": "Bericht erstellen — {credits} Credits ({count} Abschnitte mit Auslassungshinweisen)",
+    "generateWithOmissionsCount": "Bericht erstellen ({count} Abschnitte mit Auslassungshinweisen)"
   },
   "settings": {
     "title": "Einstellungen",
