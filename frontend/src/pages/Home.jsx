@@ -90,7 +90,7 @@ export default function Home() {
               type="button"
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => setShowSectorPicker(false)}
-              aria-label="Dismiss"
+              aria-label={t('common.dismiss')}
               style={{ display: showSectorPicker ? 'block' : 'none' }}
             >
               <X className="w-4 h-4" />

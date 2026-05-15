@@ -40,7 +40,7 @@ export default function E1Dashboard() {
   }, [filterKey, ready]);
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full" /></div>;
-  if (!data) return <div className="text-center text-gray-500 py-12">No data available. Upload emissions data to get started.</div>;
+  if (!data) return <div className="text-center text-gray-500 py-12">{t('dashboard.noDataE1')}</div>;
 
   const { stats, charts } = data;
   const sbti = stats.sbtiProgress;
@@ -57,10 +57,10 @@ export default function E1Dashboard() {
             <Upload className="w-4 h-4" /> {t('dashboard.connectData')}
           </Link>
           <div className="flex gap-1.5">
-            <button onClick={() => { window.print(); }} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Save dashboard with all visuals as PDF (browser print dialog)">
+            <button onClick={() => { window.print(); }} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title={t('dashboard.visualsButtonTitle')}>
               <FileImage className="w-3.5 h-3.5" /> {t('dashboard.visuals')}
             </button>
-            <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title="Download raw KPI data as Excel spreadsheet">
+            <button onClick={() => api.exportE1Dashboard(filters)} className="btn-secondary flex items-center justify-center gap-1.5 text-xs flex-1" title={t('dashboard.dataButtonTitle')}>
               <FileSpreadsheet className="w-3.5 h-3.5" /> {t('dashboard.data')}
             </button>
           </div>
@@ -79,7 +79,7 @@ export default function E1Dashboard() {
           <Factory className="w-5 h-5 text-emerald-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">{t('dashboard.totalGhg')}</span>
-            <InfoTip>Total across all scopes for the selected year.</InfoTip>
+            <InfoTip>{t('dashboard.totalGhgTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEmissions < 0.1 ? stats.totalEmissions.toFixed(4) : stats.totalEmissions.toFixed(2)} <span className="text-sm font-normal text-gray-400">tCO2e</span></span>
         </div>
@@ -87,7 +87,7 @@ export default function E1Dashboard() {
           <TrendingUp className="w-5 h-5 text-amber-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">{t('dashboard.ghgIntensity')}</span>
-            <InfoTip>Emissions per employee. Lower is better.</InfoTip>
+            <InfoTip>{t('dashboard.ghgIntensityTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.intensity} <span className="text-sm font-normal text-gray-400">tCO2e/emp</span></span>
         </div>
@@ -95,7 +95,7 @@ export default function E1Dashboard() {
           <Factory className="w-5 h-5 text-orange-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">{t('dashboard.totalEnergy')}</span>
-            <InfoTip>Total energy consumed across all sources (electricity, heating, fuel) converted to MWh.</InfoTip>
+            <InfoTip>{t('dashboard.totalEnergyTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold">{stats.totalEnergyMwh > 0 ? stats.totalEnergyMwh.toFixed(2) : '0'} <span className="text-sm font-normal text-gray-400">MWh</span></span>
         </div>
@@ -103,7 +103,7 @@ export default function E1Dashboard() {
           <Target className="w-5 h-5 text-purple-500" />
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500">{t('dashboard.sbtiProgress')}</span>
-            <InfoTip>Progress toward your decarbonization target.</InfoTip>
+            <InfoTip>{t('dashboard.sbtiProgressTooltip')}</InfoTip>
           </div>
           {sbti ? (
             <div>
@@ -252,12 +252,12 @@ export default function E1Dashboard() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-bold">{sbti.progress}%</span>
-                  <span className="text-xs text-gray-500">of target</span>
+                  <span className="text-xs text-gray-500">{t('dashboard.ofTarget')}</span>
                 </div>
               </div>
               <div className="mt-4 text-center text-sm text-gray-500">
-                <p>{sbti.method} reduction: {sbti.reductionPct}% by {sbti.targetYear}</p>
-                <p>Base year: {sbti.baseYear} | Current: {sbti.currentEmissions.toFixed(1)} tCO2e</p>
+                <p>{t('dashboard.sbtiGaugeMethod', { method: sbti.method, pct: sbti.reductionPct, year: sbti.targetYear })}</p>
+                <p>{t('dashboard.sbtiGaugeBaseline', { baseYear: sbti.baseYear, current: sbti.currentEmissions.toFixed(1) })}</p>
               </div>
             </div>
           </CopyableChart>

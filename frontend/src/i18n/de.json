@@ -170,7 +170,20 @@
     "allYears": "Alle Jahre",
     "connectData": "Daten verbinden",
     "visuals": "Visualisierungen",
-    "data": "Daten"
+    "data": "Daten",
+    "noDataE1": "Keine Daten vorhanden. Laden Sie Emissionsdaten hoch, um zu beginnen.",
+    "ofTarget": "des Ziels",
+    "sbtiGaugeMethod": "{method}-Reduktion: {pct}% bis {year}",
+    "sbtiGaugeBaseline": "Basisjahr: {baseYear} | Aktuell: {current} tCO2e",
+    "yearFilterTooltip": "Nur Jahre mit hochgeladenen Daten werden angezeigt.",
+    "upgradeToUnlock": "Upgrade erforderlich, um {key} freizuschalten",
+    "professionalPlan": "Professional-Tarif",
+    "totalGhgTooltip": "Gesamtemissionen über alle Scopes für das ausgewählte Jahr.",
+    "ghgIntensityTooltip": "Emissionen pro Mitarbeiter. Niedriger ist besser.",
+    "totalEnergyTooltip": "Gesamtenergieverbrauch über alle Quellen (Strom, Heizung, Kraftstoff), umgerechnet in MWh.",
+    "sbtiProgressTooltip": "Fortschritt in Richtung Ihres Dekarbonisierungsziels.",
+    "visualsButtonTitle": "Dashboard mit allen Visualisierungen als PDF speichern (Browser-Druckdialog)",
+    "dataButtonTitle": "KPI-Rohdaten als Excel-Tabelle herunterladen"
   },
   "reports": {
     "title": "ESG-Berichtserstellung",
@@ -221,7 +234,9 @@
     "insufficientCreditsNeed": "Unzureichende Credits — {amount} benötigt",
     "generateFullReportCredits": "Vollständigen Bericht erstellen — {credits} Credits",
     "generateWithOmissionsCredits": "Bericht erstellen — {credits} Credits ({count} Abschnitte mit Auslassungshinweisen)",
-    "generateWithOmissionsCount": "Bericht erstellen ({count} Abschnitte mit Auslassungshinweisen)"
+    "generateWithOmissionsCount": "Bericht erstellen ({count} Abschnitte mit Auslassungshinweisen)",
+    "validationFailed": "Validierung fehlgeschlagen",
+    "reportGenFailed": "Berichtserstellung fehlgeschlagen"
   },
   "settings": {
     "title": "Einstellungen",

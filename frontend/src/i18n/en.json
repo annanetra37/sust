@@ -177,7 +177,13 @@
     "sbtiGaugeBaseline": "Base year: {baseYear} | Current: {current} tCO2e",
     "yearFilterTooltip": "Only years with uploaded data are shown.",
     "upgradeToUnlock": "Upgrade required to unlock {key}",
-    "professionalPlan": "Professional plan"
+    "professionalPlan": "Professional plan",
+    "totalGhgTooltip": "Total across all scopes for the selected year.",
+    "ghgIntensityTooltip": "Emissions per employee. Lower is better.",
+    "totalEnergyTooltip": "Total energy consumed across all sources (electricity, heating, fuel) converted to MWh.",
+    "sbtiProgressTooltip": "Progress toward your decarbonization target.",
+    "visualsButtonTitle": "Save dashboard with all visuals as PDF (browser print dialog)",
+    "dataButtonTitle": "Download raw KPI data as Excel spreadsheet"
   },
   "reports": {
     "title": "ESG Report Generation",
@@ -228,7 +234,9 @@
     "insufficientCreditsNeed": "Insufficient credits — need {amount}",
     "generateFullReportCredits": "Generate Full Report — {credits} credits",
     "generateWithOmissionsCredits": "Generate Report — {credits} credits ({count} sections with omission notes)",
-    "generateWithOmissionsCount": "Generate Report ({count} sections with omission notes)"
+    "generateWithOmissionsCount": "Generate Report ({count} sections with omission notes)",
+    "validationFailed": "Validation failed",
+    "reportGenFailed": "Report generation failed"
   },
   "settings": {
     "title": "Settings",

@@ -76,7 +76,7 @@ export default function Reports() {
       const result = await api.validateReport({ year, standard: selectedStandard, topics: selectedTopics });
       setValidation(result);
       setShowValidation(true);
-    } catch (err) { alert(err.error || 'Validation failed'); }
+    } catch (err) { alert(err.error || t('reports.validationFailed')); }
     finally { setValidating(false); }
   };
 
@@ -93,7 +93,7 @@ export default function Reports() {
       });
       setGenerated(true);
     } catch (err) {
-      alert(err.error || 'Report generation failed');
+      alert(err.error || t('reports.reportGenFailed'));
     } finally {
       setGenerating(false);
     }
@@ -164,7 +164,7 @@ export default function Reports() {
               key={s.key}
               onClick={() => handleStandardChange(s.key)}
               disabled={s.locked}
-              title={s.locked ? `Upgrade required to unlock ${s.key}` : undefined}
+              title={s.locked ? t('dashboard.upgradeToUnlock', { key: s.key }) : undefined}
               className={`relative p-3 rounded-xl border-2 text-left transition-all ${
                 s.locked
                   ? 'border-gray-200 dark:border-gray-800 opacity-60 cursor-not-allowed'
@@ -207,7 +207,7 @@ export default function Reports() {
                 const locked = typeof info === 'object' && info.locked;
                 return (
                   <option key={code} value={code} disabled={locked}>
-                    {name}{locked ? '  —  Professional plan' : ''}
+                    {name}{locked ? `  —  ${t('dashboard.professionalPlan')}` : ''}
                   </option>
                 );
               })}

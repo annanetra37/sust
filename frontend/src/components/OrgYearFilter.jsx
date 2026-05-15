@@ -56,7 +56,7 @@ export default function OrgYearFilter({ filters, onChange }) {
           <option value="all">{t('dashboard.allYears')}</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <InfoTip>Only years with uploaded data are shown.</InfoTip>
+        <InfoTip>{t('dashboard.yearFilterTooltip')}</InfoTip>
       </div>
 
       <div className="flex flex-wrap gap-2">
