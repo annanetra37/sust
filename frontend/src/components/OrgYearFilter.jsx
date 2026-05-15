@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { InfoTip } from './HelpSystem';
+import { useT } from '../i18n';
 
 export default function OrgYearFilter({ filters, onChange }) {
+  const { t } = useT();
   const [orgUnits, setOrgUnits] = useState([]);
   const [years, setYears] = useState([]);
   const [selected, setSelected] = useState([]);
@@ -51,10 +53,10 @@ export default function OrgYearFilter({ filters, onChange }) {
           value={filters.year || 'all'}
           onChange={(e) => onChange({ ...filters, year: e.target.value === 'all' ? null : parseInt(e.target.value) })}
         >
-          <option value="all">All Years</option>
+          <option value="all">{t('dashboard.allYears')}</option>
           {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
-        <InfoTip>Only years with uploaded data are shown.</InfoTip>
+        <InfoTip>{t('dashboard.yearFilterTooltip')}</InfoTip>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -66,7 +68,7 @@ export default function OrgYearFilter({ filters, onChange }) {
               : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-brand-300'
           }`}
         >
-          All Units
+          {t('dashboard.allUnits')}
         </button>
         {orgUnits.map((unit) => (
           <button

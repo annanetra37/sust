@@ -76,7 +76,7 @@ export default function Reports() {
       const result = await api.validateReport({ year, standard: selectedStandard, topics: selectedTopics });
       setValidation(result);
       setShowValidation(true);
-    } catch (err) { alert(err.error || 'Validation failed'); }
+    } catch (err) { alert(err.error || t('reports.validationFailed')); }
     finally { setValidating(false); }
   };
 
@@ -93,7 +93,7 @@ export default function Reports() {
       });
       setGenerated(true);
     } catch (err) {
-      alert(err.error || 'Report generation failed');
+      alert(err.error || t('reports.reportGenFailed'));
     } finally {
       setGenerating(false);
     }
@@ -109,20 +109,20 @@ export default function Reports() {
   if (generating) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Generating Report...</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{t('reports.generatingReport')}</h1>
         <div className="card overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-br from-brand-500/10 to-emerald-500/5" />
           <div className="relative z-10 flex flex-col items-center py-12 text-center">
             <div className="w-20 h-20 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center mb-6">
               <Loader2 className="w-10 h-10 text-brand-600 animate-spin" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Building your {selectedStandard} report for {year}</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('reports.buildingReport', { standard: selectedStandard, year })}</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md">
-              Compiling disclosures, formatting metrics, generating narrative sections, and assembling the final document...
+              {t('reports.compilingDisclosures')}
             </p>
             <div className="mt-6 flex gap-3 text-xs text-gray-400">
               <span className="badge bg-brand-50 text-brand-600 dark:bg-brand-900 dark:text-brand-400">{selectedStandard}</span>
-              <span className="badge bg-gray-100 text-gray-500 dark:bg-gray-800">{selectedTopics.length} topics</span>
+              <span className="badge bg-gray-100 text-gray-500 dark:bg-gray-800">{selectedTopics.length} {t('reports.topics')}</span>
               <span className="badge bg-gray-100 text-gray-500 dark:bg-gray-800">{year}</span>
             </div>
           </div>
@@ -151,21 +151,20 @@ export default function Reports() {
         </div>
       )}
 
-      <HelpBanner id="reports-v2-guide" title="How Report Generation Works" variant="info">
-        Select a standard, choose topics, validate data coverage, then generate. The report includes a cover page,
-        table of contents, standard-aligned disclosures with your data, and a compliance index.
+      <HelpBanner id="reports-v2-guide" title={t('reports.howReportWorks')} variant="info">
+        {t('reports.howReportWorksBody')}
       </HelpBanner>
 
       {/* Step 1: Standard */}
       <div className="card space-y-4">
-        <FieldLabel label="Reporting Standard" required info="Determines the structure, required disclosures, and compliance rules." />
+        <FieldLabel label={t('reports.reportingStandard')} required info={t('reports.reportingStandardInfo')} />
         <div className="grid grid-cols-2 gap-3">
           {standards.map((s) => (
             <button
               key={s.key}
               onClick={() => handleStandardChange(s.key)}
               disabled={s.locked}
-              title={s.locked ? `Upgrade required to unlock ${s.key}` : undefined}
+              title={s.locked ? t('dashboard.upgradeToUnlock', { key: s.key }) : undefined}
               className={`relative p-3 rounded-xl border-2 text-left transition-all ${
                 s.locked
                   ? 'border-gray-200 dark:border-gray-800 opacity-60 cursor-not-allowed'
@@ -194,13 +193,13 @@ export default function Reports() {
       <div className="card space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <FieldLabel label="Reporting Year" required />
+            <FieldLabel label={t('reports.reportingYear')} required />
             <select className="input" value={year} onChange={(e) => { setYear(parseInt(e.target.value)); setValidation(null); }}>
               {years.map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
           <div>
-            <FieldLabel label="Language" />
+            <FieldLabel label={t('reports.language')} />
             <select className="input" value={language} onChange={(e) => setLanguage(e.target.value)}>
               {Object.entries(languages).map(([code, info]) => {
                 // Backend returns { name, locked, requiredTier } per language.
@@ -208,15 +207,15 @@ export default function Reports() {
                 const locked = typeof info === 'object' && info.locked;
                 return (
                   <option key={code} value={code} disabled={locked}>
-                    {name}{locked ? '  —  Professional plan' : ''}
+                    {name}{locked ? `  —  ${t('dashboard.professionalPlan')}` : ''}
                   </option>
                 );
               })}
             </select>
           </div>
           <div>
-            <FieldLabel label="Company Description" info="Brief description for the cover page." />
-            <input className="input" placeholder="e.g., Leading manufacturer..." value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} />
+            <FieldLabel label={t('reports.companyDescription')} info={t('reports.companyDescInfo')} />
+            <input className="input" placeholder={t('reports.companyDescPlaceholder')} value={companyDescription} onChange={(e) => setCompanyDescription(e.target.value)} />
           </div>
         </div>
 
@@ -262,9 +261,9 @@ export default function Reports() {
       {currentStandard && (
         <div className="card space-y-3">
           <div className="flex items-center justify-between">
-            <FieldLabel label="Report Topics" required info="Select which topics to include. Deselected topics won't appear." />
+            <FieldLabel label={t('reports.reportTopics')} required info={t('reports.reportTopicsInfo')} />
             <button onClick={toggleAll} className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
-              {allTopics ? 'Deselect All' : 'Select All'}
+              {allTopics ? t('reports.deselectAll') : t('reports.selectAll')}
             </button>
           </div>
           <div className="space-y-2">
@@ -284,36 +283,36 @@ export default function Reports() {
       {/* Step 4: Validate */}
       <button onClick={handleValidate} disabled={validating || selectedTopics.length === 0} className="btn-secondary w-full flex items-center justify-center gap-2">
         {validating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-        {validating ? 'Checking data coverage...' : 'Validate Data Coverage'}
+        {validating ? t('reports.checkingCoverage') : t('reports.validateCoverage')}
       </button>
 
       {/* Validation results */}
       {validation && showValidation && (
         <div className="card space-y-4">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100">Data Coverage Report</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{t('reports.dataCoverageReport')}</h3>
 
           {/* Legend */}
           <div className="flex items-center gap-4 text-xs text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg p-2.5">
-            <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" /> Data available</span>
-            <span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-red-500" /> Missing metric data</span>
-            <span className="flex items-center gap-1"><Info className="w-3.5 h-3.5 text-blue-500" /> Narrative (auto-generated)</span>
+            <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" /> {t('reports.dataAvailable')}</span>
+            <span className="flex items-center gap-1"><XCircle className="w-3.5 h-3.5 text-red-500" /> {t('reports.missingData')}</span>
+            <span className="flex items-center gap-1"><Info className="w-3.5 h-3.5 text-blue-500" /> {t('reports.narrativeAuto')}</span>
           </div>
 
           {/* Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-green-50 dark:bg-green-950 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-green-700 dark:text-green-400">{validation.available.length}</p>
-              <p className="text-[10px] text-green-600">Data available</p>
+              <p className="text-[10px] text-green-600">{t('reports.dataAvailable')}</p>
             </div>
             <div className="bg-red-50 dark:bg-red-950 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-red-700 dark:text-red-400">{validation.missing.length}</p>
-              <p className="text-[10px] text-red-600">Missing data</p>
+              <p className="text-[10px] text-red-600">{t('reports.missingData')}</p>
             </div>
             <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center">
               <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">
                 {validation.topics.reduce((s, t) => s + t.disclosures.filter(d => d.isNarrative).length, 0)}
               </p>
-              <p className="text-[10px] text-blue-600">Narrative sections</p>
+              <p className="text-[10px] text-blue-600">{t('reports.narrativeSections')}</p>
             </div>
           </div>
 
@@ -336,9 +335,9 @@ export default function Reports() {
                     )}
                     <span className="font-mono text-gray-400 w-14 shrink-0">{disc.code}</span>
                     <span className="flex-1 text-gray-700 dark:text-gray-300">{disc.name}</span>
-                    {disc.hasData && <span className="text-green-600 font-medium">{disc.count} records</span>}
-                    {disc.isNarrative && <span className="text-blue-400">Auto-generated</span>}
-                    {!disc.hasData && !disc.isNarrative && <span className="text-red-500">No data</span>}
+                    {disc.hasData && <span className="text-green-600 font-medium">{disc.count} {t('reports.records')}</span>}
+                    {disc.isNarrative && <span className="text-blue-400">{t('reports.autoGenerated')}</span>}
+                    {!disc.hasData && !disc.isNarrative && <span className="text-red-500">{t('reports.noData')}</span>}
                   </div>
                 ))}
               </div>
@@ -350,7 +349,7 @@ export default function Reports() {
           <CreditPreview
             action="report-gen"
             params={{ year, standard: selectedStandard, topics: selectedTopics }}
-            label={`Generating this ${selectedStandard} report will cost`}
+            label={t('reports.generatingCostLabel', { standard: selectedStandard })}
             onEstimate={setReportEstimate}
           />
 
@@ -364,16 +363,15 @@ export default function Reports() {
               >
                 <Download className="w-4 h-4" />
                 {reportEstimate && !reportEstimate.sufficient
-                  ? `Insufficient credits — need ${reportEstimate.credits.toLocaleString()}`
+                  ? t('reports.insufficientCreditsNeed', { amount: reportEstimate.credits.toLocaleString() })
                   : reportEstimate
-                    ? `Generate Full Report — ${reportEstimate.credits.toLocaleString()} credits`
-                    : 'Generate Full Report'}
+                    ? t('reports.generateFullReportCredits', { credits: reportEstimate.credits.toLocaleString() })
+                    : t('reports.generateReport')}
               </button>
             ) : (
               <>
                 <div className="p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-400">
-                  <strong>{validation.missing.length} disclosure(s)</strong> have no quantitative data.
-                  Missing sections will include an omission explanation as required by the standard.
+                  {t('reports.missingDisclosures', { count: validation.missing.length })}
                 </div>
                 <button
                   onClick={() => handleGenerate(true)}
@@ -382,10 +380,10 @@ export default function Reports() {
                 >
                   <Download className="w-4 h-4" />
                   {reportEstimate && !reportEstimate.sufficient
-                    ? `Insufficient credits — need ${reportEstimate.credits.toLocaleString()}`
+                    ? t('reports.insufficientCreditsNeed', { amount: reportEstimate.credits.toLocaleString() })
                     : reportEstimate
-                      ? `Generate Report — ${reportEstimate.credits.toLocaleString()} credits (${validation.missing.length} sections with omission notes)`
-                      : `Generate Report (${validation.missing.length} sections with omission notes)`}
+                      ? t('reports.generateWithOmissionsCredits', { credits: reportEstimate.credits.toLocaleString(), count: validation.missing.length })
+                      : t('reports.generateWithOmissionsCount', { count: validation.missing.length })}
                 </button>
               </>
             )}

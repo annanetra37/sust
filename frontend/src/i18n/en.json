@@ -97,7 +97,43 @@
     "creditsTooltip": "Credits are consumed when you process data. Excel uploads cost 1 credit per row. Document extractions cost 2 credits per document. Your balance is shown here.",
     "activeModules": "Active Modules",
     "activeModulesTooltip": "Currently E1 (Climate Change) and S1 (Own Workforce) are active. Other modules are coming soon or available with Enterprise.",
-    "reportingStandard": "Reporting Standard"
+    "reportingStandard": "Reporting Standard",
+    "reportingStandardTooltip": "The ESG standard used for compliance reports. ESRS (European Sustainability Reporting Standards) is the default for CSRD. Change this in Settings.",
+    "activeModulesTooltipFull": "Currently E1 (Climate Change) and S1 (Own Workforce) are active. Other modules (E2-E5, S2-S4, G1) are coming soon or available with Enterprise.",
+    "creditsTooltipFull": "Credits are consumed when you process data. Excel uploads cost 1 credit per row. Document extractions cost 2 credits per document. Your balance is shown here.",
+    "modulesCount": "2 of 10",
+    "environmental": "Environmental",
+    "social": "Social",
+    "governance": "Governance",
+    "envDesc": "Climate impact, pollution, water usage, biodiversity, and circular economy metrics.",
+    "socDesc": "Workforce composition, diversity, training, and community impact metrics.",
+    "govDesc": "Board composition, leadership structure, and corporate governance practices.",
+    "climateEmissions": "Climate & Emissions",
+    "climateEmissionsDesc": "GHG emissions (Scope 1/2/3), carbon footprint, decarbonization targets",
+    "pollutionWaste": "Pollution & Waste",
+    "pollutionWasteDesc": "Air, water, soil pollution and waste management tracking",
+    "waterResources": "Water Resources",
+    "waterResourcesDesc": "Water consumption, discharge, and stress area assessment",
+    "biodiversity": "Biodiversity",
+    "biodiversityDesc": "Impact on ecosystems, habitats, and protected areas",
+    "circularEconomy": "Circular Economy",
+    "circularEconomyDesc": "Resource efficiency, material flows, and product lifecycle",
+    "workforceEmployees": "Workforce & Employees",
+    "workforceEmployeesDesc": "Employee demographics, DEI, training hours, turnover rates",
+    "supplyChainLabor": "Supply Chain Labor",
+    "supplyChainLaborDesc": "Working conditions and labor rights across the value chain",
+    "communityImpact": "Community Impact",
+    "communityImpactDesc": "Local community engagement, indigenous rights, social investment",
+    "consumerProtection": "Consumer Protection",
+    "consumerProtectionDesc": "Product safety, data privacy, and responsible marketing",
+    "boardLeadership": "Board & Leadership",
+    "boardLeadershipDesc": "Board diversity, independence, executive compensation",
+    "ethicsCompliance": "Ethics & Compliance",
+    "ethicsComplianceDesc": "Anti-corruption, whistleblowing, political contributions",
+    "badgeUnderDevelopment": "Under Development",
+    "badgeUpgradeEnterprise": "Upgrade for Enterprise",
+    "open": "Open",
+    "sectorPickDesc": "Each pack adds the right materiality starters, emission factors, and disclosure templates for your sector. You can change this later in Settings."
   },
   "dashboard": {
     "e1Title": "Environmental: Climate Change",
@@ -123,10 +159,31 @@
     "fromS1Data": "from S1 data",
     "topEmissionSources": "Top Emission Sources",
     "emissionsByScope": "Emissions by Scope",
+    "emissionsByActivity": "Emissions by Activity",
+    "emissionsTrend": "Emissions Trend (Year-over-Year)",
+    "energyBySource": "Energy Consumption by Source (MWh)",
+    "sbtiTargetProgress": "SBTi Target Progress",
+    "visualsHint": "Visuals = PDF with charts · Data = Excel with numbers",
+    "onTrack": "On Track",
+    "offTrack": "Off Track",
     "allUnits": "All Units",
+    "allYears": "All Years",
     "connectData": "Connect Data",
     "visuals": "Visuals",
-    "data": "Data"
+    "data": "Data",
+    "noDataE1": "No data available. Upload emissions data to get started.",
+    "ofTarget": "of target",
+    "sbtiGaugeMethod": "{method} reduction: {pct}% by {year}",
+    "sbtiGaugeBaseline": "Base year: {baseYear} | Current: {current} tCO2e",
+    "yearFilterTooltip": "Only years with uploaded data are shown.",
+    "upgradeToUnlock": "Upgrade required to unlock {key}",
+    "professionalPlan": "Professional plan",
+    "totalGhgTooltip": "Total across all scopes for the selected year.",
+    "ghgIntensityTooltip": "Emissions per employee. Lower is better.",
+    "totalEnergyTooltip": "Total energy consumed across all sources (electricity, heating, fuel) converted to MWh.",
+    "sbtiProgressTooltip": "Progress toward your decarbonization target.",
+    "visualsButtonTitle": "Save dashboard with all visuals as PDF (browser print dialog)",
+    "dataButtonTitle": "Download raw KPI data as Excel spreadsheet"
   },
   "reports": {
     "title": "ESG Report Generation",
@@ -159,7 +216,27 @@
     "insufficientCredits": "Insufficient credits",
     "generatingReport": "Generating Report...",
     "buildingReport": "Building your {standard} report for {year}",
-    "compilingDisclosures": "Compiling disclosures, formatting metrics, generating narrative sections, and assembling the final document..."
+    "compilingDisclosures": "Compiling disclosures, formatting metrics, generating narrative sections, and assembling the final document...",
+    "howReportWorks": "How Report Generation Works",
+    "howReportWorksBody": "Select a standard, choose topics, validate data coverage, then generate. The report includes a cover page, table of contents, standard-aligned disclosures with your data, and a compliance index.",
+    "reportingStandardInfo": "Determines the structure, required disclosures, and compliance rules.",
+    "companyDescInfo": "Brief description for the cover page.",
+    "reportTopicsInfo": "Select which topics to include. Deselected topics will not appear.",
+    "narrativeSections": "Narrative sections",
+    "records": "records",
+    "autoGenerated": "Auto-generated",
+    "noData": "No data",
+    "generatingCostLabel": "Generating this {standard} report will cost",
+    "missingDisclosures": "{count} disclosure(s) have no quantitative data. Missing sections will include an omission explanation as required by the standard.",
+    "topics": "topics",
+    "howItWorksTitle": "How Report Generation Works",
+    "howItWorksBody": "Select a standard, choose topics, validate data coverage, then generate. The report includes a cover page, table of contents, standard-aligned disclosures with your data, and a compliance index.",
+    "insufficientCreditsNeed": "Insufficient credits — need {amount}",
+    "generateFullReportCredits": "Generate Full Report — {credits} credits",
+    "generateWithOmissionsCredits": "Generate Report — {credits} credits ({count} sections with omission notes)",
+    "generateWithOmissionsCount": "Generate Report ({count} sections with omission notes)",
+    "validationFailed": "Validation failed",
+    "reportGenFailed": "Report generation failed"
   },
   "settings": {
     "title": "Settings",
@@ -356,7 +433,6 @@
     "noRequests": "No requests sent yet.",
     "approveIngest": "Approve & Ingest",
     "responseRate": "Response rate",
-    "noRequests": "No requests sent yet.",
     "dismiss": "dismiss",
     "deleteConfirm": "Delete this supplier and all their data requests?"
   },
@@ -412,7 +488,6 @@
     "requestSentDesc": "Our team has been notified and will reach out to you shortly to discuss upgrading to the {tier} plan.",
     "teamContact": "Our team will contact you within 1 business day."
   },
-
   "connections": {
     "title": "Data Connections",
     "subtitle": "Connect your source systems to automatically pull sustainability data",
@@ -466,7 +541,6 @@
     "categoryDataWarehouses": "Data Warehouses",
     "categorySustainabilityPlatforms": "Sustainability Platforms"
   },
-
   "lineage": {
     "title": "Data Lineage",
     "subtitle": "Trace ESG data from topic to source",
@@ -497,7 +571,6 @@
     "expandCollapseHint": "Use +/- to expand/collapse",
     "zoomHint": "Zoom: scroll or controls"
   },
-
   "upload": {
     "e1Title": "E1 — Connect Emissions Data",
     "e1Subtitle": "Upload spreadsheets, scan invoices, or pull from a connected database",
@@ -558,7 +631,6 @@
     "messyData": "Messy real-world data",
     "messyDataDesc": "Missing values, inconsistent formatting — handled"
   },
-
   "s1Dashboard": {
     "title": "S1 — Own Workforce",
     "subtitle": "Workforce composition, diversity, training, and turnover analytics",
@@ -599,7 +671,6 @@
     "byContractType": "Employees by Contract Type",
     "turnoverByGender": "Turnover by Gender"
   },
-
   "sbti": {
     "title": "SBTi Decarbonization Targets",
     "subtitle": "Set Science Based Targets for emissions reduction",
@@ -657,7 +728,6 @@
     "netzeroYear": "Target year: no later than 2050",
     "netzeroRemaining": "Remaining 10% neutralized via carbon removal"
   },
-
   "history": {
     "title": "Upload History",
     "searchPlaceholder": "Search by file name...",
@@ -743,7 +813,6 @@
     "failedToLoad": "Failed to load details",
     "failedToUpdateAudit": "Failed to update audit status"
   },
-
   "activityLog": {
     "title": "Activity Log",
     "subtitle": "Track every action by all users across the platform",
@@ -769,7 +838,6 @@
     "auditAction": "Audit",
     "action": "Action"
   },
-
   "users": {
     "title": "User Management",
     "inviteUser": "Invite User",
@@ -815,13 +883,11 @@
     "deleteConfirm": "Delete {name}? This cannot be undone.",
     "units": "unit(s)"
   },
-
   "analytics": {
     "title": "Analytics",
     "environmental": "Environmental",
     "social": "Social"
   },
-
   "language": {
     "en": "English",
     "de": "Deutsch",

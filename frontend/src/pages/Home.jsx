@@ -9,41 +9,41 @@ import SectorPicker from '../components/SectorPicker';
 import SectorKpiTiles from '../components/SectorKpiTiles';
 import { useT } from '../i18n';
 
-const PILLARS = [
-  {
-    key: 'E', title: 'Environmental', icon: Leaf, color: 'esg-e', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200',
-    description: 'Climate impact, pollution, water usage, biodiversity, and circular economy metrics.',
-    items: [
-      { id: 'ENV', name: 'Climate & Emissions', desc: 'GHG emissions (Scope 1/2/3), carbon footprint, decarbonization targets', path: '/dashboard/E/environmental-1', active: true, standards: 'ESRS E1 · GRI 305 · TCFD · CDP' },
-      { id: 'ENV', name: 'Pollution & Waste', desc: 'Air, water, soil pollution and waste management tracking', badge: 'Under Development', standards: 'ESRS E2 · GRI 306' },
-      { id: 'ENV', name: 'Water Resources', desc: 'Water consumption, discharge, and stress area assessment', badge: 'Under Development', standards: 'ESRS E3 · GRI 303' },
-      { id: 'ENV', name: 'Biodiversity', desc: 'Impact on ecosystems, habitats, and protected areas', badge: 'Under Development', standards: 'ESRS E4 · GRI 304' },
-      { id: 'ENV', name: 'Circular Economy', desc: 'Resource efficiency, material flows, and product lifecycle', badge: 'Upgrade for Enterprise', standards: 'ESRS E5 · GRI 301' },
-    ],
-  },
-  {
-    key: 'S', title: 'Social', icon: Users2, color: 'esg-s', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200',
-    description: 'Workforce composition, diversity, training, and community impact metrics.',
-    items: [
-      { id: 'SOC', name: 'Workforce & Employees', desc: 'Employee demographics, DEI, training hours, turnover rates', path: '/dashboard/S/social-1', active: true, standards: 'ESRS S1 · GRI 401-405 · SASB' },
-      { id: 'SOC', name: 'Supply Chain Labor', desc: 'Working conditions and labor rights across the value chain', badge: 'Under Development', standards: 'ESRS S2 · GRI 414' },
-      { id: 'SOC', name: 'Community Impact', desc: 'Local community engagement, indigenous rights, social investment', badge: 'Under Development', standards: 'ESRS S3 · GRI 413' },
-      { id: 'SOC', name: 'Consumer Protection', desc: 'Product safety, data privacy, and responsible marketing', badge: 'Upgrade for Enterprise', standards: 'ESRS S4 · GRI 416-418' },
-    ],
-  },
-  {
-    key: 'G', title: 'Governance', icon: Shield, color: 'esg-g', bgColor: 'bg-amber-50', borderColor: 'border-amber-200',
-    description: 'Board composition, leadership structure, and corporate governance practices.',
-    items: [
-      { id: 'GOV', name: 'Board & Leadership', desc: 'Board diversity, independence, executive compensation', badge: 'Upgrade for Enterprise', standards: 'ESRS G1 · GRI 405 · TCFD' },
-      { id: 'GOV', name: 'Ethics & Compliance', desc: 'Anti-corruption, whistleblowing, political contributions', badge: 'Upgrade for Enterprise', standards: 'ESRS G1 · GRI 205-206' },
-    ],
-  },
-];
-
 export default function Home() {
   const { user } = useAuth();
   const { t } = useT();
+
+  const PILLARS = [
+    {
+      key: 'E', title: t('home.environmental'), icon: Leaf, color: 'esg-e', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200',
+      description: t('home.envDesc'),
+      items: [
+        { id: 'ENV', name: t('home.climateEmissions'), desc: t('home.climateEmissionsDesc'), path: '/dashboard/E/environmental-1', active: true, standards: 'ESRS E1 · GRI 305 · TCFD · CDP' },
+        { id: 'ENV', name: t('home.pollutionWaste'), desc: t('home.pollutionWasteDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E2 · GRI 306' },
+        { id: 'ENV', name: t('home.waterResources'), desc: t('home.waterResourcesDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E3 · GRI 303' },
+        { id: 'ENV', name: t('home.biodiversity'), desc: t('home.biodiversityDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E4 · GRI 304' },
+        { id: 'ENV', name: t('home.circularEconomy'), desc: t('home.circularEconomyDesc'), badge: t('home.badgeUpgradeEnterprise'), standards: 'ESRS E5 · GRI 301' },
+      ],
+    },
+    {
+      key: 'S', title: t('home.social'), icon: Users2, color: 'esg-s', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-200',
+      description: t('home.socDesc'),
+      items: [
+        { id: 'SOC', name: t('home.workforceEmployees'), desc: t('home.workforceEmployeesDesc'), path: '/dashboard/S/social-1', active: true, standards: 'ESRS S1 · GRI 401-405 · SASB' },
+        { id: 'SOC', name: t('home.supplyChainLabor'), desc: t('home.supplyChainLaborDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS S2 · GRI 414' },
+        { id: 'SOC', name: t('home.communityImpact'), desc: t('home.communityImpactDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS S3 · GRI 413' },
+        { id: 'SOC', name: t('home.consumerProtection'), desc: t('home.consumerProtectionDesc'), badge: t('home.badgeUpgradeEnterprise'), standards: 'ESRS S4 · GRI 416-418' },
+      ],
+    },
+    {
+      key: 'G', title: t('home.governance'), icon: Shield, color: 'esg-g', bgColor: 'bg-amber-50', borderColor: 'border-amber-200',
+      description: t('home.govDesc'),
+      items: [
+        { id: 'GOV', name: t('home.boardLeadership'), desc: t('home.boardLeadershipDesc'), badge: t('home.badgeUpgradeEnterprise'), standards: 'ESRS G1 · GRI 405 · TCFD' },
+        { id: 'GOV', name: t('home.ethicsCompliance'), desc: t('home.ethicsComplianceDesc'), badge: t('home.badgeUpgradeEnterprise'), standards: 'ESRS G1 · GRI 205-206' },
+      ],
+    },
+  ];
   const [expanded, setExpanded] = useState({ E: true, S: true, G: false });
   const [standard, setStandard] = useState('');
   const [sectorStatus, setSectorStatus] = useState(null);
@@ -82,8 +82,7 @@ export default function Home() {
               <div>
                 <h3 className="font-bold text-gray-900 dark:text-gray-100">{t('home.pickIndustry')}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                  Each pack adds the right materiality starters, emission factors, and disclosure templates
-                  for your sector. You can change this later in Settings.
+                  {t('home.sectorPickDesc')}
                 </p>
               </div>
             </div>
@@ -91,7 +90,7 @@ export default function Home() {
               type="button"
               className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               onClick={() => setShowSectorPicker(false)}
-              aria-label="Dismiss"
+              aria-label={t('common.dismiss')}
               style={{ display: showSectorPicker ? 'block' : 'none' }}
             >
               <X className="w-4 h-4" />
@@ -130,22 +129,22 @@ export default function Home() {
       <div className="grid grid-cols-3 gap-4">
         <div className="stat-card">
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Credits Available</span>
-            <InfoTip title="What are credits?">Credits are consumed when you process data. Excel uploads cost 1 credit per row. Document extractions cost 2 credits per document. Your balance is shown here.</InfoTip>
+            <span className="text-sm text-gray-500">{t('home.creditsAvailable')}</span>
+            <InfoTip title={t('home.creditsAvailable')}>{t('home.creditsTooltipFull')}</InfoTip>
           </div>
           <span className="text-2xl font-bold text-brand-700">{user?.company?.creditBalance ?? 0}</span>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Active Modules</span>
-            <InfoTip title="ESG Modules">Currently E1 (Climate Change) and S1 (Own Workforce) are active. Other modules (E2-E5, S2-S4, G1) are coming soon or available with Enterprise.</InfoTip>
+            <span className="text-sm text-gray-500">{t('home.activeModules')}</span>
+            <InfoTip title={t('home.activeModules')}>{t('home.activeModulesTooltipFull')}</InfoTip>
           </div>
-          <span className="text-2xl font-bold text-esg-e">2 of 10</span>
+          <span className="text-2xl font-bold text-esg-e">{t('home.modulesCount')}</span>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500">Reporting Standard</span>
-            <InfoTip title="Reporting Standard">The ESG standard used for compliance reports. ESRS (European Sustainability Reporting Standards) is the default for CSRD. Change this in Settings.</InfoTip>
+            <span className="text-sm text-gray-500">{t('home.reportingStandard')}</span>
+            <InfoTip title={t('home.reportingStandard')}>{t('home.reportingStandardTooltip')}</InfoTip>
           </div>
           <span className="text-2xl font-bold text-gray-700">{standard || '—'}</span>
         </div>
@@ -186,7 +185,7 @@ export default function Home() {
                     </div>
                     {item.active ? (
                       <Link to={item.path} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-700 font-medium shrink-0">
-                        Open <ArrowRight className="w-4 h-4" />
+                        {t('home.open')} <ArrowRight className="w-4 h-4" />
                       </Link>
                     ) : (
                       <span className="badge bg-gray-100 text-gray-500 shrink-0">{item.badge}</span>
