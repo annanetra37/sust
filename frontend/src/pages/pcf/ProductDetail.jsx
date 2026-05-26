@@ -297,13 +297,13 @@ export default function ProductDetail() {
                   <thead>
                     <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b dark:border-gray-700">
                       <th className="pb-2 font-medium">#</th>
-                      <th className="pb-2 font-medium">Component</th>
-                      <th className="pb-2 font-medium">Material class</th>
-                      <th className="pb-2 font-medium">Qty</th>
-                      <th className="pb-2 font-medium">Unit</th>
-                      <th className="pb-2 font-medium">Stage</th>
-                      <th className="pb-2 font-medium">Factor</th>
-                      {uploadResult && <th className="pb-2 font-medium">Confidence</th>}
+                      <th className="pb-2 font-medium">{t('pcf.colComponent')}</th>
+                      <th className="pb-2 font-medium">{t('pcf.colMaterialClass')}</th>
+                      <th className="pb-2 font-medium">{t('pcf.colQty')}</th>
+                      <th className="pb-2 font-medium">{t('pcf.colUnit')}</th>
+                      <th className="pb-2 font-medium">{t('pcf.colStage')}</th>
+                      <th className="pb-2 font-medium">{t('pcf.colFactor')}</th>
+                      {uploadResult && <th className="pb-2 font-medium">{t('pcf.colConfidence')}</th>}
                       <th className="pb-2 w-8"></th>
                     </tr>
                   </thead>
@@ -320,7 +320,7 @@ export default function ProductDetail() {
                           {b.chosenFactorId ? (
                             <span title="Emission factor matched">{b.component?.materialClass}</span>
                           ) : (
-                            <span className="text-amber-500">No factor</span>
+                            <span className="text-amber-500">{t('pcf.noFactor')}</span>
                           )}
                         </td>
                         {uploadResult && (

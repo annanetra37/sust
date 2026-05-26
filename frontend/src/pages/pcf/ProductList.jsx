@@ -98,9 +98,9 @@ export default function ProductList() {
               <label className="block">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('pcf.sector')}</span>
                 <select className="input mt-1" value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })}>
-                  <option value="electronics">Electronics</option>
-                  <option value="automotive">Automotive</option>
-                  <option value="generic">Generic</option>
+                  <option value="electronics">{t('pcf.sectorElectronics')}</option>
+                  <option value="automotive">{t('pcf.sectorAutomotive')}</option>
+                  <option value="generic">{t('pcf.sectorGeneric')}</option>
                 </select>
               </label>
               <label className="block">

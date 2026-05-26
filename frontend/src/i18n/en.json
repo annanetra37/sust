@@ -349,7 +349,18 @@
     "supplier": "Supplier (optional)",
     "aiGeneratedWarning": "AI-generated, never primary data. The proposed BOM uses industry-average proportions and assumptions, not your actual suppliers' reported data. Review each row and replace with primary data when you have it — this directly affects your ESRS E1 §51(g) primary-data share.",
     "generateCredits": "Generate (2 credits)",
-    "generatingBom": "Generating BOM..."
+    "generatingBom": "Generating BOM...",
+    "colComponent": "Component",
+    "colMaterialClass": "Material class",
+    "colQty": "Qty",
+    "colUnit": "Unit",
+    "colStage": "Stage",
+    "colFactor": "Factor",
+    "colConfidence": "Confidence",
+    "noFactor": "No factor",
+    "sectorElectronics": "Electronics",
+    "sectorAutomotive": "Automotive",
+    "sectorGeneric": "Generic"
   },
   "roi": {
     "title": "Sustainability ROI Module",
@@ -887,6 +898,24 @@
     "title": "Analytics",
     "environmental": "Environmental",
     "social": "Social"
+  },
+  "credits": {
+    "currentBalance": "Current balance",
+    "afterThisAction": "After this action",
+    "whatGoesIntoEstimate": "What goes into this estimate?",
+    "documents": "Documents",
+    "rows": "Rows",
+    "sheets": "Sheets",
+    "aiBatches": "AI processing batches",
+    "topicsSelected": "Topics selected",
+    "topicsWithData": "Topics with data",
+    "disclosuresWithData": "Disclosures with data",
+    "disclosuresMissing": "Disclosures missing data",
+    "narrativeSections": "Narrative sections",
+    "reportingYear": "Reporting year",
+    "standard": "Standard",
+    "calculatingCost": "Calculating estimated cost...",
+    "couldNotCalculate": "Could not calculate estimated cost"
   },
   "language": {
     "en": "English",
