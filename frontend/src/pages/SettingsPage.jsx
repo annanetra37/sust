@@ -125,12 +125,12 @@ export default function SettingsPage() {
         <div className="card space-y-4">
           {isAdmin && (
             <form onSubmit={addUnit} className="flex gap-3">
-              <input className="input flex-1" placeholder="Unit name" required value={newUnit.name} onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })} />
+              <input className="input flex-1" placeholder={t('settings.unitName')} required value={newUnit.name} onChange={(e) => setNewUnit({ ...newUnit, name: e.target.value })} />
               <select className="input w-48" required value={newUnit.country} onChange={(e) => setNewUnit({ ...newUnit, country: e.target.value })}>
-                <option value="">Country...</option>
+                <option value="">{t('common.country')}...</option>
                 {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
-              <button type="submit" className="btn-primary flex items-center gap-1"><Plus className="w-4 h-4" /> Add</button>
+              <button type="submit" className="btn-primary flex items-center gap-1"><Plus className="w-4 h-4" /> {t('common.add')}</button>
             </form>
           )}
           <div className="divide-y">
