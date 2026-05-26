@@ -657,8 +657,9 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
           });
         }
       } else if (result.status === 'rejected') {
-        const errMsg = result.reason?.message || String(result.reason);
-        console.error(`[Doc Extract] FAILED:`, errMsg);
+        const rawErr = result.reason;
+        const errMsg = rawErr?.message || rawErr?.error?.message || (typeof rawErr === 'string' ? rawErr : 'Document processing failed');
+        console.error(`[Doc Extract] FAILED:`, rawErr);
         docErrors.push(errMsg);
         perFileStatus.push({
           file: batch[batchResults.indexOf(result)]?.originalname || 'Unknown',
