@@ -349,7 +349,18 @@
     "supplier": "Leverantör (valfritt)",
     "aiGeneratedWarning": "AI-genererad, aldrig primärdata. Den föreslagna BOM använder branschgenomsnittliga proportioner och antaganden, inte dina faktiska leverantörers rapporterade data. Granska varje rad och ersätt med primärdata när du har det — detta påverkar direkt din ESRS E1 §51(g) primärdataandel.",
     "generateCredits": "Generera (2 krediter)",
-    "generatingBom": "Genererar BOM..."
+    "generatingBom": "Genererar BOM...",
+    "colComponent": "Komponent",
+    "colMaterialClass": "Materialklass",
+    "colQty": "Antal",
+    "colUnit": "Enhet",
+    "colStage": "Fas",
+    "colFactor": "Faktor",
+    "colConfidence": "Konfidens",
+    "noFactor": "Ingen faktor",
+    "sectorElectronics": "Elektronik",
+    "sectorAutomotive": "Fordon",
+    "sectorGeneric": "Allmän"
   },
   "roi": {
     "title": "Modul för hållbarhets-ROI",
@@ -887,6 +898,26 @@
     "title": "Analys",
     "environmental": "Miljö",
     "social": "Socialt"
+  },
+  "credits": {
+    "currentBalance": "Aktuellt saldo",
+    "afterThisAction": "After this action",
+    "whatGoesIntoEstimate": "What goes into this estimate?",
+    "documents": "Dokument",
+    "rows": "Rader",
+    "sheets": "Sheets",
+    "aiBatches": "AI processing batches",
+    "topicsSelected": "Topics selected",
+    "topicsWithData": "Topics with data",
+    "disclosuresWithData": "Disclosures with data",
+    "disclosuresMissing": "Disclosures missing data",
+    "narrativeSections": "Narrative sections",
+    "reportingYear": "Reporting year",
+    "standard": "Standard",
+    "estimatedCredits": "Estimated credits for this action",
+    "shortBy": "Short by {amount} credits",
+    "calculatingCost": "Calculating estimated cost...",
+    "couldNotCalculate": "Could not calculate estimated cost"
   },
   "language": {
     "en": "English",

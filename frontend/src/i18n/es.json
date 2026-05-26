@@ -349,7 +349,18 @@
     "supplier": "Proveedor (opcional)",
     "aiGeneratedWarning": "Generado por IA, nunca datos primarios. El BOM propuesto utiliza proporciones y supuestos promedio del sector, no los datos declarados por sus proveedores reales. Revise cada fila y reemplace con datos primarios cuando los tenga — esto afecta directamente su participación de datos primarios ESRS E1 §51(g).",
     "generateCredits": "Generar (2 créditos)",
-    "generatingBom": "Generando BOM..."
+    "generatingBom": "Generando BOM...",
+    "colComponent": "Componente",
+    "colMaterialClass": "Clase de material",
+    "colQty": "Cant.",
+    "colUnit": "Unidad",
+    "colStage": "Fase",
+    "colFactor": "Factor",
+    "colConfidence": "Confianza",
+    "noFactor": "Sin factor",
+    "sectorElectronics": "Electrónica",
+    "sectorAutomotive": "Automotriz",
+    "sectorGeneric": "Genérico"
   },
   "roi": {
     "title": "Módulo ROI de sostenibilidad",
@@ -887,6 +898,26 @@
     "title": "Analítica",
     "environmental": "Medioambiental",
     "social": "Social"
+  },
+  "credits": {
+    "currentBalance": "Saldo actual",
+    "afterThisAction": "After this action",
+    "whatGoesIntoEstimate": "What goes into this estimate?",
+    "documents": "Documentos",
+    "rows": "Filas",
+    "sheets": "Sheets",
+    "aiBatches": "AI processing batches",
+    "topicsSelected": "Topics selected",
+    "topicsWithData": "Topics with data",
+    "disclosuresWithData": "Disclosures with data",
+    "disclosuresMissing": "Disclosures missing data",
+    "narrativeSections": "Narrative sections",
+    "reportingYear": "Reporting year",
+    "standard": "Standard",
+    "estimatedCredits": "Estimated credits for this action",
+    "shortBy": "Short by {amount} credits",
+    "calculatingCost": "Calculating estimated cost...",
+    "couldNotCalculate": "Could not calculate estimated cost"
   },
   "language": {
     "en": "English",

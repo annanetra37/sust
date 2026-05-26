@@ -349,7 +349,18 @@
     "supplier": "Lieferant (optional)",
     "aiGeneratedWarning": "KI-generiert, keine Primärdaten. Die vorgeschlagene Stückliste verwendet Branchendurchschnitte und Annahmen, nicht die tatsächlichen Daten Ihrer Lieferanten. Überprüfen Sie jede Zeile und ersetzen Sie sie durch Primärdaten, wenn verfügbar — dies beeinflusst direkt Ihren ESRS E1 §51(g) Primärdatenanteil.",
     "generateCredits": "Generieren (2 Credits)",
-    "generatingBom": "Stückliste wird generiert..."
+    "generatingBom": "Stückliste wird generiert...",
+    "colComponent": "Komponente",
+    "colMaterialClass": "Materialklasse",
+    "colQty": "Menge",
+    "colUnit": "Einheit",
+    "colStage": "Phase",
+    "colFactor": "Faktor",
+    "colConfidence": "Konfidenz",
+    "noFactor": "Kein Faktor",
+    "sectorElectronics": "Elektronik",
+    "sectorAutomotive": "Automobil",
+    "sectorGeneric": "Allgemein"
   },
   "roi": {
     "title": "Nachhaltigkeits-ROI-Modul",
@@ -887,6 +898,26 @@
     "title": "Analysen",
     "environmental": "Umwelt",
     "social": "Soziales"
+  },
+  "credits": {
+    "currentBalance": "Aktuelles Guthaben",
+    "afterThisAction": "Nach dieser Aktion",
+    "whatGoesIntoEstimate": "Was fließt in diese Schätzung ein?",
+    "documents": "Dokumente",
+    "rows": "Zeilen",
+    "sheets": "Tabellenblätter",
+    "aiBatches": "KI-Verarbeitungsstapel",
+    "topicsSelected": "Ausgewählte Themen",
+    "topicsWithData": "Themen mit Daten",
+    "disclosuresWithData": "Angaben mit Daten",
+    "disclosuresMissing": "Angaben ohne Daten",
+    "narrativeSections": "Narrative Abschnitte",
+    "reportingYear": "Berichtsjahr",
+    "standard": "Standard",
+    "estimatedCredits": "Geschätzte Credits für diese Aktion",
+    "shortBy": "Es fehlen {amount} Credits",
+    "calculatingCost": "Geschätzte Kosten werden berechnet...",
+    "couldNotCalculate": "Geschätzte Kosten konnten nicht berechnet werden"
   },
   "language": {
     "en": "English",

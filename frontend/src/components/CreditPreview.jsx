@@ -1,22 +1,23 @@
 import { useEffect, useState, useRef } from 'react';
 import { Coins, Loader2, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
+import { useT } from '../i18n';
 
-// Customer-facing breakdown labels.  Any breakdown key not in this map is
+// Customer-facing breakdown label keys.  Any breakdown key not in this map is
 // hidden from the UI — we never show USD amounts, model names, or internal
 // flags like rowsUsedHeuristic to the user.
-const BREAKDOWN_LABELS = {
-  fileCount: 'Documents',
-  rowCount: 'Rows',
-  sheetCount: 'Sheets',
-  batches: 'AI processing batches',
-  topicCount: 'Topics selected',
-  topicsWithData: 'Topics with data',
-  disclosuresWithData: 'Disclosures with data',
-  disclosuresMissing: 'Disclosures missing data',
-  narrativeCount: 'Narrative sections',
-  year: 'Reporting year',
-  standard: 'Standard',
+const BREAKDOWN_LABEL_KEYS = {
+  fileCount: 'credits.documents',
+  rowCount: 'credits.rows',
+  sheetCount: 'credits.sheets',
+  batches: 'credits.aiBatches',
+  topicCount: 'credits.topicsSelected',
+  topicsWithData: 'credits.topicsWithData',
+  disclosuresWithData: 'credits.disclosuresWithData',
+  disclosuresMissing: 'credits.disclosuresMissing',
+  narrativeCount: 'credits.narrativeSections',
+  year: 'credits.reportingYear',
+  standard: 'credits.standard',
 };
 
 /**
@@ -36,6 +37,7 @@ const BREAKDOWN_LABELS = {
  * credits are insufficient.
  */
 export default function CreditPreview({ action, params, label, onEstimate }) {
+  const { t } = useT();
   const [estimate, setEstimate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,7 +81,7 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
     return (
       <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center gap-2 text-sm text-gray-500">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Calculating estimated cost...
+        {t('credits.calculatingCost')}
       </div>
     );
   }
@@ -87,7 +89,7 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
   if (error) {
     return (
       <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-700 dark:text-amber-400">
-        Could not calculate estimated cost: {error}
+        {t('credits.couldNotCalculate')}: {error}
       </div>
     );
   }
@@ -98,8 +100,8 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
 
   // Filter breakdown down to customer-safe fields only.
   const safeBreakdown = Object.entries(breakdown)
-    .filter(([k]) => Object.prototype.hasOwnProperty.call(BREAKDOWN_LABELS, k))
-    .map(([k, v]) => [BREAKDOWN_LABELS[k], v]);
+    .filter(([k]) => Object.prototype.hasOwnProperty.call(BREAKDOWN_LABEL_KEYS, k))
+    .map(([k, v]) => [t(BREAKDOWN_LABEL_KEYS[k]), v]);
 
   return (
     <div className={`rounded-xl border p-4 ${
@@ -115,24 +117,24 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold ${sufficient ? 'text-brand-700 dark:text-brand-400' : 'text-red-700 dark:text-red-400'}`}>
-            {label || 'Estimated credits for this action'}:{' '}
-            <span className="text-lg font-bold">{credits.toLocaleString()}</span> credits
+            {label || t('credits.estimatedCredits')}:{' '}
+            <span className="text-lg font-bold">{credits.toLocaleString()}</span> {t('common.credits')}
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-            <span>Current balance: <strong className="text-gray-700 dark:text-gray-200">{balance.toLocaleString()}</strong></span>
+            <span>{t('credits.currentBalance')}: <strong className="text-gray-700 dark:text-gray-200">{balance.toLocaleString()}</strong></span>
             {sufficient ? (
-              <span>After this action: <strong className="text-emerald-700 dark:text-emerald-400">{remainingAfter.toLocaleString()}</strong></span>
+              <span>{t('credits.afterThisAction')}: <strong className="text-emerald-700 dark:text-emerald-400">{remainingAfter.toLocaleString()}</strong></span>
             ) : (
               <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
                 <AlertTriangle className="w-3 h-3" />
-                Short by {(credits - balance).toLocaleString()} credits
+                {t('credits.shortBy', { amount: (credits - balance).toLocaleString() })}
               </span>
             )}
           </div>
           {safeBreakdown.length > 0 && (
             <details className="mt-1.5">
               <summary className="text-[11px] text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-                What goes into this estimate?
+                {t('credits.whatGoesIntoEstimate')}
               </summary>
               <div className="mt-1 text-[11px] text-gray-600 dark:text-gray-300 bg-white/60 dark:bg-gray-900/60 rounded-lg p-2 space-y-0.5">
                 {safeBreakdown.map(([label, v]) => (
