@@ -914,6 +914,8 @@
     "narrativeSections": "Narrative Abschnitte",
     "reportingYear": "Berichtsjahr",
     "standard": "Standard",
+    "estimatedCredits": "Geschätzte Credits für diese Aktion",
+    "shortBy": "Es fehlen {amount} Credits",
     "calculatingCost": "Geschätzte Kosten werden berechnet...",
     "couldNotCalculate": "Geschätzte Kosten konnten nicht berechnet werden"
   },

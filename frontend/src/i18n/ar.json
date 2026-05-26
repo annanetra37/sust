@@ -349,7 +349,18 @@
     "supplier": "المورد (اختياري)",
     "aiGeneratedWarning": "مولّد بالذكاء الاصطناعي، وليس بيانات أولية أبدًا. تستخدم قائمة المواد المقترحة نسبًا وافتراضات متوسطة صناعية، وليس البيانات المُبلّغة من مورديك الفعليين. راجع كل صف واستبدله ببيانات أولية عند توفرها — فهذا يؤثر مباشرة على حصة بياناتك الأولية ESRS E1 §51(g).",
     "generateCredits": "توليد (رصيدان)",
-    "generatingBom": "جارٍ توليد قائمة المواد..."
+    "generatingBom": "جارٍ توليد قائمة المواد...",
+    "colComponent": "المكوّن",
+    "colMaterialClass": "فئة المادة",
+    "colQty": "الكمية",
+    "colUnit": "الوحدة",
+    "colStage": "المرحلة",
+    "colFactor": "المعامل",
+    "colConfidence": "الثقة",
+    "noFactor": "بدون معامل",
+    "sectorElectronics": "إلكترونيات",
+    "sectorAutomotive": "سيارات",
+    "sectorGeneric": "عام"
   },
   "roi": {
     "title": "وحدة عائد الاستثمار في الاستدامة",
@@ -887,6 +898,26 @@
     "title": "التحليلات",
     "environmental": "البيئة",
     "social": "الاجتماعي"
+  },
+  "credits": {
+    "currentBalance": "الرصيد الحالي",
+    "afterThisAction": "After this action",
+    "whatGoesIntoEstimate": "What goes into this estimate?",
+    "documents": "المستندات",
+    "rows": "الصفوف",
+    "sheets": "Sheets",
+    "aiBatches": "AI processing batches",
+    "topicsSelected": "Topics selected",
+    "topicsWithData": "Topics with data",
+    "disclosuresWithData": "Disclosures with data",
+    "disclosuresMissing": "Disclosures missing data",
+    "narrativeSections": "Narrative sections",
+    "reportingYear": "Reporting year",
+    "standard": "Standard",
+    "estimatedCredits": "Estimated credits for this action",
+    "shortBy": "Short by {amount} credits",
+    "calculatingCost": "Calculating estimated cost...",
+    "couldNotCalculate": "Could not calculate estimated cost"
   },
   "language": {
     "en": "English",

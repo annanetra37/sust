@@ -914,6 +914,8 @@
     "narrativeSections": "Narrative sections",
     "reportingYear": "Reporting year",
     "standard": "Standard",
+    "estimatedCredits": "Estimated credits for this action",
+    "shortBy": "Short by {amount} credits",
     "calculatingCost": "Calculating estimated cost...",
     "couldNotCalculate": "Could not calculate estimated cost"
   },

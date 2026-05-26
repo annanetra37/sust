@@ -117,8 +117,8 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold ${sufficient ? 'text-brand-700 dark:text-brand-400' : 'text-red-700 dark:text-red-400'}`}>
-            {label || 'Estimated credits for this action'}:{' '}
-            <span className="text-lg font-bold">{credits.toLocaleString()}</span> credits
+            {label || t('credits.estimatedCredits')}:{' '}
+            <span className="text-lg font-bold">{credits.toLocaleString()}</span> {t('common.credits')}
           </p>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
             <span>{t('credits.currentBalance')}: <strong className="text-gray-700 dark:text-gray-200">{balance.toLocaleString()}</strong></span>
@@ -127,7 +127,7 @@ export default function CreditPreview({ action, params, label, onEstimate }) {
             ) : (
               <span className="flex items-center gap-1 text-red-600 dark:text-red-400 font-medium">
                 <AlertTriangle className="w-3 h-3" />
-                Short by {(credits - balance).toLocaleString()} credits
+                {t('credits.shortBy', { amount: (credits - balance).toLocaleString() })}
               </span>
             )}
           </div>
