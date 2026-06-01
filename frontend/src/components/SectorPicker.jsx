@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Cpu, Car, Building2, Landmark, Utensils, Layers, Loader2, Check, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useT } from '../i18n';
 
 // Icon map by sector key — falls back to Layers for unknown keys.
 const ICONS = {
@@ -24,6 +25,7 @@ const ROADMAP_STUBS = [
 
 export default function SectorPicker({ onSelect, showRoadmap = true, compact = false }) {
   const { user } = useAuth();
+  const { t } = useT();
   const [packs, setPacks] = useState([]);
   const [current, setCurrent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function SectorPicker({ onSelect, showRoadmap = true, compact = f
 
   const choose = async (key) => {
     if (!isAdmin) {
-      setError('Only admins can change the sector pack.');
+      setError(t('settings.adminOnly'));
       return;
     }
     setSaving(key);
@@ -100,7 +102,7 @@ export default function SectorPicker({ onSelect, showRoadmap = true, compact = f
             >
               {isCurrent && (
                 <span className="absolute top-2 right-2 inline-flex items-center gap-1 text-[10px] font-bold text-brand-700 dark:text-brand-400 bg-brand-100 dark:bg-brand-900 px-2 py-0.5 rounded-full">
-                  <Check className="w-3 h-3" /> Active
+                  <Check className="w-3 h-3" /> {t('settings.active')}
                 </span>
               )}
               <div className="flex items-center gap-3 mb-2">
@@ -148,7 +150,7 @@ export default function SectorPicker({ onSelect, showRoadmap = true, compact = f
       </div>
 
       {!isAdmin && (
-        <p className="text-xs text-gray-400">Only admins can change the sector pack.</p>
+        <p className="text-xs text-gray-400">{t('settings.adminOnly')}</p>
       )}
     </div>
   );

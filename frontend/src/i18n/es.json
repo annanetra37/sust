@@ -276,7 +276,11 @@
     "resetWarning": "El restablecimiento de datos es permanente e irreversible. Previsualice los datos a continuación antes de eliminar.",
     "preview": "Vista previa del impacto",
     "confirmDelete": "Confirmar y eliminar",
-    "typeYearToConfirm": "Esta acción es irreversible. Escriba el año a continuación para confirmar:"
+    "typeYearToConfirm": "Esta acción es irreversible. Escriba el año a continuación para confirmar:",
+    "active": "Active",
+    "changeLogo": "Change Logo",
+    "logoDisplayNote": "The logo will be displayed on the first page of all generated reports.",
+    "sectorPackPreserved": "Existing data is preserved when switching."
   },
   "pcf": {
     "title": "Huellas de carbono de producto",

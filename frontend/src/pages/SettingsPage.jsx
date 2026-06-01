@@ -154,8 +154,8 @@ export default function SettingsPage() {
       {tab === 'branding' && (
         <div className="card space-y-6">
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Company Logo</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Upload your company logo. It will appear on the cover page of generated reports.</p>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{t('settings.companyLogo')}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('settings.logoUsage')}</p>
           </div>
 
           <div className="flex items-start gap-6">
@@ -166,7 +166,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="text-center text-gray-400">
                   <Upload className="w-8 h-8 mx-auto mb-1" />
-                  <p className="text-xs">No logo</p>
+                  <p className="text-xs">{t('settings.noLogo')}</p>
                 </div>
               )}
             </div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
               <div>
                 <label className="btn-primary inline-flex items-center gap-2 cursor-pointer">
                   <Upload className="w-4 h-4" />
-                  {logoLoading ? 'Uploading...' : logoUrl ? 'Change Logo' : 'Upload Logo'}
+                  {logoLoading ? t('common.loading') : logoUrl ? t('settings.changeLogo') : t('settings.uploadLogo')}
                   <input type="file" className="hidden" accept=".png,.jpg,.jpeg,.webp" onChange={handleLogoUpload} disabled={logoLoading} />
                 </label>
               </div>
@@ -185,8 +185,8 @@ export default function SettingsPage() {
                   Remove logo
                 </button>
               )}
-              <p className="text-xs text-gray-400 dark:text-gray-500">PNG, JPG, or WebP. Max 5MB. Recommended: square, at least 200x200px.</p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">The logo will be displayed on the first page of all generated reports.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.logoFormat')}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('settings.logoDisplayNote')}</p>
             </div>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function SettingsPage() {
 
       {tab === 'standards' && (
         <div className="card space-y-4">
-          <p className="text-sm text-gray-500">Select the reporting standard for your ESG disclosures.</p>
+          <p className="text-sm text-gray-500">{t('settings.selectStandard')}</p>
           <div className="grid grid-cols-2 gap-3">
             {STANDARDS.map((s) => (
               <button
@@ -220,10 +220,10 @@ export default function SettingsPage() {
         <>
           <div className="card space-y-4">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Industry sector pack</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('settings.sectorPackTitle')}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Each pack adds sector-specific KPIs, materiality starters, and emission factors to your dashboards and reports.
-                Existing data is preserved when switching.
+                {t('settings.sectorPackBody')}
+                {t('settings.sectorPackPreserved')}
               </p>
             </div>
             <SectorPicker />

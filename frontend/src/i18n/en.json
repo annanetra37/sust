@@ -276,7 +276,11 @@
     "resetWarning": "Data reset is permanent and cannot be undone. Preview the data below before deleting.",
     "preview": "Preview Impact",
     "confirmDelete": "Confirm & Delete",
-    "typeYearToConfirm": "This action cannot be undone. Type the year below to confirm:"
+    "typeYearToConfirm": "This action cannot be undone. Type the year below to confirm:",
+    "active": "Active",
+    "changeLogo": "Change Logo",
+    "logoDisplayNote": "The logo will be displayed on the first page of all generated reports.",
+    "sectorPackPreserved": "Existing data is preserved when switching."
   },
   "pcf": {
     "title": "Product Carbon Footprints",
