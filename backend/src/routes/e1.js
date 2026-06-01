@@ -539,7 +539,10 @@ async function processDocumentsWithAI(files, user, orgUnitId, mode, uploadId, re
         // Step 3: No text — use Claude Vision API with raw file buffer
         console.log(`[Doc Extract] No text found — using Claude Vision API for: ${file.originalname}`);
         const buffer = result.buffer || file.buffer;
-        const mime = result.mime || file.mimetype || 'application/pdf';
+        // Infer mime from extension if not provided — never default to application/pdf for images
+        const ext = (file.originalname || '').split('.').pop()?.toLowerCase();
+        const extMime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', tiff: 'image/tiff', bmp: 'image/bmp', pdf: 'application/pdf' };
+        const mime = result.mime || file.mimetype || extMime[ext] || 'image/jpeg';
         return { ...await extractDocumentWithAI(buffer, mode, costCtx, true, mime), sourceFile: file.originalname };
       })
     );

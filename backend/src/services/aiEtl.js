@@ -360,12 +360,16 @@ If you cannot extract meaningful data, return {"items": [], "confidence": 0, "no
   let messageContent;
   if (useVision && Buffer.isBuffer(textOrBuffer)) {
     const base64 = textOrBuffer.toString('base64');
-    const mediaType = mimeType === 'application/pdf' ? 'application/pdf' : (mimeType || 'image/jpeg');
-    messageContent = [
-      { type: 'document', source: { type: 'base64', media_type: mediaType, data: base64 } },
-      { type: 'text', text: promptText },
-    ];
-    console.log(`[DocExtract] Using Claude Vision API (${mediaType}, ${(textOrBuffer.length / 1024).toFixed(0)} KB)`);
+    const mediaType = mimeType || 'image/jpeg';
+    const isPdf = mediaType === 'application/pdf';
+
+    // Anthropic API uses 'document' for PDFs and 'image' for images
+    const contentBlock = isPdf
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } };
+
+    messageContent = [contentBlock, { type: 'text', text: promptText }];
+    console.log(`[DocExtract] Using Claude Vision API (${isPdf ? 'document' : 'image'}: ${mediaType}, ${(textOrBuffer.length / 1024).toFixed(0)} KB)`);
   } else {
     messageContent = promptText;
   }
