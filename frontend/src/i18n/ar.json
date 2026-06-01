@@ -276,7 +276,11 @@
     "resetWarning": "إعادة تعيين البيانات دائمة ولا يمكن التراجع عنها. راجع البيانات أدناه قبل الحذف.",
     "preview": "معاينة الأثر",
     "confirmDelete": "تأكيد الحذف",
-    "typeYearToConfirm": "لا يمكن التراجع عن هذا الإجراء. اكتب السنة أدناه للتأكيد:"
+    "typeYearToConfirm": "لا يمكن التراجع عن هذا الإجراء. اكتب السنة أدناه للتأكيد:",
+    "active": "Active",
+    "changeLogo": "Change Logo",
+    "logoDisplayNote": "The logo will be displayed on the first page of all generated reports.",
+    "sectorPackPreserved": "Existing data is preserved when switching."
   },
   "pcf": {
     "title": "البصمات الكربونية للمنتجات",

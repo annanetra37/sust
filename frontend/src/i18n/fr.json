@@ -276,7 +276,11 @@
     "resetWarning": "La réinitialisation des données est permanente et irréversible. Prévisualisez les données ci-dessous avant de supprimer.",
     "preview": "Aperçu de l'impact",
     "confirmDelete": "Confirmer et supprimer",
-    "typeYearToConfirm": "Cette action est irréversible. Saisissez l'année ci-dessous pour confirmer :"
+    "typeYearToConfirm": "Cette action est irréversible. Saisissez l'année ci-dessous pour confirmer :",
+    "active": "Active",
+    "changeLogo": "Change Logo",
+    "logoDisplayNote": "The logo will be displayed on the first page of all generated reports.",
+    "sectorPackPreserved": "Existing data is preserved when switching."
   },
   "pcf": {
     "title": "Empreintes carbone produit",

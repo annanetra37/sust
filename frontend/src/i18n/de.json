@@ -276,7 +276,11 @@
     "resetWarning": "Das Zurücksetzen von Daten ist dauerhaft und kann nicht rückgängig gemacht werden. Überprüfen Sie die unten aufgeführten Daten vor dem Löschen.",
     "preview": "Auswirkungen anzeigen",
     "confirmDelete": "Bestätigen & Löschen",
-    "typeYearToConfirm": "Diese Aktion kann nicht rückgängig gemacht werden. Geben Sie das Jahr zur Bestätigung ein:"
+    "typeYearToConfirm": "Diese Aktion kann nicht rückgängig gemacht werden. Geben Sie das Jahr zur Bestätigung ein:",
+    "active": "Aktiv",
+    "changeLogo": "Logo ändern",
+    "logoDisplayNote": "Das Logo wird auf der ersten Seite aller generierten Berichte angezeigt.",
+    "sectorPackPreserved": "Bestehende Daten bleiben beim Wechsel erhalten."
   },
   "pcf": {
     "title": "Produkt-CO₂-Fußabdrücke",

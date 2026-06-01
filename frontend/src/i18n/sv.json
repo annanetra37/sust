@@ -276,7 +276,11 @@
     "resetWarning": "Dataåterställning är permanent och kan inte ångras. Förhandsgranska data nedan innan du raderar.",
     "preview": "Förhandsgranska påverkan",
     "confirmDelete": "Bekräfta och radera",
-    "typeYearToConfirm": "Denna åtgärd kan inte ångras. Skriv in året nedan för att bekräfta:"
+    "typeYearToConfirm": "Denna åtgärd kan inte ångras. Skriv in året nedan för att bekräfta:",
+    "active": "Active",
+    "changeLogo": "Change Logo",
+    "logoDisplayNote": "The logo will be displayed on the first page of all generated reports.",
+    "sectorPackPreserved": "Existing data is preserved when switching."
   },
   "pcf": {
     "title": "Produkters koldioxidavtryck",
