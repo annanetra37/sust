@@ -23,6 +23,8 @@ import {
   Rocket,
 } from 'lucide-react';
 import { HelpBanner } from '../components/HelpSystem';
+import FeatureLock from '../components/FeatureLock';
+import useFeature from '../hooks/useFeature';
 import { useT } from '../i18n';
 
 // ── Platform definitions ─────────────────────────────────────────────────────
@@ -621,7 +623,22 @@ function AdminRuleManagement({ t, onRulesChanged }) {
 export default function IsoGriBridge() {
   const { t } = useT();
   const { user } = useAuth();
+  const isoFeature = useFeature('iso_gri_bridge');
   const fileRef = useRef();
+
+  if (!isoFeature.allowed) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <GitMerge className="w-6 h-6 text-brand-600" /> {t('isoGri.title')}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">{t('isoGri.subtitle')}</p>
+        </div>
+        <FeatureLock feature="iso_gri_bridge" />
+      </div>
+    );
+  }
 
   // Data state
   const [readiness, setReadiness] = useState(null);
