@@ -269,6 +269,19 @@ const api = {
   getBenchmarkCohorts: (sector) => request(`/benchmarks/cohorts${sector ? `?sector=${sector}` : ''}`),
   getBenchmarkPeer: (params) => request(`/benchmarks/peer?${new URLSearchParams(params)}`),
 
+  // ISO → GRI Bridge
+  getIsoGriRules: (params) => request(`/iso-gri/rules?${new URLSearchParams(params || {})}`),
+  getIsoGriSummary: () => request('/iso-gri/rules/summary'),
+  uploadIsoData: (formData) => request('/iso-gri/upload', { method: 'POST', body: formData }),
+  classifyIsoData: () => request('/iso-gri/classify', { method: 'POST' }),
+  getGriGaps: (year) => request(`/iso-gri/gaps${year ? `?year=${year}` : ''}`),
+  getGriReadiness: (year) => request(`/iso-gri/gaps/readiness${year ? `?year=${year}` : ''}`),
+  exportGriGapReport: (year) => `${API_BASE}/iso-gri/gaps/export?format=pdf&year=${year || ''}&token=${accessToken || ''}`,
+  getIsoPlatforms: () => request('/iso-gri/platforms'),
+  testIsoConnection: (platform, config) => request('/iso-gri/connect', { method: 'POST', body: JSON.stringify({ platform, config }) }),
+  fetchIsoData: (platform, config, year) => request('/iso-gri/fetch', { method: 'POST', body: JSON.stringify({ platform, config, year }) }),
+  getGriDrilldown: (griCode) => request(`/iso-gri/gaps/${encodeURIComponent(griCode)}`),
+
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

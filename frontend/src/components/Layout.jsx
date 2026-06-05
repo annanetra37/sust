@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages
+  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages, GitMerge
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -53,6 +53,7 @@ function buildNav(t) {
     },
     { label: t('nav.sbtiTargets'), path: '/sbti-targets', icon: Target },
     { label: t('nav.reports'), path: '/reports', icon: FileText },
+    { key: 'iso-gri', label: t('nav.isoGriBridge'), path: '/iso-gri', icon: GitMerge },
     { label: t('nav.sustainabilityRoi'), path: '/roi', icon: TrendingUp, feature: 'sustainability_roi' },
     { label: t('nav.suppliers'), path: '/suppliers', icon: Truck },
     { label: t('nav.dataConnections'), path: '/connections', icon: Database, feature: 'db_connections' },
