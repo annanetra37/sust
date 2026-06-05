@@ -281,6 +281,15 @@ const api = {
   testIsoConnection: (platform, config) => request('/iso-gri/connect', { method: 'POST', body: JSON.stringify({ platform, config }) }),
   fetchIsoData: (platform, config, year) => request('/iso-gri/fetch', { method: 'POST', body: JSON.stringify({ platform, config, year }) }),
   getGriDrilldown: (griCode) => request(`/iso-gri/gaps/${encodeURIComponent(griCode)}`),
+  createIsoGriRule: (data) => request('/iso-gri/rules', { method: 'POST', body: JSON.stringify(data) }),
+  updateIsoGriRule: (id, data) => request(`/iso-gri/rules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteIsoGriRule: (id) => request(`/iso-gri/rules/${id}`, { method: 'DELETE' }),
+  publishRuleVersion: () => request('/iso-gri/rules/publish', { method: 'POST' }),
+
+  // Readiness Assessment (public)
+  getReadinessQuestions: () => request('/readiness-assessment/questions'),
+  submitReadinessAssessment: (data) => request('/readiness-assessment/submit', { method: 'POST', body: JSON.stringify(data) }),
+  getReadinessResult: (token) => request(`/readiness-assessment/result/${token}`),
 
   // Sustainability ROI
   getRoiSummary: (params = {}) => {

@@ -27,6 +27,7 @@ import ProductDetail from './pages/pcf/ProductDetail';
 import SuppliersPage from './pages/SuppliersPage';
 import ComingSoon from './pages/ComingSoon';
 import IsoGriBridge from './pages/IsoGriBridge';
+import ReadinessAssessment from './pages/ReadinessAssessment';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -52,6 +53,8 @@ export default function App() {
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/readiness" element={<ReadinessAssessment />} />
+      <Route path="/readiness/:token" element={<ReadinessAssessment />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
