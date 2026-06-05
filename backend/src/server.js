@@ -47,6 +47,7 @@ app.use('/api/suppliers', require('./routes/suppliers'));
 app.use('/api/portal', require('./routes/supplierPortal'));
 app.use('/api/real-estate', require('./routes/realEstate'));
 app.use('/api/financial', require('./routes/financial'));
+app.use('/api/iso-gri', require('./routes/isoGri'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
