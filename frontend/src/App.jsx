@@ -26,6 +26,7 @@ import ProductList from './pages/pcf/ProductList';
 import ProductDetail from './pages/pcf/ProductDetail';
 import SuppliersPage from './pages/SuppliersPage';
 import ComingSoon from './pages/ComingSoon';
+import IsoGriBridge from './pages/IsoGriBridge';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/pcf" element={<ProductList />} />
         <Route path="/pcf/:id" element={<ProductDetail />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
+        <Route path="/iso-gri" element={<IsoGriBridge />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 

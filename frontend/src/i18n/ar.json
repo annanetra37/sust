@@ -83,7 +83,8 @@
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "soon": "قريبًا",
-    "enterprise": "المؤسسات"
+    "enterprise": "المؤسسات",
+    "isoGriBridge": "ISO → GRI Bridge"
   },
   "home": {
     "welcomeBack": "مرحبًا بعودتك، {name}",
@@ -988,5 +989,38 @@
     "tipDocExtract": "يعمل استخراج المستندات مع الفواتير والإيصالات وفواتير المرافق.",
     "tipConnections": "اربط قواعد البيانات مباشرة عبر اتصالات البيانات لأتمتة الاستيراد.",
     "tipReports": "أنشئ تقارير PDF أو Word بـ 6 لغات للامتثال لـ CSRD."
+  },
+  "isoGri": {
+    "title": "ISO → GRI Bridge",
+    "subtitle": "Map your existing ISO management system data to GRI 2021 disclosures",
+    "readinessScore": "GRI Readiness Score",
+    "overallReadiness": "Overall Readiness",
+    "topicBreakdown": "Readiness by GRI Topic Family",
+    "uploadIsoData": "Upload ISO Data",
+    "uploadDesc": "Upload an Excel or CSV file with your ISO management system data. Supported standards: ISO 14001, 45001, 50001, 14064, 9001, 27001.",
+    "dropFile": "Drop your ISO data file here (.xlsx, .csv)",
+    "classifyAnalyze": "Classify & Analyze",
+    "classifying": "Classifying ISO data against GRI disclosures...",
+    "gapAnalysis": "GRI Gap Analysis",
+    "gapAnalysisDesc": "Shows which GRI disclosures your ISO data covers, partially covers, or doesn't cover at all.",
+    "covered": "Covered",
+    "partial": "Partial",
+    "gap": "Gap",
+    "allStatuses": "All",
+    "griCode": "GRI Code",
+    "griName": "Disclosure",
+    "isoSources": "ISO Sources",
+    "recommendedAction": "Recommended Action",
+    "exportGapReport": "Export Gap Report (PDF)",
+    "noDataYet": "No ISO data uploaded yet",
+    "noDataDesc": "Companies with ISO certifications (14001, 45001, 50001, 14064) typically have 65-75% of GRI disclosures already covered. Upload your ISO data to see your readiness score.",
+    "startUpload": "Upload ISO Data",
+    "general": "General Disclosures",
+    "materialTopics": "Material Topics",
+    "economic": "Economic",
+    "environmental": "Environmental",
+    "social": "Social",
+    "product": "Product Responsibility",
+    "griTopicFamilies": "GRI Topic Families"
   }
 }
