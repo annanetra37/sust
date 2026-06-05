@@ -40,7 +40,10 @@ const {
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
+const { requireFeature } = require('../middleware/tier');
+
 router.use(authenticate);
+router.use(requireFeature('iso_gri_bridge'));
 
 // ─── GET /rules — list all mapping rules ────────────────────────
 
