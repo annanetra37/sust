@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import {
   GitMerge,
   Upload,
@@ -14,6 +15,12 @@ import {
   Plug,
   X,
   Info,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  Pencil,
+  Trash2,
+  Rocket,
 } from 'lucide-react';
 import { HelpBanner } from '../components/HelpSystem';
 import { useT } from '../i18n';
@@ -340,9 +347,280 @@ function GapDrilldownModal({ row, onClose, t }) {
   );
 }
 
+// ── Rule Modal (Add / Edit) ───────────────────────────────────────────────
+function RuleModal({ rule, onClose, onSaved, t }) {
+  const isEdit = !!rule;
+  const [form, setForm] = useState({
+    isoStandard: rule?.isoStandard || '',
+    isoClause: rule?.isoClause || '',
+    griCode: rule?.griCode || '',
+    coverageLevel: rule?.coverageLevel || 'FULL',
+    notes: rule?.notes || '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      if (isEdit) {
+        await api.updateIsoGriRule(rule.id, form);
+      } else {
+        await api.createIsoGriRule(form);
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      setError(err.error || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            {isEdit ? t('isoGri.editRule') : t('isoGri.addRule')}
+          </h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.isoStandard')}</label>
+            <input type="text" className="input w-full" placeholder="ISO 14001" value={form.isoStandard} onChange={set('isoStandard')} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.isoClause')}</label>
+            <input type="text" className="input w-full" placeholder="4.1" value={form.isoClause} onChange={set('isoClause')} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.griCode')}</label>
+            <input type="text" className="input w-full" placeholder="GRI 302-1" value={form.griCode} onChange={set('griCode')} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.coverageLevel')}</label>
+            <select className="input w-full" value={form.coverageLevel} onChange={set('coverageLevel')}>
+              <option value="FULL">{t('isoGri.covered')}</option>
+              <option value="PARTIAL">{t('isoGri.partial')}</option>
+              <option value="NONE">{t('isoGri.gap')}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.notes')}</label>
+            <textarea className="input w-full" rows={3} placeholder="Optional notes..." value={form.notes} onChange={set('notes')} />
+          </div>
+
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            <button type="submit" className="btn-primary inline-flex items-center gap-2 text-sm" disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {isEdit ? t('common.save') : t('common.create')}
+            </button>
+            <button type="button" className="btn-primary inline-flex items-center gap-2 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600" onClick={onClose}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Admin Rule Management Section ─────────────────────────────────────────
+function AdminRuleManagement({ t, onRulesChanged }) {
+  const [expanded, setExpanded] = useState(false);
+  const [rules, setRules] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editRule, setEditRule] = useState(null); // null = closed, {} = add, {id, ...} = edit
+  const [publishing, setPublishing] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const loadRules = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getIsoGriRules();
+      setRules(Array.isArray(data) ? data : data.rules || []);
+    } catch {
+      setRules([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (expanded && rules.length === 0) loadRules();
+  }, [expanded, loadRules, rules.length]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm(t('isoGri.confirmDeleteRule'))) return;
+    try {
+      await api.deleteIsoGriRule(id);
+      setMessage({ type: 'success', text: t('isoGri.ruleDeleted') });
+      loadRules();
+      if (onRulesChanged) onRulesChanged();
+    } catch {
+      setMessage({ type: 'error', text: 'Delete failed' });
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!window.confirm(t('isoGri.confirmPublish'))) return;
+    setPublishing(true);
+    try {
+      await api.publishRuleVersion();
+      setMessage({ type: 'success', text: t('isoGri.versionPublished') });
+      if (onRulesChanged) onRulesChanged();
+    } catch {
+      setMessage({ type: 'error', text: 'Publish failed' });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handleSaved = () => {
+    setMessage({ type: 'success', text: editRule?.id ? t('isoGri.ruleUpdated') : t('isoGri.ruleAdded') });
+    loadRules();
+    if (onRulesChanged) onRulesChanged();
+  };
+
+  return (
+    <div className="card space-y-4">
+      <button
+        className="flex items-center gap-2 w-full text-left"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? <ChevronDown className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('isoGri.manageRules')}</h2>
+      </button>
+
+      {expanded && (
+        <>
+          {message && (
+            <div
+              className={`text-sm rounded-lg px-3 py-2 ${
+                message.type === 'success'
+                  ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400'
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          <div className="flex gap-3 flex-wrap">
+            <button
+              className="btn-primary inline-flex items-center gap-2 text-sm"
+              onClick={() => setEditRule({})}
+            >
+              <Plus className="w-4 h-4" />
+              {t('isoGri.addRule')}
+            </button>
+            <button
+              className="btn-primary inline-flex items-center gap-2 text-sm"
+              disabled={publishing}
+              onClick={handlePublish}
+            >
+              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+              {t('isoGri.publishVersion')}
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <th className="pb-2 pr-3">{t('isoGri.isoStandard')}</th>
+                    <th className="pb-2 pr-3">{t('isoGri.isoClause')}</th>
+                    <th className="pb-2 pr-3">{t('isoGri.griCode')}</th>
+                    <th className="pb-2 pr-3">{t('isoGri.coverageLevel')}</th>
+                    <th className="pb-2 pr-3">{t('isoGri.notes')}</th>
+                    <th className="pb-2">{t('common.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rules.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-gray-400 dark:text-gray-500">
+                        {t('common.noData')}
+                      </td>
+                    </tr>
+                  ) : (
+                    rules.map((r) => (
+                      <tr key={r.id} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-2.5 pr-3 text-gray-900 dark:text-gray-100 text-xs font-medium">{r.isoStandard}</td>
+                        <td className="py-2.5 pr-3 text-gray-700 dark:text-gray-300 text-xs font-mono">{r.isoClause}</td>
+                        <td className="py-2.5 pr-3 text-gray-700 dark:text-gray-300 text-xs font-mono">{r.griCode}</td>
+                        <td className="py-2.5 pr-3 text-xs">
+                          {r.coverageLevel === 'FULL' && <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{t('isoGri.covered')}</span>}
+                          {r.coverageLevel === 'PARTIAL' && <span className="text-amber-600 dark:text-amber-400 font-semibold">{t('isoGri.partial')}</span>}
+                          {r.coverageLevel === 'NONE' && <span className="text-red-600 dark:text-red-400 font-semibold">{t('isoGri.gap')}</span>}
+                          {!['FULL', 'PARTIAL', 'NONE'].includes(r.coverageLevel) && <span className="text-gray-500">{r.coverageLevel || '—'}</span>}
+                        </td>
+                        <td className="py-2.5 pr-3 text-gray-500 dark:text-gray-400 text-xs max-w-[200px] truncate" title={r.notes}>
+                          {r.notes || '—'}
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-1">
+                            <button
+                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                              onClick={() => setEditRule(r)}
+                              title={t('isoGri.editRule')}
+                            >
+                              <Pencil className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                            </button>
+                            <button
+                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
+                              onClick={() => handleDelete(r.id)}
+                              title={t('isoGri.deleteRule')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {editRule !== null && (
+            <RuleModal
+              rule={editRule.id ? editRule : null}
+              onClose={() => setEditRule(null)}
+              onSaved={handleSaved}
+              t={t}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function IsoGriBridge() {
   const { t } = useT();
+  const { user } = useAuth();
   const fileRef = useRef();
 
   // Data state
@@ -721,6 +999,11 @@ export default function IsoGriBridge() {
               </table>
             </div>
           </div>
+
+          {/* ── Admin: Manage Rules ──────────────────────────────────── */}
+          {user?.role === 'ADMIN' && (
+            <AdminRuleManagement t={t} onRulesChanged={loadData} />
+          )}
         </>
       )}
 

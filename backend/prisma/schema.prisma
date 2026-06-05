@@ -847,6 +847,25 @@ model IsoDataIngestion {
   @@index([companyId, classifiedGri])
 }
 
+// Public readiness assessment results — lead-gen questionnaire that
+// estimates GRI coverage based on ISO certifications and practices.
+// No authentication required; results are keyed by a shareable token.
+model ReadinessAssessment {
+  id              String   @id @default(uuid())
+  token           String   @unique @default(uuid())
+  contactName     String
+  contactEmail    String
+  companyName     String
+  phone           String?
+  answers         Json
+  overallScore    Float
+  topicScores     Json     // { "GRI 2": 15, "GRI 3": 30, ... }
+  recommendations Json?
+  createdAt       DateTime @default(now())
+
+  @@index([contactEmail])
+}
+
 // Per-company GRI gap analysis snapshot — computed from the ingested
 // ISO data and the mapping rules.  Refreshed on each ingestion or
 // on-demand recalculation.

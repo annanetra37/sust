@@ -24,7 +24,7 @@ const multer = require('multer');
 const XLSX = require('xlsx');
 const PDFDocument = require('pdfkit');
 const prisma = require('../config/prisma');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, requireAdmin } = require('../middleware/auth');
 const { logActivity } = require('../utils/activityLog');
 const {
   classifyIngestion,
@@ -666,6 +666,188 @@ router.get('/gaps/:griCode', async (req, res) => {
   } catch (err) {
     console.error('[isoGri] GET /gaps/:griCode error:', err);
     res.status(500).json({ error: 'Failed to fetch disclosure drilldown' });
+  }
+});
+
+// ─── Sprint 3: Admin Rule CRUD ─────────────────────────────────
+
+// ─── POST /rules — create a new mapping rule (admin only) ──────
+
+router.post('/rules', requireAdmin, async (req, res) => {
+  try {
+    const { isoStandard, isoClause, isoDataCaptured, griCode, coverageLevel, notes, tripleIModule } = req.body;
+
+    if (!isoStandard || !isoClause || !isoDataCaptured || !griCode || !coverageLevel) {
+      return res.status(400).json({
+        error: 'Missing required fields: isoStandard, isoClause, isoDataCaptured, griCode, coverageLevel',
+      });
+    }
+
+    const validCoverage = ['FULL', 'PARTIAL', 'SUPPORTING'];
+    if (!validCoverage.includes(coverageLevel)) {
+      return res.status(400).json({
+        error: `coverageLevel must be one of: ${validCoverage.join(', ')}`,
+      });
+    }
+
+    const rule = await prisma.isoGriMappingRule.create({
+      data: {
+        isoStandard: isoStandard.replace(/\s+/g, '_').toUpperCase(),
+        isoClause,
+        isoDataCaptured,
+        griCode,
+        coverageLevel,
+        notes: notes || null,
+        tripleIModule: tripleIModule || null,
+      },
+    });
+
+    logActivity(
+      req.user.id, req.user.companyId, 'ISO_GRI_RULE_CREATE',
+      `Created mapping rule: ${rule.isoStandard} ${rule.isoClause} → ${rule.griCode}`,
+      { ruleId: rule.id },
+      req.ip
+    );
+
+    res.status(201).json({ rule });
+  } catch (err) {
+    console.error('[isoGri] POST /rules error:', err);
+    res.status(500).json({ error: 'Failed to create mapping rule' });
+  }
+});
+
+// ─── PUT /rules/:id — update an existing rule (admin only) ─────
+
+router.put('/rules/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isoStandard, isoClause, isoDataCaptured, griCode, coverageLevel, notes, tripleIModule } = req.body;
+
+    const existing = await prisma.isoGriMappingRule.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Mapping rule not found' });
+    }
+
+    if (coverageLevel) {
+      const validCoverage = ['FULL', 'PARTIAL', 'SUPPORTING'];
+      if (!validCoverage.includes(coverageLevel)) {
+        return res.status(400).json({
+          error: `coverageLevel must be one of: ${validCoverage.join(', ')}`,
+        });
+      }
+    }
+
+    const data = {};
+    if (isoStandard !== undefined) data.isoStandard = isoStandard.replace(/\s+/g, '_').toUpperCase();
+    if (isoClause !== undefined) data.isoClause = isoClause;
+    if (isoDataCaptured !== undefined) data.isoDataCaptured = isoDataCaptured;
+    if (griCode !== undefined) data.griCode = griCode;
+    if (coverageLevel !== undefined) data.coverageLevel = coverageLevel;
+    if (notes !== undefined) data.notes = notes || null;
+    if (tripleIModule !== undefined) data.tripleIModule = tripleIModule || null;
+
+    const rule = await prisma.isoGriMappingRule.update({ where: { id }, data });
+
+    logActivity(
+      req.user.id, req.user.companyId, 'ISO_GRI_RULE_UPDATE',
+      `Updated mapping rule: ${rule.isoStandard} ${rule.isoClause} → ${rule.griCode}`,
+      { ruleId: rule.id },
+      req.ip
+    );
+
+    res.json({ rule });
+  } catch (err) {
+    console.error('[isoGri] PUT /rules/:id error:', err);
+    res.status(500).json({ error: 'Failed to update mapping rule' });
+  }
+});
+
+// ─── DELETE /rules/:id — delete a rule (admin only) ────────────
+
+router.delete('/rules/:id', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.isoGriMappingRule.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Mapping rule not found' });
+    }
+
+    await prisma.isoGriMappingRule.delete({ where: { id } });
+
+    logActivity(
+      req.user.id, req.user.companyId, 'ISO_GRI_RULE_DELETE',
+      `Deleted mapping rule: ${existing.isoStandard} ${existing.isoClause} → ${existing.griCode}`,
+      { ruleId: id },
+      req.ip
+    );
+
+    res.json({ message: 'Rule deleted', id });
+  } catch (err) {
+    console.error('[isoGri] DELETE /rules/:id error:', err);
+    res.status(500).json({ error: 'Failed to delete mapping rule' });
+  }
+});
+
+// ─── POST /rules/publish — bump version on all rules (admin) ───
+
+router.post('/rules/publish', requireAdmin, async (req, res) => {
+  try {
+    // Find the latest version across all rules
+    const latestRule = await prisma.isoGriMappingRule.findFirst({
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+
+    const currentVersion = latestRule ? latestRule.version : '1.0';
+    const parts = currentVersion.split('.');
+    const major = parseInt(parts[0]) || 1;
+    const minor = parseInt(parts[1]) || 0;
+    const newVersion = `${major}.${minor + 1}`;
+
+    // Fetch all current rules at the latest version
+    const currentRules = await prisma.isoGriMappingRule.findMany({
+      where: { version: currentVersion },
+    });
+
+    if (currentRules.length === 0) {
+      return res.status(400).json({ error: 'No rules found at the current version to publish' });
+    }
+
+    // Copy all current rules with the new version
+    let created = 0;
+    for (const rule of currentRules) {
+      await prisma.isoGriMappingRule.create({
+        data: {
+          isoStandard: rule.isoStandard,
+          isoClause: rule.isoClause,
+          isoDataCaptured: rule.isoDataCaptured,
+          griCode: rule.griCode,
+          coverageLevel: rule.coverageLevel,
+          notes: rule.notes,
+          tripleIModule: rule.tripleIModule,
+          version: newVersion,
+        },
+      });
+      created++;
+    }
+
+    logActivity(
+      req.user.id, req.user.companyId, 'ISO_GRI_RULES_PUBLISH',
+      `Published mapping rules v${newVersion} (${created} rules copied from v${currentVersion})`,
+      { previousVersion: currentVersion, newVersion, ruleCount: created },
+      req.ip
+    );
+
+    res.json({
+      message: `Published v${newVersion}`,
+      previousVersion: currentVersion,
+      newVersion,
+      rulesCopied: created,
+    });
+  } catch (err) {
+    console.error('[isoGri] POST /rules/publish error:', err);
+    res.status(500).json({ error: 'Failed to publish rules' });
   }
 });
 
