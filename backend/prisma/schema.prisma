@@ -68,6 +68,8 @@ model Company {
   suppliers        Supplier[]
   realEstateAssets RealEstateAsset[]
   financialExposures FinancialExposure[]
+  isoIngestions    IsoDataIngestion[]
+  griGapAnalyses   GriGapAnalysis[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -798,4 +800,69 @@ model FinancedEmissionsCalc {
   factorSnapshot        Json
 
   @@index([exposureId])
+}
+
+// ─── ISO → GRI Bridge ──────────────────────────────────────────
+// Maps ISO management system data outputs to GRI 2021 disclosures.
+// The mapping matrix is the canonical rule source; the classification
+// engine applies it to ingested ISO data to produce gap analysis and
+// GRI disclosure drafts.
+
+model IsoGriMappingRule {
+  id              String   @id @default(uuid())
+  isoStandard     String   // ISO_14001, ISO_45001, ISO_50001, ISO_14064, ISO_9001, ISO_27001, ISO_26000, ISO_20400
+  isoClause       String   // e.g., "6.1.2", "A.5"
+  isoDataCaptured String   // Human-readable description of what data the ISO clause produces
+  griCode         String   // e.g., "GRI 305-1", "GRI 403-2", "GRI 3-1"
+  coverageLevel   String   // FULL | PARTIAL | SUPPORTING
+  notes           String?  // Gaps, caveats, guidance
+  tripleIModule   String?  // Which Triple I module handles this data
+  version         String   @default("1.0")
+  createdAt       DateTime @default(now())
+
+  @@index([isoStandard, isoClause])
+  @@index([griCode])
+  @@index([version])
+}
+
+// Per-company ISO data ingestion records — what ISO data the customer
+// has uploaded or connected.  Each record is classified against the
+// mapping rules to produce a GRI coverage assessment.
+model IsoDataIngestion {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  isoStandard     String   // ISO_14001, ISO_45001, etc.
+  isoClause       String
+  dataDescription String?
+  dataValue       String?  // The actual data point or summary
+  sourceFile      String?  // Original file name
+  year            Int
+  classifiedGri   String?  // The GRI disclosure this was classified to
+  coverageLevel   String?  // FULL | PARTIAL | SUPPORTING (from the rule)
+  ruleVersion     String?  // Which rule version was used
+  createdAt       DateTime @default(now())
+
+  @@index([companyId, isoStandard])
+  @@index([companyId, classifiedGri])
+}
+
+// Per-company GRI gap analysis snapshot — computed from the ingested
+// ISO data and the mapping rules.  Refreshed on each ingestion or
+// on-demand recalculation.
+model GriGapAnalysis {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  griTopicFamily  String   // e.g., "GRI 305", "GRI 403", "GRI 302"
+  griCode         String   // Specific disclosure code
+  griName         String   // Human-readable name
+  status          String   // COVERED | PARTIAL | GAP
+  coveringSources Json?    // Array of { isoStandard, isoClause, coverageLevel }
+  recommendedAction String? // What the customer should do to close the gap
+  year            Int
+  computedAt      DateTime @default(now())
+
+  @@unique([companyId, griCode, year])
+  @@index([companyId, year])
 }
