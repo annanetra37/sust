@@ -277,6 +277,10 @@ const api = {
   getGriGaps: (year) => request(`/iso-gri/gaps${year ? `?year=${year}` : ''}`),
   getGriReadiness: (year) => request(`/iso-gri/gaps/readiness${year ? `?year=${year}` : ''}`),
   exportGriGapReport: (year) => `${API_BASE}/iso-gri/gaps/export?format=pdf&year=${year || ''}&token=${accessToken || ''}`,
+  getIsoPlatforms: () => request('/iso-gri/platforms'),
+  testIsoConnection: (platform, config) => request('/iso-gri/connect', { method: 'POST', body: JSON.stringify({ platform, config }) }),
+  fetchIsoData: (platform, config, year) => request('/iso-gri/fetch', { method: 'POST', body: JSON.stringify({ platform, config, year }) }),
+  getGriDrilldown: (griCode) => request(`/iso-gri/gaps/${encodeURIComponent(griCode)}`),
 
   // Sustainability ROI
   getRoiSummary: (params = {}) => {

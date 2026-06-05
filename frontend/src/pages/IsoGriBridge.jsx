@@ -11,9 +11,21 @@ import {
   Download,
   Filter,
   Sparkles,
+  Plug,
+  X,
+  Info,
 } from 'lucide-react';
 import { HelpBanner } from '../components/HelpSystem';
 import { useT } from '../i18n';
+
+// ── Platform definitions ─────────────────────────────────────────────────────
+const PLATFORMS = [
+  { key: 'intelex', name: 'Intelex', desc: 'EHS & sustainability platform', standards: ['ISO 14001', 'ISO 45001', 'ISO 50001'] },
+  { key: 'sphera', name: 'Sphera', desc: 'Integrated risk management', standards: ['ISO 14001', 'ISO 14064', 'ISO 45001'] },
+  { key: 'cority', name: 'Cority', desc: 'EHS software suite', standards: ['ISO 14001', 'ISO 45001', 'ISO 9001'] },
+  { key: 'enablon', name: 'Enablon', desc: 'Wolters Kluwer sustainability', standards: ['ISO 14001', 'ISO 50001', 'ISO 14064', 'ISO 27001'] },
+  { key: 'generic', name: 'Generic', desc: 'Any ISO management system API', standards: ['ISO 14001', 'ISO 45001', 'ISO 50001', 'ISO 14064', 'ISO 9001', 'ISO 27001'] },
+];
 
 // ── Topic family keys used for grouping and colour coding ──────────────────
 const TOPIC_FAMILIES = [
@@ -93,6 +105,241 @@ function ReadinessDonut({ pct }) {
   );
 }
 
+// ── Connect Platform Modal ────────────────────────────────────────────────
+function ConnectPlatformModal({ platform, onClose, onSuccess, t }) {
+  const [apiUrl, setApiUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [message, setMessage] = useState(null); // { type: 'success' | 'error', text }
+  const [year] = useState(new Date().getFullYear());
+
+  const handleTest = async () => {
+    setTesting(true);
+    setMessage(null);
+    try {
+      await api.testIsoConnection(platform.key, { apiUrl, apiKey });
+      setMessage({ type: 'success', text: t('isoGri.connectionSuccess') });
+    } catch {
+      setMessage({ type: 'error', text: t('isoGri.connectionFailed') });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const handleFetch = async () => {
+    setFetching(true);
+    setMessage(null);
+    try {
+      const res = await api.fetchIsoData(platform.key, { apiUrl, apiKey }, year);
+      const count = res?.count ?? res?.records ?? 0;
+      setMessage({ type: 'success', text: t('isoGri.fetchSuccess').replace('{count}', count) });
+      if (onSuccess) onSuccess();
+    } catch {
+      setMessage({ type: 'error', text: t('isoGri.connectionFailed') });
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-md mx-4 p-6 space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{platform.name}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.apiUrl')}</label>
+          <input
+            type="text"
+            className="input w-full"
+            placeholder="https://api.example.com/v1"
+            value={apiUrl}
+            onChange={(e) => setApiUrl(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('isoGri.apiKey')}</label>
+          <input
+            type="password"
+            className="input w-full"
+            placeholder="sk-..."
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+        </div>
+
+        {message && (
+          <div
+            className={`text-sm rounded-lg px-3 py-2 ${
+              message.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400'
+                : 'bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-400'
+            }`}
+          >
+            {message.text}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            className="btn-primary inline-flex items-center gap-2 text-sm"
+            disabled={testing || !apiUrl || !apiKey}
+            onClick={handleTest}
+          >
+            {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
+            {testing ? t('isoGri.testing') : t('isoGri.testConnection')}
+          </button>
+          <button
+            className="btn-primary inline-flex items-center gap-2 text-sm"
+            disabled={fetching || !apiUrl || !apiKey}
+            onClick={handleFetch}
+          >
+            {fetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {fetching ? t('isoGri.fetching') : t('isoGri.fetchIngest')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Gap Drilldown Modal ───────────────────────────────────────────────────
+function GapDrilldownModal({ row, onClose, t }) {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await api.getGriDrilldown(row.griCode);
+        if (!cancelled) setDetail(data);
+      } catch {
+        // leave detail null
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [row.griCode]);
+
+  const sources = detail?.isoDataSources || [];
+  const rules = detail?.mappingRules || [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-full max-w-2xl mx-4 p-6 space-y-5 max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              {t('isoGri.disclosureDetail')}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              <span className="font-mono">{row.griCode}</span> &mdash; {row.griName}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        {/* Status badge */}
+        <div>{statusBadge(row.status, t)}</div>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+          </div>
+        ) : (
+          <>
+            {/* ISO Data Sources */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('isoGri.isoDataSources')}</h4>
+              {sources.length === 0 ? (
+                <p className="text-sm text-gray-400 dark:text-gray-500">{t('isoGri.noSourcesYet')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {sources.map((src, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">{src.isoStandard}</span>
+                        {src.isoClause && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                            {src.isoClause}
+                          </span>
+                        )}
+                        {src.coverageLevel && (
+                          <span className="text-xs text-brand-600 dark:text-brand-400">
+                            {t('isoGri.coverageLevel')}: {src.coverageLevel}
+                          </span>
+                        )}
+                      </div>
+                      {src.dataDescription && (
+                        <p className="text-gray-600 dark:text-gray-400">{src.dataDescription}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mapping Rules */}
+            {rules.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('isoGri.mappingRules')}</h4>
+                <div className="space-y-2">
+                  {rules.map((rule, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm space-y-1">
+                      <p className="text-gray-900 dark:text-gray-100">{rule.description || rule.rule || rule.name || '—'}</p>
+                      {rule.notes && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <span className="font-medium">{t('isoGri.ruleNotes')}:</span> {rule.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommended Action (for gaps/partials) */}
+            {(row.status === 'GAP' || row.status === 'PARTIAL') && row.recommendedAction && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{t('isoGri.recommendedAction')}</h4>
+                <div className="bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                  <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{row.recommendedAction}</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Close button */}
+        <div className="flex justify-end pt-2">
+          <button className="btn-primary text-sm" onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 export default function IsoGriBridge() {
   const { t } = useT();
@@ -113,6 +360,12 @@ export default function IsoGriBridge() {
   // Filter state
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [familyFilter, setFamilyFilter] = useState('ALL');
+
+  // Platform connector modal
+  const [connectPlatform, setConnectPlatform] = useState(null);
+
+  // Gap drilldown modal
+  const [drilldownRow, setDrilldownRow] = useState(null);
 
   // ── Load readiness + gaps ──────────────────────────────────────────────
   const loadData = useCallback(async () => {
@@ -342,6 +595,48 @@ export default function IsoGriBridge() {
             </div>
           </div>
 
+          {/* ── Platform Connectors ───────────────────────────────────── */}
+          <div className="card space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('isoGri.connectPlatform')}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('isoGri.connectPlatformDesc')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PLATFORMS.map((plat) => (
+                <div
+                  key={plat.key}
+                  className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3 hover:border-brand-400 dark:hover:border-brand-500 transition-colors"
+                >
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">{plat.name}</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{plat.desc}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('isoGri.supportedStandards')}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {plat.standards.map((std) => (
+                        <span
+                          key={std}
+                          className="text-[10px] font-medium bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 px-1.5 py-0.5 rounded"
+                        >
+                          {std}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    className="btn-primary w-full inline-flex items-center justify-center gap-2 text-sm"
+                    onClick={() => setConnectPlatform(plat)}
+                  >
+                    <Plug className="w-4 h-4" />
+                    {t('isoGri.connect')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* ── Gap Analysis Table ────────────────────────────────────── */}
           <div className="card space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
@@ -409,7 +704,8 @@ export default function IsoGriBridge() {
                     filtered.map((row, idx) => (
                       <tr
                         key={row.griCode || idx}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                        onClick={() => setDrilldownRow(row)}
                       >
                         <td className="py-2.5 pr-3">{statusBadge(row.status, t)}</td>
                         <td className="py-2.5 pr-3 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">{row.griCode}</td>
@@ -426,6 +722,25 @@ export default function IsoGriBridge() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Connect Platform Modal ──────────────────────────────────────── */}
+      {connectPlatform && (
+        <ConnectPlatformModal
+          platform={connectPlatform}
+          onClose={() => setConnectPlatform(null)}
+          onSuccess={() => loadData()}
+          t={t}
+        />
+      )}
+
+      {/* ── Gap Drilldown Modal ─────────────────────────────────────────── */}
+      {drilldownRow && (
+        <GapDrilldownModal
+          row={drilldownRow}
+          onClose={() => setDrilldownRow(null)}
+          t={t}
+        />
       )}
     </div>
   );

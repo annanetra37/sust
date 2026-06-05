@@ -1021,6 +1021,26 @@
     "environmental": "Environmental",
     "social": "Social",
     "product": "Product Responsibility",
-    "griTopicFamilies": "GRI Topic Families"
+    "griTopicFamilies": "GRI Topic Families",
+    "connectPlatform": "Connect ISO Platform",
+    "connectPlatformDesc": "Connect directly to your ISO management system platform to import data automatically.",
+    "supportedStandards": "Supported standards",
+    "connect": "Connect",
+    "apiUrl": "API URL",
+    "apiKey": "API Key",
+    "testConnection": "Test Connection",
+    "testing": "Testing...",
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "fetchIngest": "Fetch & Ingest Data",
+    "fetching": "Fetching data...",
+    "fetchSuccess": "{count} records ingested successfully",
+    "disclosureDetail": "Disclosure Detail",
+    "isoDataSources": "ISO Data Sources",
+    "mappingRules": "Mapping Rules",
+    "noSourcesYet": "No ISO data sources for this disclosure yet.",
+    "coverageLevel": "Coverage Level",
+    "ruleNotes": "Rule Notes",
+    "orUploadManually": "or upload manually"
   }
 }
