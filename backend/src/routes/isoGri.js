@@ -3,13 +3,20 @@
  *
  * Mounted at /api/iso-gri in server.js
  *
- * GET  /rules          — list mapping rules (filter by isoStandard, griCode)
- * GET  /rules/summary  — aggregate coverage by GRI topic family
- * POST /upload         — upload ISO data (Excel/CSV)
- * POST /classify       — run classification + gap analysis
- * GET  /gaps           — gap analysis results
- * GET  /gaps/readiness — readiness score
- * GET  /gaps/export    — export gap report as PDF
+ * Sprint 1:
+ * GET  /rules             — list mapping rules (filter by isoStandard, griCode)
+ * GET  /rules/summary     — aggregate coverage by GRI topic family
+ * POST /upload            — upload ISO data (Excel/CSV)
+ * POST /classify          — run classification + gap analysis
+ * GET  /gaps              — gap analysis results
+ * GET  /gaps/readiness    — readiness score
+ * GET  /gaps/export       — export gap report as PDF
+ *
+ * Sprint 2 (platform connectors + drilldown):
+ * GET  /platforms         — list available ISO platform connectors
+ * POST /connect           — test a platform connection
+ * POST /fetch             — fetch ISO data from a connected platform and ingest
+ * GET  /gaps/:griCode     — per-disclosure drilldown (sources, rules, actions)
  */
 
 const router = require('express').Router();
@@ -25,6 +32,11 @@ const {
   getReadinessScore,
   GRI_TOPIC_FAMILIES,
 } = require('../services/isoGriEngine');
+const {
+  connectPlatform,
+  fetchPlatformData,
+  PLATFORMS,
+} = require('../services/isoConnectors');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
@@ -428,6 +440,232 @@ router.get('/gaps/export', async (req, res) => {
   } catch (err) {
     console.error('[isoGri] GET /gaps/export error:', err);
     res.status(500).json({ error: 'Failed to generate gap report' });
+  }
+});
+
+// ─── GET /platforms — list available platform connectors ────────
+
+router.get('/platforms', async (req, res) => {
+  try {
+    res.json({ platforms: PLATFORMS });
+  } catch (err) {
+    console.error('[isoGri] GET /platforms error:', err);
+    res.status(500).json({ error: 'Failed to list platforms' });
+  }
+});
+
+// ─── POST /connect — test a platform connection ────────────────
+
+router.post('/connect', async (req, res) => {
+  try {
+    const { platform, config } = req.body;
+
+    if (!platform) {
+      return res.status(400).json({ error: 'Missing required field: platform' });
+    }
+
+    const result = connectPlatform(platform, config);
+
+    logActivity(
+      req.user.id,
+      req.user.companyId,
+      'ISO_PLATFORM_CONNECT',
+      `Platform connection test: ${platform} — ${result.success ? 'success' : 'failed'}`,
+      { platform, success: result.success },
+      req.ip
+    );
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('[isoGri] POST /connect error:', err);
+    res.status(500).json({ error: 'Platform connection test failed' });
+  }
+});
+
+// ─── POST /fetch — fetch ISO data from a platform and ingest ───
+
+router.post('/fetch', async (req, res) => {
+  try {
+    const { platform, config, year } = req.body;
+    const { companyId } = req.user;
+
+    if (!platform) {
+      return res.status(400).json({ error: 'Missing required field: platform' });
+    }
+
+    const resolvedYear = parseInt(year) || new Date().getFullYear();
+
+    // 1. Fetch normalised data from the platform connector
+    const result = fetchPlatformData(platform, config, resolvedYear);
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    if (!result.data || result.data.length === 0) {
+      return res.status(200).json({
+        message: 'Platform returned no data',
+        platform,
+        year: resolvedYear,
+        ingested: 0,
+      });
+    }
+
+    // 2. Ingest into IsoDataIngestion table
+    let created = 0;
+    for (const record of result.data) {
+      await prisma.isoDataIngestion.create({
+        data: {
+          companyId,
+          isoStandard: record.isoStandard,
+          isoClause: record.isoClause,
+          dataDescription: record.dataDescription || null,
+          dataValue: record.dataValue || null,
+          sourceFile: `platform:${platform}`,
+          year: record.year || resolvedYear,
+        },
+      });
+      created++;
+    }
+
+    logActivity(
+      req.user.id,
+      companyId,
+      'ISO_PLATFORM_FETCH',
+      `Fetched ${created} records from ${platform} for year ${resolvedYear}`,
+      { platform, year: resolvedYear, created },
+      req.ip
+    );
+
+    res.json({
+      message: `Successfully ingested data from ${platform}`,
+      platform,
+      year: resolvedYear,
+      ingested: created,
+      note: result.note || null,
+    });
+  } catch (err) {
+    console.error('[isoGri] POST /fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch and ingest platform data' });
+  }
+});
+
+// ─── GET /gaps/:griCode — per-disclosure drilldown ─────────────
+
+router.get('/gaps/:griCode', async (req, res) => {
+  try {
+    const { companyId } = req.user;
+    const griCode = decodeURIComponent(req.params.griCode).trim();
+    const year = parseInt(req.query.year) || new Date().getFullYear();
+
+    if (!griCode) {
+      return res.status(400).json({ error: 'GRI disclosure code is required' });
+    }
+
+    // 1. Gap analysis row for this disclosure
+    const gapRow = await prisma.griGapAnalysis.findUnique({
+      where: {
+        companyId_griCode_year: {
+          companyId,
+          griCode,
+          year,
+        },
+      },
+    });
+
+    if (!gapRow) {
+      return res.status(404).json({
+        error: `No gap analysis data found for ${griCode} (year ${year}). Run /classify first.`,
+      });
+    }
+
+    // 2. All IsoDataIngestion rows classified to this GRI code
+    const ingestions = await prisma.isoDataIngestion.findMany({
+      where: {
+        companyId,
+        year,
+        classifiedGri: { contains: griCode.replace(/^GRI\s*/, '') },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 3. Mapping rules that connect ISO data to this GRI code
+    const rules = await prisma.isoGriMappingRule.findMany({
+      where: {
+        griCode: { contains: griCode.replace(/^GRI\s*/, '') },
+      },
+    });
+
+    // 4. Build the paired sources array: each ingestion linked to its rule
+    const sources = ingestions.map((ing) => {
+      const matchingRule = rules.find(
+        (r) => r.isoStandard === ing.isoStandard && r.isoClause === ing.isoClause
+      );
+      return {
+        ingestion: {
+          id: ing.id,
+          isoStandard: ing.isoStandard,
+          isoClause: ing.isoClause,
+          dataDescription: ing.dataDescription,
+          dataValue: ing.dataValue,
+          sourceFile: ing.sourceFile,
+          coverageLevel: ing.coverageLevel,
+          createdAt: ing.createdAt,
+        },
+        rule: matchingRule
+          ? {
+              id: matchingRule.id,
+              isoStandard: matchingRule.isoStandard,
+              isoClause: matchingRule.isoClause,
+              griCode: matchingRule.griCode,
+              griDisclosure: matchingRule.griDisclosure,
+              coverageLevel: matchingRule.coverageLevel,
+              mappingNotes: matchingRule.mappingNotes,
+              version: matchingRule.version,
+            }
+          : null,
+      };
+    });
+
+    // 5. Determine recommended action
+    let recommendedAction = gapRow.recommendedAction;
+    if (!recommendedAction) {
+      if (gapRow.status === 'COVERED') {
+        recommendedAction = 'No action required — disclosure is fully covered by ISO data.';
+      } else if (gapRow.status === 'PARTIAL') {
+        recommendedAction = `Upgrade ${griCode} coverage from partial to full — supplement existing ISO data with additional records.`;
+      } else {
+        recommendedAction = `Collect data for ${griCode} (${gapRow.griName}) — no ISO source currently covers this disclosure.`;
+      }
+    }
+
+    res.json({
+      disclosure: {
+        griCode: gapRow.griCode,
+        griName: gapRow.griName,
+        griTopicFamily: gapRow.griTopicFamily,
+        year: gapRow.year,
+      },
+      status: gapRow.status,
+      coveringSources: gapRow.coveringSources,
+      sources,
+      allRulesForDisclosure: rules.map((r) => ({
+        id: r.id,
+        isoStandard: r.isoStandard,
+        isoClause: r.isoClause,
+        coverageLevel: r.coverageLevel,
+        mappingNotes: r.mappingNotes,
+      })),
+      recommendedAction,
+      computedAt: gapRow.computedAt || gapRow.updatedAt,
+    });
+  } catch (err) {
+    console.error('[isoGri] GET /gaps/:griCode error:', err);
+    res.status(500).json({ error: 'Failed to fetch disclosure drilldown' });
   }
 });
 
