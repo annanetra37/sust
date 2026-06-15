@@ -110,10 +110,27 @@ const E1_SCHEMA = {
   },
 };
 
+const E3_SCHEMA = {
+  water_activity: {
+    description: 'Water withdrawal, discharge, and consumption records by source and site',
+    fields: {
+      year: { type: 'integer', required: true },
+      month: { type: 'integer', required: false },
+      source: { type: 'enum', required: true, values: ['surface', 'ground', 'third_party', 'seawater', 'produced', 'rainwater'] },
+      flowType: { type: 'enum', required: true, values: ['withdrawal', 'discharge', 'consumption'] },
+      quantity: { type: 'float', required: true, description: 'Volume in m³' },
+      unit: { type: 'string', required: false, description: 'Unit (m3, litres, ML, gallons)' },
+      destination: { type: 'string', required: false },
+      quality: { type: 'enum', required: false, values: ['freshwater', 'other_water'] },
+      recycledReused: { type: 'boolean', required: false },
+    },
+  },
+};
+
 // ─── Step 1: AI Schema Mapping ──────────────────────────────
 
 async function mapSchema(sampleRows, sourceColumns, targetModule, costCtx) {
-  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : E1_SCHEMA;
+  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
 
   const prompt = `You are a sustainability data expert. Analyze the uploaded data and map it to the target ESG data model.
 
@@ -170,7 +187,7 @@ Return ONLY valid JSON in this exact format:
 // ─── Step 2: AI Data Cleaning & Transformation ──────────────
 
 async function cleanAndTransform(rows, mapping, targetModule, costCtx) {
-  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : E1_SCHEMA;
+  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
   const schema = targetSchemas[mapping.targetTable];
 
   if (!schema) throw new Error(`Unknown target table: ${mapping.targetTable}`);
@@ -418,7 +435,7 @@ function validateRow(row, schema) {
 }
 
 function validateAndCoerce(cleanedRows, targetTable, targetModule) {
-  const schemas = targetModule === 'S1' ? S1_SCHEMAS : E1_SCHEMA;
+  const schemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
   const schema = schemas[targetTable];
   if (!schema) return { valid: [], invalid: [] };
 
@@ -464,4 +481,5 @@ module.exports = {
   validateAndCoerce,
   S1_SCHEMAS,
   E1_SCHEMA,
+  E3_SCHEMA,
 };
