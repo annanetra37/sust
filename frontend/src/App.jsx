@@ -28,6 +28,8 @@ import SuppliersPage from './pages/SuppliersPage';
 import ComingSoon from './pages/ComingSoon';
 import IsoGriBridge from './pages/IsoGriBridge';
 import ReadinessAssessment from './pages/ReadinessAssessment';
+import E3Dashboard from './pages/E3Dashboard';
+import E4Dashboard from './pages/E4Dashboard';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -77,6 +79,8 @@ export default function App() {
         <Route path="/pcf/:id" element={<ProductDetail />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/iso-gri" element={<IsoGriBridge />} />
+        <Route path="/dashboard/E/environmental-3" element={<E3Dashboard />} />
+        <Route path="/dashboard/E/environmental-4" element={<E4Dashboard />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 

@@ -61,6 +61,7 @@ const TIERS = {
       audit_lineage:          true,  // /api/lineage/*
       multi_language_reports: true,  // languages other than English
       sustainability_roi:     true,  // /api/roi — Sustainability ROI dashboard
+      water_resources:        true,  // /api/water — E3 Water Resources module
       priority_support:       true,
     },
   },
@@ -82,6 +83,7 @@ const TIERS = {
       dedicated_csm:          true,
       sla_guarantee:          true,
       api_access:             true,
+      biodiversity:           true,  // /api/biodiversity — E4 Biodiversity module
       iso_gri_bridge:         true,  // ISO → GRI Bridge module
     },
   },
@@ -107,6 +109,8 @@ const FEATURE_LABELS = {
   dedicated_csm:          'Dedicated CSM',
   sla_guarantee:          'SLA guarantee',
   api_access:             'API access',
+  water_resources:        'Water Resources (E3)',
+  biodiversity:           'Biodiversity & Ecosystems (E4)',
   iso_gri_bridge:         'ISO → GRI Bridge',
 };
 

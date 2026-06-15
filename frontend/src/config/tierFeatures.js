@@ -28,6 +28,7 @@ export const TIERS = {
     features: {
       ai_doc_extract: true, all_standards: true, db_connections: true,
       audit_lineage: true, multi_language_reports: true, sustainability_roi: true,
+      water_resources: true,
       priority_support: true,
     },
   },
@@ -36,7 +37,7 @@ export const TIERS = {
     priceMonthly: null,
     limits: { maxUsers: null, maxOrgUnits: null, monthlyCredits: null },
     inheritsFrom: 'PROFESSIONAL',
-    features: { sso_saml: true, custom_branding: true, dedicated_csm: true, sla_guarantee: true, api_access: true, iso_gri_bridge: true },
+    features: { sso_saml: true, custom_branding: true, dedicated_csm: true, sla_guarantee: true, api_access: true, iso_gri_bridge: true, biodiversity: true },
   },
 };
 
@@ -59,6 +60,8 @@ export const FEATURE_LABELS = {
   sla_guarantee:          'SLA guarantee',
   api_access:             'API access',
   iso_gri_bridge:         'ISO → GRI Bridge',
+  water_resources:        'Water Resources (E3)',
+  biodiversity:           'Biodiversity & Ecosystems (E4)',
 };
 
 export function normaliseTier(tier) {

@@ -70,6 +70,10 @@ model Company {
   financialExposures FinancialExposure[]
   isoIngestions    IsoDataIngestion[]
   griGapAnalyses   GriGapAnalysis[]
+
+  sites            Site[]
+  waterActivities  WaterActivity[]
+  biodiversityAssessments BiodiversityAssessment[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -200,6 +204,7 @@ model OrgUnit {
   ghgInventory     FE1GHGInventory[]
 
   products         Product[]
+  sites            Site[]
 
   @@unique([name, companyId])
 }
@@ -884,4 +889,77 @@ model GriGapAnalysis {
 
   @@unique([companyId, griCode, year])
   @@index([companyId, year])
+}
+
+// ─── Sites & Geospatial Foundation ──────────────────────────────
+model Site {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId       String?
+  orgUnit         OrgUnit? @relation(fields: [orgUnitId], references: [id])
+  name            String
+  siteType        String   // manufacturing | office | warehouse | retail | other
+  country         String
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  waterStress     String?  // Low | Low-Medium | Medium-High | High | Extremely High (from WRI Aqueduct)
+  protectedArea   Json?    // { inProtectedArea: bool, nearbyAreas: [{ name, designation, distanceKm }] }
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  waterActivities WaterActivity[]
+  biodiversityAssessments BiodiversityAssessment[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+// ─── E3 Water Resources ─────────────────────────────────────────
+model WaterActivity {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  siteId          String
+  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  year            Int
+  month           Int?
+  source          String   // surface | ground | third_party | seawater | produced | rainwater
+  flowType        String   // withdrawal | discharge | consumption
+  quantity        Float    // in m³
+  unit            String   @default("m3")
+  destination     String?  // surface_water | groundwater | seawater | third_party | other
+  quality         String?  // freshwater | other_water
+  recycledReused  Boolean  @default(false)
+  sourceDoc       String?
+  createdAt       DateTime @default(now())
+
+  @@index([companyId, year])
+  @@index([siteId, year])
+}
+
+// ─── E4 Biodiversity ────────────────────────────────────────────
+model BiodiversityAssessment {
+  id              String   @id @default(uuid())
+  companyId       String
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  siteId          String
+  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  year            Int
+  assessmentType  String   // tnfd_leap | gri_101 | screening
+  leapPhase       String?  // locate | evaluate | assess | prepare
+  landAreaHa      Float?
+  landUseChange   String?  // converted | restored | maintained | degraded
+  ecosystemType   String?  // forest | wetland | grassland | marine | freshwater | urban | agricultural | other
+  directDrivers   Json?    // { landUseChange: bool, resourceExploitation: bool, climateChange: bool, pollution: bool, invasiveSpecies: bool }
+  ecosystemServices Json?  // structured questionnaire responses
+  peopleImpacts   Json?    // impacts on indigenous peoples / local communities
+  accessBenefitSharing Boolean? // genetic resources used?
+  status          String   @default("draft") // draft | complete | verified
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([companyId, year])
+  @@index([siteId])
 }
