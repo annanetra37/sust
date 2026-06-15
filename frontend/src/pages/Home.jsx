@@ -20,8 +20,8 @@ export default function Home() {
       items: [
         { id: 'ENV', name: t('home.climateEmissions'), desc: t('home.climateEmissionsDesc'), path: '/dashboard/E/environmental-1', active: true, standards: 'ESRS E1 · GRI 305 · TCFD · CDP' },
         { id: 'ENV', name: t('home.pollutionWaste'), desc: t('home.pollutionWasteDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E2 · GRI 306' },
-        { id: 'ENV', name: t('home.waterResources'), desc: t('home.waterResourcesDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E3 · GRI 303' },
-        { id: 'ENV', name: t('home.biodiversity'), desc: t('home.biodiversityDesc'), badge: t('home.badgeUnderDevelopment'), standards: 'ESRS E4 · GRI 304' },
+        { id: 'ENV', name: t('home.waterResources'), desc: t('home.waterResourcesDesc'), path: '/dashboard/E/environmental-3', active: true, standards: 'ESRS E3 · GRI 303' },
+        { id: 'ENV', name: t('home.biodiversity'), desc: t('home.biodiversityDesc'), path: '/dashboard/E/environmental-4', active: true, standards: 'ESRS E4 · GRI 304' },
         { id: 'ENV', name: t('home.circularEconomy'), desc: t('home.circularEconomyDesc'), badge: t('home.badgeUpgradeEnterprise'), standards: 'ESRS E5 · GRI 301' },
       ],
     },

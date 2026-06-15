@@ -291,6 +291,26 @@ const api = {
   submitReadinessAssessment: (data) => request('/readiness-assessment/submit', { method: 'POST', body: JSON.stringify(data) }),
   getReadinessResult: (token) => request(`/readiness-assessment/result/${token}`),
 
+  // Sites & Geospatial
+  getSites: () => request('/water/sites'),
+  getSite: (id) => request(`/water/sites/${id}`),
+  createSite: (data) => request('/water/sites', { method: 'POST', body: JSON.stringify(data) }),
+  updateSite: (id, data) => request(`/water/sites/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteSite: (id) => request(`/water/sites/${id}`, { method: 'DELETE' }),
+
+  // Water Resources (E3)
+  getWaterDashboard: (year) => request(`/water/dashboard${year ? `?year=${year}` : ''}`),
+  getWaterKpis: (year) => request(`/water/kpis${year ? `?year=${year}` : ''}`),
+  getWaterStressExposure: (year) => request(`/water/stress-exposure${year ? `?year=${year}` : ''}`),
+  uploadWaterData: (formData) => request('/water/upload', { method: 'POST', body: formData }),
+
+  // Biodiversity (E4)
+  getBiodiversityDashboard: (year) => request(`/biodiversity/dashboard${year ? `?year=${year}` : ''}`),
+  getBiodiversityAssessments: (year) => request(`/biodiversity/assessments${year ? `?year=${year}` : ''}`),
+  createBiodiversityAssessment: (data) => request('/biodiversity/assessments', { method: 'POST', body: JSON.stringify(data) }),
+  updateBiodiversityAssessment: (id, data) => request(`/biodiversity/assessments/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getLeapStatus: (siteId) => request(`/biodiversity/leap/${siteId}`),
+
   // Sustainability ROI
   getRoiSummary: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
