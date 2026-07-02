@@ -15,7 +15,7 @@
 const { MODEL_PRICING } = require('./costTracker');
 
 const CREDIT_MULTIPLIER = 400;
-const DEFAULT_MODEL = 'claude-sonnet-4-20250514';
+const DEFAULT_MODEL = 'claude-sonnet-5';
 
 // Per-action token assumptions, tuned against real Claude usage in aiEtl.js
 // and the doc-extract pipeline.  These drive the estimate that users see

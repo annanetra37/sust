@@ -13,7 +13,7 @@
  *       ↓
  *   [4] Ingestion — inserts clean rows into the correct data model tables
  *
- * Uses Claude claude-sonnet-4-20250514 via the Anthropic SDK for all AI operations.
+ * Uses Claude (model set via ANTHROPIC_MODEL, default claude-sonnet-5) via the Anthropic SDK for all AI operations.
  */
 
 const Anthropic = require('@anthropic-ai/sdk').default;
@@ -172,12 +172,12 @@ Return ONLY valid JSON in this exact format:
   "dataQualityNotes": ["Row 3 has missing gender value", "Some counts appear to be percentages not absolute numbers"]
 }`;
 
-  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: prompt }] };
+  const params = { model: config.anthropic.model, max_tokens: 4096, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: prompt }] };
   const response = costCtx
     ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_SCHEMA_MAP' })
     : await getClient().messages.create(params);
 
-  const text = response.content[0].text;
+  const text = response.content.find((b) => b.type === 'text')?.text || '';
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('AI schema mapping returned invalid response');
 
@@ -241,12 +241,12 @@ For skipped rows, include them in a separate "skipped" array with the reason.
   ]
 }`;
 
-    const params = { model: config.anthropic.model, max_tokens: 8192, messages: [{ role: 'user', content: prompt }] };
+    const params = { model: config.anthropic.model, max_tokens: 8192, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: prompt }] };
     const response = costCtx
       ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_CLEAN', metadata: { ...costCtx.metadata, batch: i, batchSize: batch.length } })
       : await getClient().messages.create(params);
 
-    const text = response.content[0].text;
+    const text = response.content.find((b) => b.type === 'text')?.text || '';
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
@@ -391,12 +391,12 @@ If you cannot extract meaningful data, return {"items": [], "confidence": 0, "no
     messageContent = promptText;
   }
 
-  const params = { model: config.anthropic.model, max_tokens: 4096, messages: [{ role: 'user', content: messageContent }] };
+  const params = { model: config.anthropic.model, max_tokens: 4096, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: messageContent }] };
   const response = costCtx
     ? await trackedAICall(getClient(), params, { ...costCtx, operation: 'AI_DOC_EXTRACT', metadata: { ...costCtx.metadata, mode, useVision } })
     : await getClient().messages.create(params);
 
-  const text2 = response.content[0].text;
+  const text2 = response.content.find((b) => b.type === 'text')?.text || '';
   const jsonMatch = text2.match(/\{[\s\S]*\}/);
   if (!jsonMatch) return { items: [], confidence: 0, notes: 'Failed to parse AI response' };
 

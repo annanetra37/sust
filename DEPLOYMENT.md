@@ -33,7 +33,7 @@ JWT_REFRESH_SECRET=<generate another random 64-char string>
 PORT=4000
 FRONTEND_URL=https://your-frontend-url.up.railway.app
 ANTHROPIC_API_KEY=sk-ant-your-api-key
-ANTHROPIC_MODEL=claude-sonnet-4-20250514
+ANTHROPIC_MODEL=claude-sonnet-5
 NODE_ENV=production
 ```
 
@@ -77,7 +77,7 @@ This populates emission factor categories.
 | `PORT` | Yes | Server port (Railway sets this) |
 | `FRONTEND_URL` | Yes | Frontend URL for CORS |
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for AI features |
-| `ANTHROPIC_MODEL` | No | AI model (default: claude-sonnet-4-20250514) |
+| `ANTHROPIC_MODEL` | No | AI model (default: claude-sonnet-5) |
 | `SMTP_HOST` | No | Email server (leave empty for dev mode) |
 | `SMTP_PORT` | No | Email port (default: 587) |
 | `SMTP_USER` | No | Email sender address |

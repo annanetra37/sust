@@ -135,12 +135,18 @@ router.post('/chat', async (req, res) => {
     }
     messages.push({ role: 'user', content: message });
 
-    const params = { model: config.anthropic.model, max_tokens: 1024, system: SYSTEM_PROMPT + contextNote, messages };
+    // thinking disabled: claude-sonnet-5 runs adaptive thinking when the param
+    // is omitted, which delays replies and eats into max_tokens
+    const params = { model: config.anthropic.model, max_tokens: 1024, thinking: { type: 'disabled' }, system: SYSTEM_PROMPT + contextNote, messages };
     const response = await trackedAICall(client, params, {
       companyId: req.user.companyId, userId: req.user.id, operation: 'AI_ASSISTANT',
     });
 
-    const reply = response.content[0].text;
+    const reply = response.content.find((b) => b.type === 'text')?.text;
+    if (!reply) {
+      console.error('Assistant returned no text block:', JSON.stringify(response.content));
+      return res.status(502).json({ error: 'AI assistant returned an empty response. Please try again.' });
+    }
 
     res.json({ reply });
   } catch (err) {

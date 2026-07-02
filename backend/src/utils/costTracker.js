@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 
 // Pricing per million tokens (approximate as of 2025)
 const MODEL_PRICING = {
+  'claude-sonnet-5': { input: 3.0, output: 15.0 },
   'claude-sonnet-4-20250514': { input: 3.0, output: 15.0 },
   'claude-sonnet-4-6': { input: 3.0, output: 15.0 },
   'claude-haiku-4-5-20251001': { input: 0.80, output: 4.0 },
@@ -25,7 +26,7 @@ async function logCost({ companyId, userId, operation, model, inputTokens, outpu
     if (estimatedCostOverride != null) {
       estimatedCost = Number(estimatedCostOverride) || 0;
     } else {
-      const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-4-20250514'];
+      const pricing = MODEL_PRICING[model] || MODEL_PRICING['claude-sonnet-5'];
       if (inputTokens) estimatedCost += (inputTokens / 1_000_000) * pricing.input;
       if (outputTokens) estimatedCost += (outputTokens / 1_000_000) * pricing.output;
       if (pricing.perPage && metadata?.pages) estimatedCost += metadata.pages * pricing.perPage;
