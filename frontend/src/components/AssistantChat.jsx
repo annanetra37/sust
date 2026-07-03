@@ -44,7 +44,7 @@ export default function AssistantChat() {
         role: m.role, content: m.content,
       }));
       const res = await api.chatAssistant(msg, history);
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply || 'Sorry, I couldn\'t process that. Please try again.' }]);
     } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
@@ -71,7 +71,7 @@ export default function AssistantChat() {
 
   // Simple markdown-like rendering for assistant messages
   const renderContent = (text) => {
-    return text.split('\n').map((line, i) => {
+    return String(text ?? '').split('\n').map((line, i) => {
       // Bold
       line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       // Bullet points

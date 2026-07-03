@@ -256,11 +256,11 @@ Return ONLY valid JSON array:
     const fullPrompt = `${classifierPrompt}\n\n## ALL ROWS (${rawRows.length} total)\n${JSON.stringify(rawRows.slice(0, 500), null, 2)}`;
     const response = await trackedAICall(
       getAI(),
-      { model: config.anthropic.model, max_tokens: 8192, messages: [{ role: 'user', content: fullPrompt }] },
+      { model: config.anthropic.model, max_tokens: 8192, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: fullPrompt }] },
       costCtx,
     );
 
-    const aiText = response.content[0].text;
+    const aiText = response.content.find((b) => b.type === 'text')?.text || '';
     const jsonMatch = aiText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return res.status(500).json({ error: 'AI classifier returned unparseable response.' });
 
@@ -434,11 +434,11 @@ Return ONLY valid JSON array:
 
     const response = await trackedAICall(
       getAI(),
-      { model: config.anthropic.model, max_tokens: 8192, messages: [{ role: 'user', content: prompt }] },
+      { model: config.anthropic.model, max_tokens: 8192, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: prompt }] },
       costCtx,
     );
 
-    const aiText = response.content[0].text;
+    const aiText = response.content.find((b) => b.type === 'text')?.text || '';
     const jsonMatch = aiText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return res.status(500).json({ error: 'AI BOM generator returned unparseable response.' });
 
