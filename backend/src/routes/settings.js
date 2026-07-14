@@ -103,7 +103,9 @@ router.get('/esg-standard', async (req, res) => {
       where: { id: req.user.companyId },
       select: { esgStandard: true },
     });
-    res.json({ standard: company.esgStandard });
+    // Legacy values from when IFRS S1/S2 were separate options
+    const standard = ['IFRS_S1', 'IFRS_S2'].includes(company.esgStandard) ? 'IFRS' : company.esgStandard;
+    res.json({ standard });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });
@@ -113,7 +115,7 @@ router.get('/esg-standard', async (req, res) => {
 router.put('/esg-standard', requireAdmin, async (req, res) => {
   try {
     const { standard } = req.body;
-    const valid = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
+    const valid = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS'];
     if (!valid.includes(standard)) {
       return res.status(400).json({ error: `Invalid standard "${standard}". Supported: ${valid.join(', ')}` });
     }

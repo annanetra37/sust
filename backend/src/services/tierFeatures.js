@@ -124,8 +124,7 @@ const STANDARD_TIER = {
   ISSB:    'PROFESSIONAL',
   SASB:    'PROFESSIONAL',
   CDP:     'PROFESSIONAL',
-  IFRS_S1: 'PROFESSIONAL',
-  IFRS_S2: 'PROFESSIONAL',
+  IFRS:    'PROFESSIONAL',
 };
 
 // Languages allowed per tier.  English is universal; the other 6 are

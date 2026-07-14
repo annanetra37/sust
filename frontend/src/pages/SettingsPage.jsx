@@ -8,7 +8,7 @@ import COUNTRIES from '../utils/countries';
 import SectorPicker from '../components/SectorPicker';
 import { useT } from '../i18n';
 
-const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS_S1', 'IFRS_S2'];
+const STANDARDS = ['ESRS', 'TCFD', 'GRI', 'SASB', 'CDP', 'IFRS'];
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -208,7 +208,7 @@ export default function SettingsPage() {
                    s === 'TCFD' ? 'Task Force on Climate-related Financial Disclosures' :
                    s === 'GRI' ? 'Global Reporting Initiative' :
                    s === 'SASB' ? 'Sustainability Accounting Standards Board' :
-                   s === 'CDP' ? 'Carbon Disclosure Project' : 'IFRS Sustainability Disclosure Standards'}
+                   s === 'CDP' ? 'Carbon Disclosure Project' : 'IFRS Sustainability Disclosure Standards (S1 & S2)'}
                 </p>
               </button>
             ))}
