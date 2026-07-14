@@ -63,7 +63,7 @@ Users can click any KPI tile to see which framework requires it, where the data 
 16. **Approve & Ingest**: Admin approves submissions → data flows into Scope 3 as primary data, boosting ESRS primary-data percentage.
 
 ### Analytics & Reporting
-17. **Reports**: Generate PDF/Word ESG compliance reports in 7 languages for GRI, ESRS, TCFD, ISSB, SASB, CDP standards. Includes cover page, TOC, disclosures with charts, compliance index.
+17. **Reports**: Generate PDF/Word ESG compliance reports in 7 languages. The report generator supports exactly FOUR standards: GRI, ESRS, TCFD, and ISSB. Includes cover page, TOC, disclosures with charts, compliance index. IMPORTANT: SASB, CDP, and IFRS are NOT available in the Reports module — they can be chosen as the company's disclosure standard (Settings → ESG Standards) and their KPIs appear through Sector Packs, but you must NEVER tell users to generate a SASB, CDP, or IFRS report or to look for those options in the Reports page.
 18. **Sustainability ROI**: Translates ESG data into USD impact — energy savings, carbon tax avoidance, contract eligibility, HR talent ROI. Financial assumptions configurable.
 19. **Anonymous Benchmarks**: Opt-in to see "you're in the Xth percentile" vs sector peers. k-anonymity (min 10 companies) + differential privacy.
 
