@@ -53,10 +53,10 @@ const STANDARDS = {
         code: 'ESRS G1', name: 'Business Conduct', pillar: 'Governance',
         required: true,
         disclosures: [
-          { code: 'G1-1', name: 'Business conduct policies and corporate culture', type: 'narrative' },
+          { code: 'G1-1', name: 'Business conduct policies and corporate culture', type: 'metric', dataSource: 'g1_policies' },
           { code: 'G1-2', name: 'Management of relationships with suppliers', type: 'narrative' },
-          { code: 'G1-3', name: 'Prevention and detection of corruption and bribery', type: 'narrative' },
-          { code: 'G1-4', name: 'Confirmed incidents of corruption or bribery', type: 'metric' },
+          { code: 'G1-3', name: 'Prevention and detection of corruption and bribery', type: 'metric', dataSource: 'g1_ethics_training' },
+          { code: 'G1-4', name: 'Confirmed incidents of corruption or bribery', type: 'metric', dataSource: 'g1_incidents' },
           { code: 'G1-5', name: 'Political influence and lobbying activities', type: 'narrative' },
           { code: 'G1-6', name: 'Payment practices', type: 'metric' },
         ],
@@ -104,8 +104,11 @@ const STANDARDS = {
       G1: {
         code: 'GRI 200', name: 'Economic Topics', pillar: 'Governance',
         disclosures: [
-          { code: 'GRI 205', name: 'Anti-corruption', type: 'narrative' },
-          { code: 'GRI 206', name: 'Anti-competitive behavior', type: 'narrative' },
+          { code: 'GRI 205-1', name: 'Operations assessed for risks related to corruption', type: 'narrative' },
+          { code: 'GRI 205-2', name: 'Communication and training about anti-corruption policies', type: 'metric', dataSource: 'g1_ethics_training' },
+          { code: 'GRI 205-3', name: 'Confirmed incidents of corruption and actions taken', type: 'metric', dataSource: 'g1_incidents' },
+          { code: 'GRI 206-1', name: 'Legal actions for anti-competitive behavior', type: 'metric', dataSource: 'g1_incidents' },
+          { code: 'GRI 2-9', name: 'Governance structure and composition', type: 'metric', dataSource: 'g1_board' },
         ],
       },
     },
@@ -193,6 +196,22 @@ const DATA_SOURCES = {
   sbti_targets: async (prisma, companyId) => {
     const count = await prisma.sBTiTarget.count({ where: { companyId } });
     return { available: count > 0, count, label: 'SBTi decarbonization targets' };
+  },
+  g1_board: async (prisma, companyId, year) => {
+    const count = await prisma.fG1BoardComposition.count({ where: { companyId, year } });
+    return { available: count > 0, count, label: 'Board composition data' };
+  },
+  g1_ethics_training: async (prisma, companyId, year) => {
+    const count = await prisma.fG1EthicsTraining.count({ where: { companyId, year } });
+    return { available: count > 0, count, label: 'Ethics & compliance training data' };
+  },
+  g1_incidents: async (prisma, companyId, year) => {
+    const count = await prisma.fG1GovernanceIncident.count({ where: { companyId, year } });
+    return { available: count > 0, count, label: 'Governance incident data' };
+  },
+  g1_policies: async (prisma, companyId, year) => {
+    const count = await prisma.fG1PolicyRegister.count({ where: { companyId, year } });
+    return { available: count > 0, count, label: 'Governance policy register' };
   },
 };
 

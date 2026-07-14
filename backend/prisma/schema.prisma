@@ -55,6 +55,11 @@ model Company {
   employeeTraining FS1EmployeeTraining[]
   employeeTurnover FS1EmployeeTurnover[]
 
+  boardComposition    FG1BoardComposition[]
+  ethicsTraining      FG1EthicsTraining[]
+  governanceIncidents FG1GovernanceIncident[]
+  policyRegister      FG1PolicyRegister[]
+
   emissionActivity FE1EmissionActivityData[]
   ghgInventory     FE1GHGInventory[]
   sbtiTargets      SBTiTarget[]
@@ -200,6 +205,10 @@ model OrgUnit {
   workplaceInj     FS1WorkplaceInjuries[]
   employeeTraining FS1EmployeeTraining[]
   employeeTurnover FS1EmployeeTurnover[]
+  boardComposition    FG1BoardComposition[]
+  ethicsTraining      FG1EthicsTraining[]
+  governanceIncidents FG1GovernanceIncident[]
+  policyRegister      FG1PolicyRegister[]
   emissionActivity FE1EmissionActivityData[]
   ghgInventory     FE1GHGInventory[]
 
@@ -332,6 +341,73 @@ model FS1EmployeeTurnover {
   gender        String
   turnoverType  String  // Voluntary, Involuntary
   count         Int
+  createdAt     DateTime @default(now())
+}
+
+// ─── G1: Governance ─────────────────────────────────────────────
+
+model FG1BoardComposition {
+  id           String  @id @default(uuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId    String
+  orgUnit      OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  year         Int
+  quarter      Int?
+  gender       String  // Male, Female, Non-binary, Not disclosed
+  role         String  // Executive, Non-executive, Chair, Vice-chair, Committee member
+  independence String  // Independent, Non-independent, Not disclosed
+  ageBand      String? // Under 30, 30-50, Over 50
+  tenureYears  Float?  // average tenure in years for this group
+  count        Int
+  createdAt    DateTime @default(now())
+}
+
+model FG1EthicsTraining {
+  id               String  @id @default(uuid())
+  companyId        String
+  company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId        String
+  orgUnit          OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  year             Int
+  quarter          Int?
+  topic            String  // Anti-corruption, Code of Conduct, Data Privacy, Anti-competitive, Whistleblowing, Other
+  audience         String  // Employees, Management, Board, Suppliers
+  employeesTrained Int
+  totalHeadcount   Int?    // audience size, for completion-rate calc
+  completionRate   Float?  // % — derived from counts when not provided
+  createdAt        DateTime @default(now())
+}
+
+model FG1GovernanceIncident {
+  id           String  @id @default(uuid())
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId    String
+  orgUnit      OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  year         Int
+  quarter      Int?
+  incidentType String  // Corruption, Bribery, Anti-competitive, Whistleblower report, Data privacy, Conflict of interest, Other
+  status       String  // Open, Under investigation, Substantiated, Dismissed, Resolved
+  actionTaken  String? // e.g. Dismissal, Contract termination, Process change
+  finesAmount  Float?  // monetary fines/penalties, USD
+  count        Int
+  createdAt    DateTime @default(now())
+}
+
+model FG1PolicyRegister {
+  id            String  @id @default(uuid())
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orgUnitId     String
+  orgUnit       OrgUnit @relation(fields: [orgUnitId], references: [id], onDelete: Cascade)
+  year          Int
+  policyName    String
+  policyArea    String  // Anti-corruption, Code of Conduct, Whistleblower protection, Data privacy, Supplier code, Lobbying, Other
+  status        String  // In place, Draft, Under review, Not in place
+  boardApproved String? // Yes, No, Not disclosed
+  lastReviewed  Int?    // year of last review
+  coverage      String? // Employees, Suppliers, All
   createdAt     DateTime @default(now())
 }
 

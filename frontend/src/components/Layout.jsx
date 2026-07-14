@@ -47,8 +47,8 @@ function buildNav(t) {
       bg: 'bg-amber-50 dark:bg-amber-950/50', activeBg: 'bg-amber-100 dark:bg-amber-900/50',
       iconBg: 'bg-amber-100 dark:bg-amber-900',
       children: [
-        { label: t('nav.boardLeadership'), path: '/coming-soon', badge: t('nav.enterprise') },
-        { label: t('nav.ethicsCompliance'), path: '/coming-soon', badge: t('nav.enterprise') },
+        { label: t('nav.boardLeadership'), path: '/dashboard/G/governance-1' },
+        { label: t('nav.ethicsCompliance'), path: '/dashboard/G/governance-2' },
       ],
     },
     { label: t('nav.sbtiTargets'), path: '/sbti-targets', icon: Target },

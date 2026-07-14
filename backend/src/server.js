@@ -28,6 +28,7 @@ app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 500 }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/s1', require('./routes/s1'));
+app.use('/api/g1', require('./routes/g1'));
 app.use('/api/e1', require('./routes/e1'));
 app.use('/api/credits', require('./routes/credits'));
 app.use('/api/settings', require('./routes/settings'));

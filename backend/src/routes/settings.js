@@ -179,6 +179,44 @@ router.post('/reset/preview', requireAdmin, async (req, res) => {
           count: s.employeeCount,
         })),
       });
+    } else if (type === 'g1') {
+      const where = { companyId, year: y };
+      if (quarter) where.quarter = parseInt(quarter);
+      if (orgUnitId) where.orgUnitId = orgUnitId;
+      const { quarter: _q, ...policyWhere } = where;
+
+      const [boardCnt, trainCnt, incCnt, polCnt] = await Promise.all([
+        prisma.fG1BoardComposition.count({ where }),
+        prisma.fG1EthicsTraining.count({ where }),
+        prisma.fG1GovernanceIncident.count({ where }),
+        prisma.fG1PolicyRegister.count({ where: policyWhere }),
+      ]);
+
+      const total = boardCnt + trainCnt + incCnt + polCnt;
+      const samples = await prisma.fG1BoardComposition.findMany({
+        where,
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { orgUnit: { select: { name: true } } },
+      });
+
+      res.json({
+        total,
+        breakdown: [
+          { table: 'Board Composition', count: boardCnt },
+          { table: 'Ethics Training', count: trainCnt },
+          { table: 'Governance Incidents', count: incCnt },
+          { table: 'Policy Register', count: polCnt },
+        ].filter((b) => b.count > 0),
+        samples: samples.map((s) => ({
+          orgUnit: s.orgUnit?.name,
+          year: s.year,
+          quarter: s.quarter,
+          gender: s.gender,
+          role: s.role,
+          count: s.count,
+        })),
+      });
     } else {
       const where = { companyId, year: y };
 
@@ -264,6 +302,45 @@ router.post('/reset/s1', requireAdmin, async (req, res) => {
 
     logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} S1 records for year ${year}`, { type: 's1', year, total }, req.ip);
     res.json({ message: `Successfully deleted ${total} S1 records for year ${year}. ${updateResult.count} history records marked.` });
+  } catch (err) {
+    const { status, error } = formatError(err);
+    res.status(status).json({ error });
+  }
+});
+
+router.post('/reset/g1', requireAdmin, async (req, res) => {
+  try {
+    const { year, quarter, orgUnitId } = req.body;
+    if (!year) return res.status(400).json({ error: 'Year is required for data reset.' });
+
+    const where = { companyId: req.user.companyId, year: parseInt(year) };
+    if (quarter) where.quarter = parseInt(quarter);
+    if (orgUnitId) where.orgUnitId = orgUnitId;
+    // Policy register has no quarter column
+    const { quarter: _q, ...policyWhere } = where;
+
+    const [c1, c2, c3, c4] = await Promise.all([
+      prisma.fG1BoardComposition.deleteMany({ where }),
+      prisma.fG1EthicsTraining.deleteMany({ where }),
+      prisma.fG1GovernanceIncident.deleteMany({ where }),
+      prisma.fG1PolicyRegister.deleteMany({ where: policyWhere }),
+    ]);
+
+    const total = c1.count + c2.count + c3.count + c4.count;
+    const userName = `${req.user.firstName} ${req.user.lastName}`;
+
+    const updateResult = await prisma.uploadHistory.updateMany({
+      where: { companyId: req.user.companyId, fileType: 'G1', deletedAt: null },
+      data: {
+        deletedAt: new Date(),
+        deletedBy: userName,
+        deletedNote: `${total} records removed for year ${year}${quarter ? ' Q' + quarter : ''}${orgUnitId ? ' (specific org unit)' : ''}.`,
+      },
+    });
+    console.log(`[Reset G1] Marked ${updateResult.count} history records as deleted`);
+
+    logActivity(req.user.id, req.user.companyId, 'RESET_DATA', `Deleted ${total} G1 records for year ${year}`, { type: 'g1', year, total }, req.ip);
+    res.json({ message: `Successfully deleted ${total} G1 records for year ${year}. ${updateResult.count} history records marked.` });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

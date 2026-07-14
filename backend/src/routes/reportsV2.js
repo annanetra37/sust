@@ -729,6 +729,75 @@ async function buildReportDocx({
           } else {
             children.push(text(`${discData.count} data records available.`));
           }
+        } else if (topicKey === 'G1' && data.G1) {
+          if (disc.code.includes('G1-4') || disc.code.includes('205-3') || disc.code.includes('206-1')) {
+            children.push(text(`Total business-conduct incidents: ${data.G1.totalIncidents}`));
+            children.push(text(`Confirmed (substantiated) incidents: ${data.G1.confirmedIncidents}`));
+            children.push(text(`Monetary fines and penalties: $${data.G1.totalFines.toLocaleString()}`));
+
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'Total Incidents', value: data.G1.totalIncidents.toLocaleString(), unit: 'cases', color: '#f59e0b' },
+                  { label: 'Confirmed', value: data.G1.confirmedIncidents.toLocaleString(), unit: 'substantiated', color: '#ef4444' },
+                  { label: 'Fines & Penalties', value: `$${data.G1.totalFines.toLocaleString()}`, unit: 'USD', color: '#64748b' },
+                ],
+              }),
+            );
+            const typeEntries = Object.entries(data.G1.incidentsByType);
+            if (typeEntries.length > 0) {
+              addChart(
+                await docxCharts.hBarChartBuffer({
+                  title: 'Incidents by Type',
+                  data: typeEntries.map(([label, value]) => ({ label, value })),
+                  unit: 'cases',
+                  color: '#d97706',
+                  maxBars: 7,
+                }),
+              );
+            }
+          } else if (disc.code.includes('G1-3') || disc.code.includes('205-2')) {
+            const antiCorruption = data.G1.training
+              .filter((r) => r.topic === 'Anti-corruption')
+              .reduce((s, r) => s + r.employeesTrained, 0);
+            children.push(text(`People who completed ethics/compliance training: ${data.G1.totalTrained.toLocaleString()}`));
+            children.push(text(`Of which anti-corruption training: ${antiCorruption.toLocaleString()}`));
+
+            addChart(
+              await docxCharts.kpiRowBuffer({
+                kpis: [
+                  { label: 'People Trained', value: data.G1.totalTrained.toLocaleString(), unit: 'headcount', color: '#0ea5e9' },
+                  { label: 'Anti-corruption', value: antiCorruption.toLocaleString(), unit: 'headcount', color: '#10b981' },
+                  { label: 'Training Records', value: data.G1.training.length, unit: 'entries', color: '#8b5cf6' },
+                ],
+              }),
+            );
+          } else if (disc.code.includes('G1-1')) {
+            children.push(text(`Governance policies in place: ${data.G1.policiesInPlace} of ${data.G1.policies.length} registered`));
+            data.G1.policies.slice(0, 8).forEach((p) =>
+              children.push(bullet(`${p.policyName} (${p.policyArea}) — ${p.status}${p.boardApproved === 'Yes' ? ', board approved' : ''}`)),
+            );
+          } else if (disc.code.includes('2-9') || disc.code.includes('GOV')) {
+            const femaleBoard = data.G1.boardByGender['Female'] || 0;
+            children.push(text(`Board size: ${data.G1.boardSize} members`));
+            children.push(text(`Women on board: ${data.G1.boardSize > 0 ? Math.round((femaleBoard / data.G1.boardSize) * 100) : 0}%`));
+            children.push(text(`Independent members: ${data.G1.boardSize > 0 ? Math.round((data.G1.independentCount / data.G1.boardSize) * 100) : 0}%`));
+
+            const genderEntries = Object.entries(data.G1.boardByGender);
+            if (genderEntries.length > 0) {
+              addChart(
+                await docxCharts.hBarChartBuffer({
+                  title: 'Board Composition by Gender',
+                  data: genderEntries.map(([label, value]) => ({ label, value })),
+                  unit: 'members',
+                  color: '#d97706',
+                  maxBars: 5,
+                }),
+              );
+            }
+          } else {
+            children.push(text(`${discData.count} data records available.`));
+          }
         }
       } else if (disc.type === 'narrative') {
         children.push(
@@ -927,6 +996,30 @@ router.post('/generate', async (req, res) => {
         const byGender = {};
         comp.forEach(r => { byGender[r.gender] = (byGender[r.gender] || 0) + r.employeeCount; });
         data.S1 = { comp, div, train, turn, inj, totalEmployees, byGender };
+      }
+      if (topicKey === 'G1') {
+        const [board, training, incidents, policies] = await Promise.all([
+          prisma.fG1BoardComposition.findMany({ where: { companyId: req.user.companyId, year: y } }),
+          prisma.fG1EthicsTraining.findMany({ where: { companyId: req.user.companyId, year: y } }),
+          prisma.fG1GovernanceIncident.findMany({ where: { companyId: req.user.companyId, year: y } }),
+          prisma.fG1PolicyRegister.findMany({ where: { companyId: req.user.companyId, year: y } }),
+        ]);
+        const boardSize = board.reduce((s, r) => s + r.count, 0);
+        const boardByGender = {};
+        board.forEach(r => { boardByGender[r.gender] = (boardByGender[r.gender] || 0) + r.count; });
+        const independentCount = board.filter(r => r.independence === 'Independent').reduce((s, r) => s + r.count, 0);
+        const totalTrained = training.reduce((s, r) => s + r.employeesTrained, 0);
+        const totalIncidents = incidents.reduce((s, r) => s + r.count, 0);
+        const confirmedIncidents = incidents.filter(r => r.status === 'Substantiated').reduce((s, r) => s + r.count, 0);
+        const totalFines = incidents.reduce((s, r) => s + (r.finesAmount || 0), 0);
+        const incidentsByType = {};
+        incidents.forEach(r => { incidentsByType[r.incidentType] = (incidentsByType[r.incidentType] || 0) + r.count; });
+        const policiesInPlace = policies.filter(r => r.status === 'In place').length;
+        data.G1 = {
+          board, training, incidents, policies,
+          boardSize, boardByGender, independentCount,
+          totalTrained, totalIncidents, confirmedIncidents, totalFines, incidentsByType, policiesInPlace,
+        };
       }
     }
 
@@ -1650,6 +1743,73 @@ router.post('/generate', async (req, res) => {
                 percent: turnoverRate,
                 color: '#f59e0b',
               });
+              doc.fontSize(10).font('Helvetica').fillColor('#333');
+            } else {
+              doc.text(`${discData.count} data records available.`);
+            }
+          } else if (topicKey === 'G1' && data.G1) {
+            if (disc.code.includes('G1-4') || disc.code.includes('205-3') || disc.code.includes('206-1')) {
+              doc.text(`Total business-conduct incidents: ${data.G1.totalIncidents}`);
+              doc.text(`Confirmed (substantiated) incidents: ${data.G1.confirmedIncidents}`);
+              doc.text(`Monetary fines and penalties: $${data.G1.totalFines.toLocaleString()}`);
+
+              doc.moveDown(0.5);
+              pdfCharts.drawKpiRow(doc, {
+                kpis: [
+                  { label: 'Total Incidents', value: data.G1.totalIncidents.toLocaleString(), unit: 'cases', color: '#f59e0b' },
+                  { label: 'Confirmed', value: data.G1.confirmedIncidents.toLocaleString(), unit: 'substantiated', color: '#ef4444' },
+                  { label: 'Fines & Penalties', value: `$${data.G1.totalFines.toLocaleString()}`, unit: 'USD', color: '#64748b' },
+                ],
+              });
+              const typeEntries = Object.entries(data.G1.incidentsByType);
+              if (typeEntries.length > 0) {
+                pdfCharts.drawHBarChart(doc, {
+                  title: 'Incidents by Type',
+                  data: typeEntries.map(([label, value]) => ({ label, value })),
+                  unit: 'cases',
+                  color: '#d97706',
+                  maxBars: 7,
+                });
+              }
+              doc.fontSize(10).font('Helvetica').fillColor('#333');
+            } else if (disc.code.includes('G1-3') || disc.code.includes('205-2')) {
+              const antiCorruption = data.G1.training
+                .filter(r => r.topic === 'Anti-corruption')
+                .reduce((s, r) => s + r.employeesTrained, 0);
+              doc.text(`People who completed ethics/compliance training: ${data.G1.totalTrained.toLocaleString()}`);
+              doc.text(`Of which anti-corruption training: ${antiCorruption.toLocaleString()}`);
+
+              doc.moveDown(0.5);
+              pdfCharts.drawKpiRow(doc, {
+                kpis: [
+                  { label: 'People Trained', value: data.G1.totalTrained.toLocaleString(), unit: 'headcount', color: '#0ea5e9' },
+                  { label: 'Anti-corruption', value: antiCorruption.toLocaleString(), unit: 'headcount', color: '#10b981' },
+                  { label: 'Training Records', value: data.G1.training.length, unit: 'entries', color: '#8b5cf6' },
+                ],
+              });
+              doc.fontSize(10).font('Helvetica').fillColor('#333');
+            } else if (disc.code.includes('G1-1')) {
+              doc.text(`Governance policies in place: ${data.G1.policiesInPlace} of ${data.G1.policies.length} registered`);
+              data.G1.policies.slice(0, 8).forEach(p => {
+                doc.text(`  • ${p.policyName} (${p.policyArea}) — ${p.status}${p.boardApproved === 'Yes' ? ', board approved' : ''}`, { indent: 15 });
+              });
+            } else if (disc.code.includes('2-9') || disc.code.includes('GOV')) {
+              const femaleBoard = data.G1.boardByGender['Female'] || 0;
+              doc.text(`Board size: ${data.G1.boardSize} members`);
+              doc.text(`Women on board: ${data.G1.boardSize > 0 ? Math.round((femaleBoard / data.G1.boardSize) * 100) : 0}%`);
+              doc.text(`Independent members: ${data.G1.boardSize > 0 ? Math.round((data.G1.independentCount / data.G1.boardSize) * 100) : 0}%`);
+
+              const genderEntries = Object.entries(data.G1.boardByGender);
+              if (genderEntries.length > 0) {
+                doc.moveDown(0.5);
+                pdfCharts.drawHBarChart(doc, {
+                  title: 'Board Composition by Gender',
+                  data: genderEntries.map(([label, value]) => ({ label, value })),
+                  unit: 'members',
+                  color: '#d97706',
+                  maxBars: 5,
+                });
+              }
               doc.fontSize(10).font('Helvetica').fillColor('#333');
             } else {
               doc.text(`${discData.count} data records available.`);

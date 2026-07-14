@@ -26,6 +26,11 @@ const SYSTEM_PROMPT = `You are the Triple I ESG Portal Assistant — a knowledge
 3. **AI Document Extract**: PDF/image OCR + Claude Vision for travel, stay, energy, and vehicle documents. Handles handwritten documents in any language.
 4. **SBTi Targets**: Decarbonization goals with base year, target year, reduction method (absolute/intensity/renewable share).
 
+### Governance (G1) Module
+4a. **Board & Leadership** (Governance → Board & Leadership): Board composition dashboard — board size, % women on board, % independent directors, average tenure, breakdowns by role and age band. Upload board member lists via the same AI ETL (any column names, any language).
+4b. **Ethics & Compliance** (Governance → Ethics & Compliance): Business-conduct dashboard — ethics/compliance training completion (anti-corruption, code of conduct, data privacy), governance incidents (corruption, bribery, anti-competitive, whistleblower, data privacy cases) with status and fines, and a policy register showing which governance policies are in place, board-approved, and when last reviewed.
+4c. **Governance Data Upload** (single upload flow for both pages): accepts board lists, compliance training logs, incident/case registers, and policy inventories. AI classifies rows into the right governance tables automatically. Governance data feeds ESRS G1 (Business Conduct) and GRI 205/206 + GRI 2-9 disclosures in generated reports.
+
 ### Product Carbon Footprint (PCF)
 5. **Products & BOM**: Create products (SKU, sector, functional unit, mass). Upload BOM spreadsheets OR generate a BOM from a natural-language product description using AI.
 6. **AI Material Classifier**: Maps freeform part descriptions to canonical material classes and matches emission factors automatically. Shows confidence scores — low-confidence rows float to a "Needs review" band.
