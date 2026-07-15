@@ -54,6 +54,7 @@ function buildNav(t) {
     { label: t('nav.sbtiTargets'), path: '/sbti-targets', icon: Target },
     { label: t('nav.reports'), path: '/reports', icon: FileText },
     { key: 'iso-gri', label: t('nav.isoGriBridge'), path: '/iso-gri', icon: GitMerge, feature: 'iso_gri_bridge' },
+    { key: 'iso-bridge', label: t('nav.isoBridge'), path: '/iso-bridge', icon: GitMerge, feature: 'iso_bridge' },
     { label: t('nav.sustainabilityRoi'), path: '/roi', icon: TrendingUp, feature: 'sustainability_roi' },
     { label: t('nav.suppliers'), path: '/suppliers', icon: Truck },
     { label: t('nav.dataConnections'), path: '/connections', icon: Database, feature: 'db_connections' },

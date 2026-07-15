@@ -79,6 +79,11 @@ model Company {
   sites            Site[]
   waterActivities  WaterActivity[]
   biodiversityAssessments BiodiversityAssessment[]
+
+  isoCertificates    IsoCertificate[]
+  isoEvidenceRecords IsoEvidenceRecord[]
+  disclosureDrafts   DisclosureDraft[]
+  reverseExportPacks ReverseExportPack[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -342,6 +347,82 @@ model FS1EmployeeTurnover {
   turnoverType  String  // Voluntary, Involuntary
   count         Int
   createdAt     DateTime @default(now())
+}
+
+// ─── ISO-to-GRI/ESRS Bridge (EcoHub Engine) ─────────────────────
+// Document/disclosure crosswalk module — distinct from the record-level
+// ISO→GRI connector bridge (IsoGriMappingRule / IsoDataIngestion).
+
+model IsoCertificate {
+  id                   String    @id @default(uuid())
+  companyId            String
+  company              Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  isoStandard          String    // 14001, 45001, 50001, 14064-1, 14046, 37001, 9001
+  isoEdition           String    @default("unknown") // 2015 | 2026 | year | unknown — drives crosswalk version
+  certNumber           String?
+  certBody             String?   // TÜV, DNV, SGS, BSI…
+  accreditationBody    String?   // DAkkS, UKAS, ANAB…
+  accredited           Boolean?  // null = could not determine; false = flag low-trust
+  scopeStatement       String?
+  sites                String[]  @default([])
+  issueDate            DateTime?
+  expiryDate           DateTime?
+  nextSurveillanceDate DateTime?
+  sourceFile           String?   // stored file path (uploads/<companyId>/…)
+  sourceFileName       String?
+  extractionConfidence Float?
+  createdAt            DateTime  @default(now())
+
+  evidenceRecords IsoEvidenceRecord[]
+}
+
+model IsoEvidenceRecord {
+  id             String          @id @default(uuid())
+  companyId      String
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  certificateId  String?
+  certificate    IsoCertificate? @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  recordType     String          // aspectsRegister | complianceRegister | objectives | monitoring | incidentRegister | energyReview | mgmtReview | nonconformity | policy | contextAnalysis | …
+  payload        Json            // structured extraction result
+  sourceFile     String?         // stored file path — provenance
+  sourceFileName String?
+  sourceLocation String?         // page / sheet / section reference
+  language       String?
+  ingestedAt     DateTime        @default(now())
+}
+
+model DisclosureDraft {
+  id             String    @id @default(uuid())
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  disclosureCode String    // e.g. "GRI 403-1", "ESRS E1-2"
+  standard       String    // GRI | ESRS | TCFD | ISSB
+  year           Int
+  draftText      String
+  citations      Json      // [{ mappingId, isoStandard, clause, clauseTitle, sourceFile, sourceFileName, sourceLocation, evidenceRecordId }]
+  confidence     Float?
+  modelVersion   String?
+  promptVersion  String?
+  status         String    @default("DRAFT") // DRAFT | APPROVED | REJECTED
+  editedText     String?   // reviewer-edited final text (used instead of draftText when set)
+  reviewerId     String?
+  reviewedAt     DateTime?
+  language       String    @default("en")
+  createdAt      DateTime  @default(now())
+
+  @@index([companyId, standard, year, status])
+}
+
+model ReverseExportPack {
+  id                String   @id @default(uuid())
+  companyId         String
+  company           Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  theme             String   // climate | biodiversity | resource | lifecycle
+  year              Int
+  targetClauses     String[] @default([]) // 14001:2026 clauses: 4.1 / 4.2 / 6.1.2
+  contentBlocks     Json     // [{ clause, title, body, dataRefs }]
+  disclaimerVersion String   @default("1.0")
+  generatedAt       DateTime @default(now())
 }
 
 // ─── G1: Governance ─────────────────────────────────────────────

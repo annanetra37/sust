@@ -33,6 +33,14 @@ const EXCEL_ETL_TOKENS = {
   batchSize:  50,
 };
 
+// ISO Bridge actions (spec §10).  Coverage computation is pure registry
+// math (no model call) and is deliberately kept free.
+const ISO_BRIDGE_TOKENS = {
+  certExtract:     { input: 25000, output: 800 },  // vision-mode certificate PDF
+  disclosureDraft: { input: 9000,  output: 1200 }, // per disclosure drafted (text mode)
+  reverseExport:   { input: 7000,  output: 1800 }, // per theme pack (text mode)
+};
+
 // Report generation is pure PDFKit (no AI) — charged as a flat base plus
 // small increments per topic / disclosure to reflect rendering cost.
 const REPORT_COSTS = {
@@ -162,15 +170,58 @@ function estimateReport({ validation } = {}) {
   };
 }
 
+// ─── ISO Bridge actions (spec §10) ───────────────────────────────────────────
+//  CERT_EXTRACT — vision-mode per certificate; DISCLOSURE_DRAFT — text-mode per
+//  disclosure; REVERSE_EXPORT — text-mode per theme pack.  Coverage is free.
+function estimateCertExtract({ fileCount = 1 } = {}) {
+  const n = Math.max(1, parseInt(fileCount, 10) || 1);
+  const tok = ISO_BRIDGE_TOKENS.certExtract;
+  const perDocUsd = tokenCostUSD(DEFAULT_MODEL, tok.input, tok.output);
+  const totalUsd = perDocUsd * n;
+  return {
+    estimatedCostUSD: round6(totalUsd),
+    credits: usdToCredits(totalUsd),
+    breakdown: { fileCount: n, perDocumentUSD: round6(perDocUsd), perDocumentCredits: usdToCredits(perDocUsd), mode: 'vision', model: DEFAULT_MODEL },
+  };
+}
+
+function estimateDisclosureDraft({ disclosureCount = 1 } = {}) {
+  const n = Math.max(1, parseInt(disclosureCount, 10) || 1);
+  const tok = ISO_BRIDGE_TOKENS.disclosureDraft;
+  const perUsd = tokenCostUSD(DEFAULT_MODEL, tok.input, tok.output);
+  const totalUsd = perUsd * n;
+  return {
+    estimatedCostUSD: round6(totalUsd),
+    credits: usdToCredits(totalUsd),
+    breakdown: { disclosureCount: n, perDisclosureUSD: round6(perUsd), perDisclosureCredits: usdToCredits(perUsd), mode: 'text', model: DEFAULT_MODEL },
+  };
+}
+
+function estimateReverseExport({ themeCount = 1 } = {}) {
+  const n = Math.max(1, parseInt(themeCount, 10) || 1);
+  const tok = ISO_BRIDGE_TOKENS.reverseExport;
+  const perUsd = tokenCostUSD(DEFAULT_MODEL, tok.input, tok.output);
+  const totalUsd = perUsd * n;
+  return {
+    estimatedCostUSD: round6(totalUsd),
+    credits: usdToCredits(totalUsd),
+    breakdown: { themeCount: n, perThemeUSD: round6(perUsd), perThemeCredits: usdToCredits(perUsd), mode: 'text', model: DEFAULT_MODEL },
+  };
+}
+
 module.exports = {
   CREDIT_MULTIPLIER,
   DEFAULT_MODEL,
   DOC_EXTRACT_TOKENS,
   EXCEL_ETL_TOKENS,
+  ISO_BRIDGE_TOKENS,
   REPORT_COSTS,
   tokenCostUSD,
   usdToCredits,
   estimateDocExtract,
   estimateExcelETL,
   estimateReport,
+  estimateCertExtract,
+  estimateDisclosureDraft,
+  estimateReverseExport,
 };

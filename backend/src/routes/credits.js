@@ -56,6 +56,18 @@ router.post('/estimate', async (req, res) => {
         estimate = estimator.estimateExcelETL(params);
         break;
 
+      case 'cert-extract':
+        estimate = estimator.estimateCertExtract(params);
+        break;
+
+      case 'disclosure-draft':
+        estimate = estimator.estimateDisclosureDraft(params);
+        break;
+
+      case 'reverse-export':
+        estimate = estimator.estimateReverseExport(params);
+        break;
+
       case 'report-gen': {
         const { year, standard, topics } = params;
         if (!year || !standard) {
