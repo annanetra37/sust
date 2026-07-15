@@ -88,6 +88,8 @@ export default function DatabaseImport({ orgUnitId, reportingYear, type, onProce
       let res;
       if (type === 'E1') {
         res = await api.uploadE1(fd);
+      } else if (type === 'G1') {
+        res = await api.uploadG1(fd);
       } else {
         res = await api.uploadS1(fd);
       }

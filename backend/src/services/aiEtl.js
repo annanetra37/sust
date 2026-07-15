@@ -127,10 +127,62 @@ const E3_SCHEMA = {
   },
 };
 
+const G1_SCHEMAS = {
+  board_composition: {
+    description: 'Board of directors / leadership composition by gender, role, and independence',
+    fields: {
+      year: { type: 'integer', required: true, description: 'Reporting year (e.g. 2026)' },
+      quarter: { type: 'integer', required: false, description: 'Quarter 1-4, null if annual' },
+      gender: { type: 'enum', required: true, values: ['Male', 'Female', 'Non-binary', 'Not disclosed'], description: 'Board member gender' },
+      role: { type: 'enum', required: true, values: ['Executive', 'Non-executive', 'Chair', 'Vice-chair', 'Committee member'], description: 'Board role. CEO/CFO/managing directors → Executive; supervisory/outside directors → Non-executive' },
+      independence: { type: 'enum', required: true, values: ['Independent', 'Non-independent', 'Not disclosed'], description: 'Whether the member is an independent director' },
+      ageBand: { type: 'enum', required: false, values: ['Under 30', '30-50', 'Over 50'], description: 'Age band of the member(s)' },
+      tenureYears: { type: 'float', required: false, description: 'Tenure on the board in years (average if aggregated)' },
+      count: { type: 'integer', required: true, description: 'Number of board members matching this combination' },
+    },
+  },
+  ethics_training: {
+    description: 'Ethics / compliance training delivery (anti-corruption, code of conduct, data privacy, etc.)',
+    fields: {
+      year: { type: 'integer', required: true },
+      quarter: { type: 'integer', required: false },
+      topic: { type: 'enum', required: true, values: ['Anti-corruption', 'Code of Conduct', 'Data Privacy', 'Anti-competitive', 'Whistleblowing', 'Other'], description: 'Training topic' },
+      audience: { type: 'enum', required: true, values: ['Employees', 'Management', 'Board', 'Suppliers'], description: 'Who was trained' },
+      employeesTrained: { type: 'integer', required: true, description: 'Number of people who completed the training' },
+      totalHeadcount: { type: 'integer', required: false, description: 'Total audience size (for completion rate)' },
+      completionRate: { type: 'float', required: false, description: 'Completion rate in percent, if provided directly' },
+    },
+  },
+  governance_incidents: {
+    description: 'Business-conduct incidents: corruption, bribery, anti-competitive behavior, whistleblower reports, data privacy cases, and related fines',
+    fields: {
+      year: { type: 'integer', required: true },
+      quarter: { type: 'integer', required: false },
+      incidentType: { type: 'enum', required: true, values: ['Corruption', 'Bribery', 'Anti-competitive', 'Whistleblower report', 'Data privacy', 'Conflict of interest', 'Other'], description: 'Type of incident or case' },
+      status: { type: 'enum', required: true, values: ['Open', 'Under investigation', 'Substantiated', 'Dismissed', 'Resolved'], description: 'Current case status' },
+      actionTaken: { type: 'string', required: false, description: 'Disciplinary or corrective action taken (e.g. dismissal, contract termination)' },
+      finesAmount: { type: 'float', required: false, description: 'Monetary fines or penalties in USD (0 if none)' },
+      count: { type: 'integer', required: true, description: 'Number of incidents matching this combination' },
+    },
+  },
+  policy_register: {
+    description: 'Register of governance policies: which policies exist, their status, board approval, and last review',
+    fields: {
+      year: { type: 'integer', required: true, description: 'Reporting year the register entry applies to' },
+      policyName: { type: 'string', required: true, description: 'Name of the policy document' },
+      policyArea: { type: 'enum', required: true, values: ['Anti-corruption', 'Code of Conduct', 'Whistleblower protection', 'Data privacy', 'Supplier code', 'Lobbying', 'Other'], description: 'Governance area the policy covers' },
+      status: { type: 'enum', required: true, values: ['In place', 'Draft', 'Under review', 'Not in place'], description: 'Whether the policy is adopted' },
+      boardApproved: { type: 'enum', required: false, values: ['Yes', 'No', 'Not disclosed'], description: 'Whether the board approved the policy' },
+      lastReviewed: { type: 'integer', required: false, description: 'Year the policy was last reviewed' },
+      coverage: { type: 'enum', required: false, values: ['Employees', 'Suppliers', 'All'], description: 'Who the policy applies to' },
+    },
+  },
+};
+
 // ─── Step 1: AI Schema Mapping ──────────────────────────────
 
 async function mapSchema(sampleRows, sourceColumns, targetModule, costCtx) {
-  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
+  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'G1' ? G1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
 
   const prompt = `You are a sustainability data expert. Analyze the uploaded data and map it to the target ESG data model.
 
@@ -187,7 +239,7 @@ Return ONLY valid JSON in this exact format:
 // ─── Step 2: AI Data Cleaning & Transformation ──────────────
 
 async function cleanAndTransform(rows, mapping, targetModule, costCtx) {
-  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
+  const targetSchemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'G1' ? G1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
   const schema = targetSchemas[mapping.targetTable];
 
   if (!schema) throw new Error(`Unknown target table: ${mapping.targetTable}`);
@@ -222,6 +274,10 @@ For EACH row, produce a cleaned object matching the target schema exactly. Handl
 - Fix contract types: "FT"→"Full-time", "PT"→"Part-time", "Perm"→"Permanent", "Temp"→"Temporary"
 - Normalize disability status: "Y"/"Yes"/"true"/"1"→"Yes", "N"/"No"/"false"/"0"→"No"
 - Normalize turnover type: "Quit"/"Resigned"/"Left"→"Voluntary", "Fired"/"Terminated"/"Laid off"→"Involuntary"
+- Normalize board roles: "CEO"/"CFO"/"Managing Director"→"Executive", "NED"/"Supervisory board"/"Outside director"→"Non-executive", "Chairman"/"Chairwoman"/"President of the board"→"Chair"
+- Normalize independence: "Indep."/"Yes"/"unabhängig"/"indépendant"→"Independent", "No"/"Affiliated"/"Insider"→"Non-independent"
+- Normalize policy status: "Adopted"/"Active"/"Implemented"→"In place", "Planned"/"Missing"/"None"→"Not in place"
+- Normalize incident status: "Closed"/"Concluded"→"Resolved", "Confirmed"/"Upheld"→"Substantiated", "Rejected"/"Unfounded"→"Dismissed"
 - Normalize injury severity: map any severity description to the closest enum value
 - Normalize scopes: "S1"/"scope1"/"Direct"→"Scope 1", "S2"/"scope2"/"Indirect"→"Scope 2", "S3"/"scope3"/"Value chain"→"Scope 3"
 - If a field is required but missing, use sensible defaults or "Not disclosed" for enums
@@ -435,7 +491,7 @@ function validateRow(row, schema) {
 }
 
 function validateAndCoerce(cleanedRows, targetTable, targetModule) {
-  const schemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
+  const schemas = targetModule === 'S1' ? S1_SCHEMAS : targetModule === 'G1' ? G1_SCHEMAS : targetModule === 'E3' ? E3_SCHEMA : E1_SCHEMA;
   const schema = schemas[targetTable];
   if (!schema) return { valid: [], invalid: [] };
 
@@ -480,6 +536,7 @@ module.exports = {
   extractDocumentWithAI,
   validateAndCoerce,
   S1_SCHEMAS,
+  G1_SCHEMAS,
   E1_SCHEMA,
   E3_SCHEMA,
 };

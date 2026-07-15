@@ -52,6 +52,7 @@ router.post('/estimate', async (req, res) => {
 
       case 'excel-e1':
       case 'excel-s1':
+      case 'excel-g1':
         estimate = estimator.estimateExcelETL(params);
         break;
 

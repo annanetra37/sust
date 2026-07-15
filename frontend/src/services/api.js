@@ -101,6 +101,11 @@ const api = {
   uploadS1: (formData) => request('/s1/upload', { method: 'POST', body: formData }),
   getS1Progress: (id) => request(`/s1/upload/${id}/progress`),
 
+  // G1
+  getG1Dashboard: (params) => request(`/g1/dashboard?${new URLSearchParams(params)}`),
+  uploadG1: (formData) => request('/g1/upload', { method: 'POST', body: formData }),
+  getG1Progress: (id) => request(`/g1/upload/${id}/progress`),
+
   // E1
   getE1Dashboard: (params) => request(`/e1/dashboard?${new URLSearchParams(params)}`),
   uploadE1: (formData) => request('/e1/upload', { method: 'POST', body: formData }),
@@ -191,6 +196,15 @@ const api = {
     const a = document.createElement('a');
     a.href = url;
     a.download = `S1_Dashboard_${params.year || 'export'}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+  exportG1Dashboard: async (params) => {
+    const blob = await request(`/exports/g1?${new URLSearchParams(params)}`);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `G1_Governance_${params.year || 'export'}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   },

@@ -104,8 +104,8 @@ export default function ProcessingScreen({ progress, status, type }) {
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  const dashboardPath = type === 'E1' ? '/dashboard/E/environmental-1' : '/dashboard/S/social-1';
-  const dashboardLabel = type === 'E1' ? t('processing.e1Dashboard') : t('processing.s1Dashboard');
+  const dashboardPath = type === 'E1' ? '/dashboard/E/environmental-1' : type === 'G1' ? '/dashboard/G/governance-1' : '/dashboard/S/social-1';
+  const dashboardLabel = type === 'E1' ? t('processing.e1Dashboard') : type === 'G1' ? t('processing.g1Dashboard') : t('processing.s1Dashboard');
 
   if (status === 'COMPLETED') {
     return (
