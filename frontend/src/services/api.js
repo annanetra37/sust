@@ -101,6 +101,20 @@ const api = {
   uploadS1: (formData) => request('/s1/upload', { method: 'POST', body: formData }),
   getS1Progress: (id) => request(`/s1/upload/${id}/progress`),
 
+  // ISO Bridge (EcoHub Engine)
+  getIsoBridgeRegistry: () => request('/iso/registry'),
+  uploadIsoCertificate: (formData) => request('/iso/certificates', { method: 'POST', body: formData }),
+  getIsoCertificates: () => request('/iso/certificates'),
+  updateIsoCertificate: (id, body) => request(`/iso/certificates/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  uploadIsoEvidence: (formData) => request('/iso/evidence', { method: 'POST', body: formData }),
+  getIsoEvidence: () => request('/iso/evidence'),
+  getIsoCoverage: (body) => request('/iso/coverage', { method: 'POST', body: JSON.stringify(body) }),
+  generateIsoDraft: (body) => request('/iso/draft', { method: 'POST', body: JSON.stringify(body) }),
+  getIsoDrafts: (params) => request(`/iso/drafts?${new URLSearchParams(params || {})}`),
+  reviewIsoDraft: (id, body) => request(`/iso/draft/${id}/review`, { method: 'POST', body: JSON.stringify(body) }),
+  generateIsoReverseExport: (body) => request('/iso/reverse-export', { method: 'POST', body: JSON.stringify(body) }),
+  getIsoReverseExports: () => request('/iso/reverse-export'),
+
   // G1
   getG1Dashboard: (params) => request(`/g1/dashboard?${new URLSearchParams(params)}`),
   uploadG1: (formData) => request('/g1/upload', { method: 'POST', body: formData }),

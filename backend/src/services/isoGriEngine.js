@@ -58,7 +58,7 @@ const GRI_TOPIC_FAMILIES = [
   {
     family: 'GRI 301-306',
     label: 'Environmental',
-    pattern: /GRI\s*30[1-8]/i,
+    pattern: /GRI\s*(30[1-8]|101)/i,
     disclosures: [
       { code: 'GRI 301-1', name: 'Materials used by weight or volume' },
       { code: 'GRI 302-1', name: 'Energy consumption within the organization' },
@@ -67,7 +67,8 @@ const GRI_TOPIC_FAMILIES = [
       { code: 'GRI 303-3', name: 'Water withdrawal' },
       { code: 'GRI 303-4', name: 'Water discharge' },
       { code: 'GRI 303-5', name: 'Water consumption' },
-      { code: 'GRI 304-1', name: 'Operational sites in protected areas' },
+      // GRI 101: Biodiversity 2024 supersedes GRI 304 (mandatory since 1 Jan 2026)
+      { code: 'GRI 101-5', name: 'Locations with biodiversity impacts (GRI 101: Biodiversity 2024)' },
       { code: 'GRI 305-1', name: 'Direct (Scope 1) GHG emissions' },
       { code: 'GRI 305-2', name: 'Energy indirect (Scope 2) GHG emissions' },
       { code: 'GRI 305-3', name: 'Other indirect (Scope 3) GHG emissions' },

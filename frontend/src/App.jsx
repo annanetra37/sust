@@ -13,6 +13,7 @@ import S1Dashboard from './pages/S1Dashboard';
 import E1Dashboard from './pages/E1Dashboard';
 import S1Upload from './pages/S1Upload';
 import E1Upload from './pages/E1Upload';
+import IsoBridge from './pages/IsoBridge';
 import G1BoardDashboard from './pages/G1BoardDashboard';
 import G1EthicsDashboard from './pages/G1EthicsDashboard';
 import G1Upload from './pages/G1Upload';
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/dashboard/E/environmental-1" element={<E1Dashboard />} />
         <Route path="/platform/S/social-1" element={<S1Upload />} />
         <Route path="/platform/E/environmental-1" element={<E1Upload />} />
+        <Route path="/iso-bridge" element={<IsoBridge />} />
         <Route path="/dashboard/G/governance-1" element={<G1BoardDashboard />} />
         <Route path="/dashboard/G/governance-2" element={<G1EthicsDashboard />} />
         <Route path="/platform/G/governance-1" element={<G1Upload />} />

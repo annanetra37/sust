@@ -37,7 +37,7 @@ export const TIERS = {
     priceMonthly: null,
     limits: { maxUsers: null, maxOrgUnits: null, monthlyCredits: null },
     inheritsFrom: 'PROFESSIONAL',
-    features: { sso_saml: true, custom_branding: true, dedicated_csm: true, sla_guarantee: true, api_access: true, iso_gri_bridge: true, biodiversity: true },
+    features: { sso_saml: true, custom_branding: true, dedicated_csm: true, sla_guarantee: true, api_access: true, iso_gri_bridge: true, iso_bridge: true, biodiversity: true },
   },
 };
 
@@ -60,6 +60,7 @@ export const FEATURE_LABELS = {
   sla_guarantee:          'SLA guarantee',
   api_access:             'API access',
   iso_gri_bridge:         'ISO → GRI Bridge',
+  iso_bridge:             'ISO-to-GRI/ESRS Bridge',
   water_resources:        'Water Resources (E3)',
   biodiversity:           'Biodiversity & Ecosystems (E4)',
 };

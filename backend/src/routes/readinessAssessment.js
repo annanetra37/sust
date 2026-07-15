@@ -48,7 +48,7 @@ const TOPIC_FAMILIES = {
   'GRI 301': { label: 'Materials',              weight: 8 },
   'GRI 302': { label: 'Energy',                 weight: 10 },
   'GRI 303': { label: 'Water',                  weight: 8 },
-  'GRI 304': { label: 'Biodiversity',           weight: 5 },
+  'GRI 101': { label: 'Biodiversity (GRI 101:2024)', weight: 5 },
   'GRI 305': { label: 'Emissions',              weight: 12 },
   'GRI 306': { label: 'Waste',                  weight: 8 },
   'GRI 401': { label: 'Employment',             weight: 6 },
@@ -61,7 +61,7 @@ const TOPIC_FAMILIES = {
 };
 
 // Environmental topic codes (GRI 301-306)
-const ENVIRONMENTAL_TOPICS = ['GRI 301', 'GRI 302', 'GRI 303', 'GRI 304', 'GRI 305', 'GRI 306'];
+const ENVIRONMENTAL_TOPICS = ['GRI 301', 'GRI 302', 'GRI 303', 'GRI 101', 'GRI 305', 'GRI 306'];
 
 // Social topic codes (GRI 401-414)
 const SOCIAL_TOPICS = ['GRI 401', 'GRI 403', 'GRI 404', 'GRI 414'];

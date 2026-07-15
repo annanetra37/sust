@@ -85,6 +85,7 @@ const TIERS = {
       api_access:             true,
       biodiversity:           true,  // /api/biodiversity — E4 Biodiversity module
       iso_gri_bridge:         true,  // ISO → GRI Bridge module
+      iso_bridge:             true,  // ISO-to-GRI/ESRS Bridge (crosswalk + drafting) — Enterprise-included, add-on SKU below
     },
   },
 };
@@ -112,6 +113,7 @@ const FEATURE_LABELS = {
   water_resources:        'Water Resources (E3)',
   biodiversity:           'Biodiversity & Ecosystems (E4)',
   iso_gri_bridge:         'ISO → GRI Bridge',
+  iso_bridge:             'ISO-to-GRI/ESRS Bridge',
 };
 
 // Standards that are allowed per tier.  GRI is universal (Starter gets it);

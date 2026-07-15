@@ -123,6 +123,7 @@ async function buildReportDocx({
   logoFilePath,
   sectorKpiData,
   pcfProducts,
+  approvedDrafts = {},
 }) {
   const round = (n) => Math.round(n * 10000) / 10000;
 
@@ -800,18 +801,36 @@ async function buildReportDocx({
           }
         }
       } else if (disc.type === 'narrative') {
-        children.push(
-          text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`, {
-            italics: true,
-            color: '555555',
-          }),
-        );
-        children.push(
-          text(
-            `[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`,
-            { color: '888888', size: 18 },
-          ),
-        );
+        const approvedDraft = approvedDrafts[disc.code];
+        if (approvedDraft) {
+          // ISO Bridge: human-approved narrative content replaces the placeholder
+          const body = approvedDraft.editedText || approvedDraft.draftText;
+          body.split('\n').filter((p) => p.trim()).forEach((p) => children.push(text(p.trim())));
+          const cites = Array.isArray(approvedDraft.citations) ? approvedDraft.citations : [];
+          const citeText = cites.length > 0
+            ? cites.map((c) => `ISO ${c.isoStandard} clause ${c.clause}${c.sourceFileName ? ` — ${c.sourceFileName}` : ''}`).join('; ')
+            : 'ISO management-system documentation';
+          children.push(
+            text(`Source: ${citeText}. Drafted from ISO evidence via the ISO Bridge and approved by a human reviewer.`, {
+              italics: true,
+              color: '888888',
+              size: 16,
+            }),
+          );
+        } else {
+          children.push(
+            text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`, {
+              italics: true,
+              color: '555555',
+            }),
+          );
+          children.push(
+            text(
+              `[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`,
+              { color: '888888', size: 18 },
+            ),
+          );
+        }
       } else {
         children.push(
           text(`[Omission] Quantitative data for this disclosure is not available for the reporting period ${y}.`, {
@@ -1023,6 +1042,23 @@ router.post('/generate', async (req, res) => {
       }
     }
 
+    // ─── ISO Bridge: human-approved narrative drafts ───────────
+    // Approved DisclosureDrafts (ISO Bridge C4) fill the narrative
+    // placeholders for their disclosure codes. Only APPROVED content is
+    // ever used — drafts and rejected content never reach a report.
+    const approvedDrafts = {};
+    try {
+      const draftRows = await prisma.disclosureDraft.findMany({
+        where: { companyId: req.user.companyId, standard, year: y, status: 'APPROVED' },
+        orderBy: { reviewedAt: 'desc' },
+      });
+      for (const d of draftRows) {
+        if (!approvedDrafts[d.disclosureCode]) approvedDrafts[d.disclosureCode] = d; // newest approval wins
+      }
+    } catch (err) {
+      console.warn('[Report] ISO Bridge draft fetch failed (non-fatal):', err.message);
+    }
+
     // ─── Sector KPI + PCF data for the report ──────────────────
     // Fetch the company's active sector pack KPIs and any PCF calculations
     // so they can be included in the report alongside standard disclosures.
@@ -1070,6 +1106,7 @@ router.post('/generate', async (req, res) => {
         logoFilePath,
         sectorKpiData,
         pcfProducts,
+        approvedDrafts,
       });
 
       res.setHeader(
@@ -1816,11 +1853,27 @@ router.post('/generate', async (req, res) => {
             }
           }
         } else if (disc.type === 'narrative') {
-          doc.fontSize(10).font('Helvetica-Oblique').fillColor('#555');
-          doc.text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`);
-          doc.moveDown(0.2);
-          doc.fontSize(9).fillColor('#888');
-          doc.text(`[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`);
+          const approvedDraft = approvedDrafts[disc.code];
+          if (approvedDraft) {
+            // ISO Bridge: human-approved narrative content replaces the placeholder
+            const body = approvedDraft.editedText || approvedDraft.draftText;
+            doc.fontSize(10).font('Helvetica').fillColor('#333');
+            doc.text(body);
+            const cites = Array.isArray(approvedDraft.citations) ? approvedDraft.citations : [];
+            const citeText = cites.length > 0
+              ? cites.map((c) => `ISO ${c.isoStandard} clause ${c.clause}${c.sourceFileName ? ` — ${c.sourceFileName}` : ''}`).join('; ')
+              : 'ISO management-system documentation';
+            doc.moveDown(0.2);
+            doc.fontSize(8).font('Helvetica-Oblique').fillColor('#888');
+            doc.text(`Source: ${citeText}. Drafted from ISO evidence via the ISO Bridge and approved by a human reviewer.`);
+            doc.font('Helvetica');
+          } else {
+            doc.fontSize(10).font('Helvetica-Oblique').fillColor('#555');
+            doc.text(`This disclosure requires qualitative narrative about: ${disc.name.toLowerCase()}.`);
+            doc.moveDown(0.2);
+            doc.fontSize(9).fillColor('#888');
+            doc.text(`[To be completed: Provide details on policies, actions, targets, and governance related to ${disc.name.toLowerCase()}. Include context on why this topic is material, what measures are in place, and what outcomes have been achieved.]`);
+          }
         } else {
           // Missing metric data — provide standard-compliant omission
           doc.fontSize(10).font('Helvetica').fillColor('#b45309');

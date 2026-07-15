@@ -49,6 +49,7 @@ app.use('/api/portal', require('./routes/supplierPortal'));
 app.use('/api/real-estate', require('./routes/realEstate'));
 app.use('/api/financial', require('./routes/financial'));
 app.use('/api/iso-gri', require('./routes/isoGri'));
+app.use('/api/iso', require('./routes/iso'));
 app.use('/api/readiness-assessment', require('./routes/readinessAssessment'));
 app.use('/api/water', require('./routes/water'));
 app.use('/api/biodiversity', require('./routes/biodiversity'));
