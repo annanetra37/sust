@@ -84,6 +84,7 @@ model Company {
   isoEvidenceRecords IsoEvidenceRecord[]
   disclosureDrafts   DisclosureDraft[]
   reverseExportPacks ReverseExportPack[]
+  preparationPlans   PreparationPlan[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -347,6 +348,25 @@ model FS1EmployeeTurnover {
   turnoverType  String  // Voluntary, Involuntary
   count         Int
   createdAt     DateTime @default(now())
+}
+
+// ─── Preparation Guide ("Where to Start" wizard) ────────────────
+// Per-topic onboarding: the user answers a few questions and gets a
+// personalized "what to have in hand" checklist. Answers + ticked items
+// are persisted per company so the checklist doubles as a shared to-do.
+
+model PreparationPlan {
+  id           String   @id @default(uuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  topic        String   // e1 | s1 | g1 | pcf | isoBridge | reports
+  answers      Json     // { questionKey: value | [values] }
+  checkedItems String[] @default([]) // checklist item ids ticked off
+  updatedById  String?
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  @@unique([companyId, topic])
 }
 
 // ─── ISO-to-GRI/ESRS Bridge (EcoHub Engine) ─────────────────────

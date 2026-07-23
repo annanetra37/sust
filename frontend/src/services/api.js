@@ -101,6 +101,11 @@ const api = {
   uploadS1: (formData) => request('/s1/upload', { method: 'POST', body: formData }),
   getS1Progress: (id) => request(`/s1/upload/${id}/progress`),
 
+  // Preparation Guide (Where to Start)
+  getPreparationPlans: () => request('/prepare'),
+  savePreparationPlan: (topic, body) => request(`/prepare/${topic}`, { method: 'PUT', body: JSON.stringify(body) }),
+  resetPreparationPlan: (topic) => request(`/prepare/${topic}`, { method: 'DELETE' }),
+
   // ISO Bridge (EcoHub Engine)
   getIsoBridgeRegistry: () => request('/iso/registry'),
   uploadIsoCertificate: (formData) => request('/iso/certificates', { method: 'POST', body: formData }),

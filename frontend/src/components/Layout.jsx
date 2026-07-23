@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages, GitMerge
+  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages, GitMerge, Compass
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
@@ -17,6 +17,7 @@ import { hasFeature, normaliseTier } from '../config/tierFeatures';
 function buildNav(t) {
   return [
     { key: 'home', label: t('nav.home'), path: '/', icon: LayoutDashboard },
+    { key: 'prepare', label: t('nav.whereToStart'), path: '/prepare', icon: Compass },
     { key: 'analytics', label: t('nav.analytics'), path: '/analytics', icon: BarChart3 },
     {
       key: 'environmental', label: t('nav.environmental'), icon: Leaf, color: 'text-emerald-600 dark:text-emerald-400',

@@ -85,7 +85,8 @@
     "soon": "Soon",
     "enterprise": "Enterprise",
     "isoGriBridge": "ISO → GRI Bridge",
-    "isoBridge": "ISO Bridge"
+    "isoBridge": "ISO Bridge",
+    "whereToStart": "Where to Start"
   },
   "home": {
     "welcomeBack": "Welcome back, {name}",
@@ -1396,5 +1397,22 @@
     "generatePack": "Generate {year} evidence pack",
     "generatedPacks": "Generated evidence packs",
     "basedOn": "Based on"
+  },
+  "prepare": {
+    "title": "Where to Start",
+    "subtitle": "Answer a few questions per topic and get a personalized list of what to have in hand before you connect your data",
+    "progress": "Preparation progress",
+    "startQuestions": "Answer {count} quick questions to build your list",
+    "allTopics": "All topics",
+    "questionsIntro": "A few questions about how your company works — the answers shape your preparation list.",
+    "selectAllThatApply": "Select all that apply",
+    "buildChecklist": "Build my preparation list",
+    "checklistIntro": "Your personalized list. Tick items off as you collect them — the list is shared with your teammates.",
+    "editAnswers": "Edit answers",
+    "reset": "Reset",
+    "itemsReady": "{done} of {total} items in hand",
+    "allReady": "Everything is in hand — go connect your data!",
+    "markReady": "Mark as in hand",
+    "markNotReady": "Mark as not ready"
   }
 }
