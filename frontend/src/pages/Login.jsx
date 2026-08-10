@@ -78,7 +78,10 @@ export default function Login() {
           </button>
 
           <p className="text-center text-sm text-gray-500">
-            Don't have an account? <Link to="/signup" className="text-brand-600 hover:underline">Sign up</Link>
+            Don't have an account?{' '}
+            <a href="https://triplei.io/contact-us" className="text-brand-600 hover:underline">
+              Contact us for a license
+            </a>
           </p>
         </form>
       </div>

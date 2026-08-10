@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -14,6 +13,7 @@ import E1Dashboard from './pages/E1Dashboard';
 import S1Upload from './pages/S1Upload';
 import E1Upload from './pages/E1Upload';
 import IsoBridge from './pages/IsoBridge';
+import PrepareGuide from './pages/PrepareGuide';
 import G1BoardDashboard from './pages/G1BoardDashboard';
 import G1EthicsDashboard from './pages/G1EthicsDashboard';
 import G1Upload from './pages/G1Upload';
@@ -54,7 +54,10 @@ export default function App() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      {/* Public self-signup is disabled — licenses are issued via sales.
+          Direct /signup hits land on the login page, which links to the
+          contact form. */}
+      <Route path="/signup" element={<Navigate to="/login" replace />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -71,6 +74,7 @@ export default function App() {
         <Route path="/platform/S/social-1" element={<S1Upload />} />
         <Route path="/platform/E/environmental-1" element={<E1Upload />} />
         <Route path="/iso-bridge" element={<IsoBridge />} />
+        <Route path="/prepare" element={<PrepareGuide />} />
         <Route path="/dashboard/G/governance-1" element={<G1BoardDashboard />} />
         <Route path="/dashboard/G/governance-2" element={<G1EthicsDashboard />} />
         <Route path="/platform/G/governance-1" element={<G1Upload />} />
