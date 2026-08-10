@@ -12,6 +12,15 @@ const { logActivity } = require('../utils/activityLog');
 // ─── Sign Up (2-step: personal + company) ────────────────────
 
 router.post('/signup', async (req, res) => {
+  // Public self-signup is disabled — accounts are provisioned after a
+  // license agreement (https://triplei.io/contact-us). Gated at the API
+  // layer, not just hidden in the UI. Set ALLOW_PUBLIC_SIGNUP=true only
+  // in dev/demo environments.
+  if (process.env.ALLOW_PUBLIC_SIGNUP !== 'true') {
+    return res.status(403).json({
+      error: 'Self-service signup is disabled. Please contact us for a license at https://triplei.io/contact-us.',
+    });
+  }
   try {
     const {
       email, password, firstName, lastName, phone,
