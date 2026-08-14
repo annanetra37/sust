@@ -47,8 +47,52 @@ function getSharp() {
   }
 }
 
+// Bundled fonts for deterministic text rendering.  Production containers
+// often ship without any system fonts, in which case librsvg (sharp's SVG
+// engine) renders every glyph as a tofu box (□).  @resvg/resvg-js accepts
+// font FILES directly, so we bundle DejaVu Sans and never depend on the
+// host's fontconfig.
+const path = require('path');
+function getResvg() {
+  try {
+    return require('@resvg/resvg-js').Resvg;
+  } catch (e) {
+    return null;
+  }
+}
+function fontFiles() {
+  try {
+    const dir = path.dirname(require.resolve('dejavu-fonts-ttf/package.json'));
+    return [
+      path.join(dir, 'ttf', 'DejaVuSans.ttf'),
+      path.join(dir, 'ttf', 'DejaVuSans-Bold.ttf'),
+      path.join(dir, 'ttf', 'DejaVuSans-Oblique.ttf'),
+    ];
+  } catch (e) {
+    return [];
+  }
+}
+
 // Convert an SVG string to a PNG buffer + dimensions, or null on failure.
+// Prefers resvg (bundled fonts, no system dependency); falls back to sharp.
 async function svgToPng(svg, width, height) {
+  const Resvg = getResvg();
+  if (Resvg) {
+    try {
+      const files = fontFiles();
+      const resvg = new Resvg(svg, {
+        fitTo: { mode: 'width', value: width * 2 }, // 2x for crisp print rendering
+        font: {
+          fontFiles: files,
+          loadSystemFonts: files.length === 0, // system fonts only as a last resort
+          defaultFontFamily: 'DejaVu Sans',
+        },
+      });
+      return { buffer: resvg.render().asPng(), width, height };
+    } catch (e) {
+      console.warn('[docxCharts] resvg svg→png failed, falling back to sharp:', e.message);
+    }
+  }
   const sharp = getSharp();
   if (!sharp) return null;
   try {
@@ -100,7 +144,7 @@ async function donutChartBuffer({ data, title, colorMap }) {
       const y = 58 + i * 22;
       return `
         <rect x="${legendX}" y="${y}" width="12" height="12" fill="${color}" />
-        <text x="${legendX + 18}" y="${y + 10}" font-family="Arial, sans-serif" font-size="12" fill="#333">${esc(d.label)}: ${round2(d.value)} (${pct}%)</text>
+        <text x="${legendX + 18}" y="${y + 10}" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" fill="#333">${esc(d.label)}: ${round2(d.value)} (${pct}%)</text>
       `;
     })
     .join('');
@@ -108,11 +152,11 @@ async function donutChartBuffer({ data, title, colorMap }) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="#ffffff" />
-      ${title ? `<text x="20" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
+      ${title ? `<text x="20" y="28" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
       ${slices.join('')}
       <circle cx="${cx}" cy="${cy}" r="${innerR}" fill="#ffffff" />
-      <text x="${cx}" y="${cy - 2}" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${round2(total)}</text>
-      <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#64748b">total</text>
+      <text x="${cx}" y="${cy - 2}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${round2(total)}</text>
+      <text x="${cx}" y="${cy + 14}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" fill="#64748b">total</text>
       ${legendItems}
     </svg>
   `.trim();
@@ -149,10 +193,10 @@ async function hBarChartBuffer({ data, title, unit, color, maxBars }) {
       const label = esc(truncate(d.label || '—', 28));
       const valueText = `${round2(d.value)}${unit ? ' ' + unit : ''}`;
       return `
-        <text x="20" y="${y + 14}" font-family="Arial, sans-serif" font-size="12" fill="#333">${label}</text>
+        <text x="20" y="${y + 14}" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" fill="#333">${label}</text>
         <rect x="${barAreaX}" y="${y + 4}" width="${barAreaW}" height="16" fill="#f1f5f9" />
         ${barW > 0 ? `<rect x="${barAreaX}" y="${y + 4}" width="${barW.toFixed(2)}" height="16" fill="${c}" />` : ''}
-        <text x="${barAreaX + barAreaW + 6}" y="${y + 16}" font-family="Arial, sans-serif" font-size="11" fill="#333">${esc(valueText)}</text>
+        <text x="${barAreaX + barAreaW + 6}" y="${y + 16}" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" fill="#333">${esc(valueText)}</text>
       `;
     })
     .join('');
@@ -160,7 +204,7 @@ async function hBarChartBuffer({ data, title, unit, color, maxBars }) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="#ffffff" />
-      ${title ? `<text x="20" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
+      ${title ? `<text x="20" y="28" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
       ${rows}
     </svg>
   `.trim();
@@ -189,9 +233,9 @@ async function kpiRowBuffer({ kpis }) {
       return `
         <rect x="${x}" y="${y}" width="${cardW}" height="${cardH}" fill="#f8fafc" />
         <rect x="${x}" y="${y}" width="5" height="${cardH}" fill="${color}" />
-        <text x="${x + 14}" y="${y + 18}" font-family="Arial, sans-serif" font-size="11" fill="#64748b">${esc(truncate(k.label, 28))}</text>
-        <text x="${x + 14}" y="${y + 42}" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#003700">${esc(truncate(String(k.value), 16))}</text>
-        ${k.unit ? `<text x="${x + 14}" y="${y + 60}" font-family="Arial, sans-serif" font-size="10" fill="#64748b">${esc(truncate(k.unit, 30))}</text>` : ''}
+        <text x="${x + 14}" y="${y + 18}" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" fill="#64748b">${esc(truncate(k.label, 28))}</text>
+        <text x="${x + 14}" y="${y + 42}" font-family="DejaVu Sans, Arial, sans-serif" font-size="20" font-weight="bold" fill="#003700">${esc(truncate(String(k.value), 16))}</text>
+        ${k.unit ? `<text x="${x + 14}" y="${y + 60}" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" fill="#64748b">${esc(truncate(k.unit, 30))}</text>` : ''}
       `;
     })
     .join('');
@@ -230,15 +274,15 @@ async function yoyBarsBuffer({ prevLabel, currLabel, prevValue, currValue, title
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="#ffffff" />
-      ${title ? `<text x="20" y="28" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
+      ${title ? `<text x="20" y="28" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
       <line x1="${axisX}" y1="${chartBottom}" x2="${axisX + 380}" y2="${chartBottom}" stroke="#cbd5e1" stroke-width="1" />
       <rect x="${prevX}" y="${chartBottom - prevH}" width="${barW}" height="${prevH}" fill="#94a3b8" />
       <rect x="${currX}" y="${chartBottom - currH}" width="${barW}" height="${currH}" fill="${currColor}" />
-      <text x="${prevX + barW / 2}" y="${chartBottom - prevH - 6}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">${round2(pv)}</text>
-      <text x="${currX + barW / 2}" y="${chartBottom - currH - 6}" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">${round2(cv)}</text>
-      <text x="${prevX + barW / 2}" y="${chartBottom + 16}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">${esc(prevLabel)}</text>
-      <text x="${currX + barW / 2}" y="${chartBottom + 16}" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#64748b">${esc(currLabel)}</text>
-      ${unit ? `<text x="${axisX}" y="${chartBottom + 34}" font-family="Arial, sans-serif" font-size="10" fill="#888">${esc(unit)}</text>` : ''}
+      <text x="${prevX + barW / 2}" y="${chartBottom - prevH - 6}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">${round2(pv)}</text>
+      <text x="${currX + barW / 2}" y="${chartBottom - currH - 6}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">${round2(cv)}</text>
+      <text x="${prevX + barW / 2}" y="${chartBottom + 16}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" fill="#64748b">${esc(prevLabel)}</text>
+      <text x="${currX + barW / 2}" y="${chartBottom + 16}" text-anchor="middle" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" fill="#64748b">${esc(currLabel)}</text>
+      ${unit ? `<text x="${axisX}" y="${chartBottom + 34}" font-family="DejaVu Sans, Arial, sans-serif" font-size="10" fill="#888">${esc(unit)}</text>` : ''}
     </svg>
   `.trim();
 
@@ -259,11 +303,11 @@ async function progressBarBuffer({ label, percent, title, color }) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
       <rect width="${W}" height="${H}" fill="#ffffff" />
-      ${title ? `<text x="20" y="24" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
+      ${title ? `<text x="20" y="24" font-family="DejaVu Sans, Arial, sans-serif" font-size="14" font-weight="bold" fill="#003700">${esc(title)}</text>` : ''}
       <rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" fill="#e2e8f0" />
       ${pct > 0 ? `<rect x="${barX}" y="${barY}" width="${((pct / 100) * barW).toFixed(2)}" height="${barH}" fill="${fillColor}" />` : ''}
-      <text x="${barX}" y="${barY + barH + 18}" font-family="Arial, sans-serif" font-size="11" fill="#333">${esc(label || '')}</text>
-      <text x="${barX + barW}" y="${barY + barH + 18}" text-anchor="end" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="${fillColor}">${pct.toFixed(1)}%</text>
+      <text x="${barX}" y="${barY + barH + 18}" font-family="DejaVu Sans, Arial, sans-serif" font-size="11" fill="#333">${esc(label || '')}</text>
+      <text x="${barX + barW}" y="${barY + barH + 18}" text-anchor="end" font-family="DejaVu Sans, Arial, sans-serif" font-size="12" font-weight="bold" fill="${fillColor}">${pct.toFixed(1)}%</text>
     </svg>
   `.trim();
 

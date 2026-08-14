@@ -26,6 +26,20 @@ const tierFeatures = require('../services/tierFeatures');
 
 router.use(authenticate, attachTier);
 
+// Year-over-year sentence with a sanity guard: a percentage against a
+// near-zero baseline (e.g. 0.04 → 461 tCO2e = "+1,213,194%") is
+// meaningless and reads as a bug. Above ±500% we report the absolute
+// change and flag the baseline instead.
+function yoyTrendSentence(prev, curr, pct, prevYear, currYear, round) {
+  const direction = pct > 0 ? 'increased' : 'decreased';
+  if (Math.abs(pct) <= 500) {
+    return `Total GHG emissions ${direction} by ${Math.abs(round(pct))}% compared to the previous year (${prevYear}: ${round(prev)} tCO2e vs ${currYear}: ${round(curr)} tCO2e).`;
+  }
+  return `Total GHG emissions rose from ${round(prev)} tCO2e (${prevYear}) to ${round(curr)} tCO2e (${currYear}). ` +
+    `A percentage comparison is not meaningful because the ${prevYear} baseline is near zero — ` +
+    `verify whether ${prevYear} data collection was complete before treating this as a real increase.`;
+}
+
 // ─── List available standards ───────────────────────────────
 // Every tier sees the full list — standards the user isn't entitled to are
 // returned with `locked: true` + `requiredTier` so the UI can render a lock
@@ -548,12 +562,8 @@ async function buildReportDocx({
 
             if (data.E1.yoyChange !== null) {
               children.push(text('Year-over-Year Trend:', { bold: true }));
-              const direction = data.E1.yoyChange > 0 ? 'increased' : 'decreased';
-              const absChange = Math.abs(round(data.E1.yoyChange));
               children.push(
-                text(
-                  `Total GHG emissions ${direction} by ${absChange}% compared to the previous year (${y - 1}: ${round(data.E1.prevTotalEmissions)} tCO2e vs ${y}: ${round(data.E1.totalEmissions)} tCO2e).`,
-                ),
+                text(yoyTrendSentence(data.E1.prevTotalEmissions, data.E1.totalEmissions, data.E1.yoyChange, y - 1, y, round)),
               );
 
               addChart(
@@ -1603,9 +1613,7 @@ router.post('/generate', async (req, res) => {
               if (data.E1.yoyChange !== null) {
                 doc.font('Helvetica-Bold').fillColor('#333').text('Year-over-Year Trend:');
                 doc.font('Helvetica');
-                const direction = data.E1.yoyChange > 0 ? 'increased' : 'decreased';
-                const absChange = Math.abs(round(data.E1.yoyChange));
-                doc.text(`Total GHG emissions ${direction} by ${absChange}% compared to the previous year (${y - 1}: ${round(data.E1.prevTotalEmissions)} tCO2e vs ${y}: ${round(data.E1.totalEmissions)} tCO2e).`);
+                doc.text(yoyTrendSentence(data.E1.prevTotalEmissions, data.E1.totalEmissions, data.E1.yoyChange, y - 1, y, round));
                 if (data.E1.yoyChange > 0) {
                   doc.text(`The increase may be attributed to expanded operations, increased business travel, or higher energy consumption. The organization is evaluating mitigation measures.`);
                 } else {
