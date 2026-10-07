@@ -283,6 +283,7 @@ const api = {
   deleteEnergyRecord: (assetId, recordId) => request(`/real-estate/assets/${assetId}/energy/${recordId}`, { method: 'DELETE' }),
   bulkEnergyRecords: (assetId, records) => request(`/real-estate/assets/${assetId}/energy/bulk`, { method: 'POST', body: JSON.stringify(records) }),
   getIntensity: (assetId) => request(`/real-estate/assets/${assetId}/intensity`),
+  extractBills: (assetId, formData) => request(`/real-estate/assets/${assetId}/bills/extract`, { method: 'POST', body: formData }),
   runCrrem: (assetId, scenario) => request(`/real-estate/assets/${assetId}/crrem`, { method: 'POST', body: JSON.stringify({ scenario }) }),
   getPortfolioCrrem: () => request('/real-estate/portfolio/crrem'),
 

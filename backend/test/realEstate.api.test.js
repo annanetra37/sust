@@ -35,6 +35,7 @@ before(async () => {
   app.use(express.json());
   app.use('/api/real-estate', require('../src/routes/realEstate'));
   app.use('/api/lineage', require('../src/routes/lineage'));
+  app.use('/api/history', require('../src/routes/history'));
   await new Promise((r) => { server = app.listen(0, r); });
   base = `http://127.0.0.1:${server.address().port}/api`;
 
@@ -54,6 +55,8 @@ after(async () => {
   server.close();
   const companyIds = Object.values(companies).map((c) => c.id);
   await prisma.activityLog.deleteMany({ where: { companyId: { in: companyIds } } });
+  await prisma.creditTransaction.deleteMany({ where: { companyId: { in: companyIds } } });
+  await prisma.uploadHistory.deleteMany({ where: { companyId: { in: companyIds } } });
   await prisma.company.deleteMany({ where: { id: { in: companyIds } } });
   await prisma.$disconnect();
 });
@@ -196,4 +199,69 @@ test('plans without building_energy get FEATURE_NOT_IN_PLAN', { skip }, async ()
   assert.equal(r.body.feature, 'building_energy');
   const anon = await call('nobody', 'GET', '/real-estate/assets');
   assert.equal(anon.status, 401);
+});
+
+test('bill upload: stores the file, returns drafts, saves with a link to the bill', { skip }, async () => {
+  const billExtract = require('../src/services/billExtract');
+  const original = billExtract.extractBill;
+  billExtract.extractBill = async (file) => (file.originalname.includes('broken')
+    ? Promise.reject(new Error('AI unavailable'))
+    : { confidence: 0.92, supplier: 'Gazprom Armenia', notes: '', drafts: billExtract.toDrafts({ items: [
+      { fuel: 'natural_gas', quantity: 2100, unit: 'm3', month: '2025-01', cost: 315000, currency: 'AMD' },
+    ] }) });
+  try {
+    await prisma.company.update({ where: { id: companies.a.id }, data: { creditBalance: 100 } });
+    const { body: asset } = await call('a', 'POST', '/real-estate/assets', school);
+
+    const fd = new FormData();
+    fd.append('files', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'gas-jan.pdf');
+    fd.append('files', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'broken.pdf');
+    fd.append('files', new Blob(['hello'], { type: 'text/plain' }), 'notes.txt'); // filtered out
+    const res = await fetch(`${base}/real-estate/assets/${asset.id}/bills/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.a}` }, body: fd });
+    const body = await res.json();
+    assert.equal(res.status, 200, JSON.stringify(body));
+    assert.equal(body.files.length, 2);
+    const ok = body.files.find((f) => f.fileName === 'gas-jan.pdf');
+    const failed = body.files.find((f) => f.fileName === 'broken.pdf');
+    assert.equal(ok.status, 'ok');
+    assert.equal(failed.status, 'error');
+    assert.equal(ok.drafts[0].sourceUploadId, ok.uploadId);
+    assert.ok(body.creditsUsed > 0);
+    const company = await prisma.company.findUnique({ where: { id: companies.a.id } });
+    assert.equal(company.creditBalance, 100 - body.creditsUsed);
+
+    // Nothing saved until the user confirms.
+    assert.equal(await prisma.assetEnergyRecord.count({ where: { assetId: asset.id } }), 0);
+    const upload = await prisma.uploadHistory.findUnique({ where: { id: ok.uploadId } });
+    assert.equal(upload.fileType, 'BUILDING');
+    assert.equal(upload.status, 'COMPLETED');
+    assert.equal((await prisma.uploadHistory.findUnique({ where: { id: failed.uploadId } })).status, 'FAILED');
+
+    // Save the reviewed draft.
+    const saved = await call('a', 'POST', `/real-estate/assets/${asset.id}/energy/bulk`, ok.drafts.map(({ issues, evidence, ...d }) => d));
+    assert.equal(saved.status, 201, JSON.stringify(saved.body));
+    const rec = await prisma.assetEnergyRecord.findFirst({ where: { assetId: asset.id } });
+    assert.equal(rec.sourceUploadId, ok.uploadId);
+    assert.equal(rec.sourceDoc, 'gas-jan.pdf');
+    assert.equal(rec.month, 1);
+
+    // Lineage: bill listed with its file, upload kept out of the topic tree.
+    const lineage = await call('a', 'GET', '/lineage');
+    assert.ok(lineage.body.buildingBills.some((b) => b.sourceUploadId === ok.uploadId));
+    assert.ok(!JSON.stringify(lineage.body.tree).includes(ok.uploadId));
+
+    // Another company cannot attach this bill to its own records.
+    const { body: other } = await call('b', 'POST', '/real-estate/assets', school);
+    const steal = await call('b', 'POST', `/real-estate/assets/${other.id}/energy`, { year: 2025, month: 1, fuel: 'natural_gas', quantity: 5, unit: 'm3', sourceUploadId: ok.uploadId });
+    assert.equal(steal.status, 400);
+
+    // Not enough credits → refused before any AI call.
+    await prisma.company.update({ where: { id: companies.a.id }, data: { creditBalance: 0 } });
+    const fd2 = new FormData();
+    fd2.append('files', new Blob(['%PDF'], { type: 'application/pdf' }), 'x.pdf');
+    const poor = await fetch(`${base}/real-estate/assets/${asset.id}/bills/extract`, { method: 'POST', headers: { Authorization: `Bearer ${tokens.a}` }, body: fd2 });
+    assert.equal(poor.status, 403);
+  } finally {
+    billExtract.extractBill = original;
+  }
 });

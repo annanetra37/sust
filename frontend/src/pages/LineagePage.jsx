@@ -311,10 +311,15 @@ function BuildingBills({ bills, t, navigate }) {
                 {a.bills.map((b) => (
                   <div key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800/60">
                     <FileSpreadsheet className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[16rem]">{b.sourceDoc}</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[16rem]">{b.sourceDoc || '—'}</span>
                     <span className="text-gray-500">{period(b)}</span>
                     <span className="text-gray-500">{t(`buildings.fuels.${b.fuel}`)} · {Number(b.quantity).toLocaleString()} {b.unit}</span>
                     {b.cost != null && <span className="text-gray-500">{Number(b.cost).toLocaleString()} {b.currency}</span>}
+                    {b.sourceUploadId && (
+                      <a href={api.authFileUrl(`/history/${b.sourceUploadId}/view/0`)} target="_blank" rel="noopener noreferrer" className="text-brand-500 hover:text-brand-700 ml-auto" title={t('lineage.sourceFile')}>
+                        <Eye className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

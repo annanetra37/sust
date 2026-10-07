@@ -5,12 +5,14 @@ import {
 } from 'recharts';
 import {
   Building2, Plus, Pencil, Trash2, Loader2, AlertCircle, AlertTriangle, ArrowLeft, Upload, Download,
-  Info, Wrench, Check, X, TrendingDown, TrendingUp, Zap, Coins, Leaf, Lock,
+  Info, Wrench, Check, X, TrendingDown, TrendingUp, Zap, Coins, Leaf, Lock, FileText, Eye, Sparkles,
 } from 'lucide-react';
 import api from '../services/api';
 import { HelpBanner } from '../components/HelpSystem';
 import FeatureLock from '../components/FeatureLock';
+import CreditPreview from '../components/CreditPreview';
 import useFeature from '../hooks/useFeature';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useT } from '../i18n';
 
@@ -83,7 +85,7 @@ function Field({ label, children, hint }) {
 
 function Modal({ title, onClose, children, footer }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
       <div
         className="bg-white dark:bg-gray-900 w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -571,6 +573,206 @@ function RecordFields({ value, onChange, t }) {
   );
 }
 
+// ─── Bill upload with AI reading → review → save ────────────────────────────
+
+const BILL_ACCEPT = '.pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp';
+const billFileUrl = (uploadId) => api.authFileUrl(`/history/${uploadId}/view/0`);
+
+function draftToForm(d) {
+  const range = !!d.periodStart;
+  return {
+    mode: range ? 'range' : 'month',
+    month: d.year && d.month ? `${d.year}-${String(d.month).padStart(2, '0')}` : '',
+    periodStart: d.periodStart || '',
+    periodEnd: d.periodEnd || '',
+    fuel: d.fuel, quantity: d.quantity ?? '', unit: FUELS[d.fuel].includes(d.unit) ? d.unit : FUELS[d.fuel][0],
+    cost: d.cost ?? '', currency: d.currency || 'AMD', sourceDoc: d.sourceDoc || '',
+  };
+}
+
+// Same fuel and same billing month already on the building → likely duplicate.
+function duplicateOf(form, existing) {
+  if (form.mode !== 'month' || !form.month) return null;
+  const [y, m] = form.month.split('-').map(Number);
+  return existing.find((r) => r.fuel === form.fuel && r.year === y && r.month === m && !r.periodStart) || null;
+}
+
+function BillUploadModal({ assetId, existing, onClose, onSaved, t }) {
+  const { user, updateUser } = useAuth();
+  const [files, setFiles] = useState([]);
+  const [estimate, setEstimate] = useState(null);
+  const [step, setStep] = useState('choose'); // choose | reading | review
+  const [results, setResults] = useState([]);
+  const [rows, setRows] = useState([]); // { key, uploadId, fileName, include, form, issues, evidence }
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const inputRef = useRef(null);
+
+  const addFiles = (list) => {
+    setError('');
+    const picked = Array.from(list || []).filter((f) => /\.(pdf|jpe?g|png|webp)$/i.test(f.name));
+    if (picked.length < (list?.length || 0)) setError(t('buildings.bills.onlyPdfImages'));
+    setFiles((prev) => [...prev, ...picked].slice(0, 10));
+  };
+
+  const read = async () => {
+    setError('');
+    setStep('reading');
+    try {
+      const fd = new FormData();
+      files.forEach((f) => fd.append('files', f));
+      const res = await api.extractBills(assetId, fd);
+      setResults(res.files);
+      if (res.creditsUsed && user?.company) {
+        updateUser({ company: { ...user.company, creditBalance: Math.max(0, (user.company.creditBalance || 0) - res.creditsUsed) } });
+      }
+      setRows(res.files.flatMap((f) => f.drafts.map((d, i) => ({
+        key: `${f.uploadId}-${i}`, uploadId: f.uploadId, fileName: f.fileName,
+        include: true, form: draftToForm(d), issues: d.issues || [], evidence: d.evidence,
+      }))));
+      setStep('review');
+    } catch (err) {
+      setError(errText(err, t('buildings.bills.readFailed')));
+      setStep('choose');
+    }
+  };
+
+  const setRowForm = (key) => (fn) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, form: fn(r.form) } : r)));
+  const toggle = (key) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, include: !r.include } : r)));
+
+  const save = async () => {
+    setError('');
+    const chosen = rows.filter((r) => r.include);
+    if (!chosen.length) { setError(t('buildings.bills.nothingSelected')); return; }
+    const payloads = [];
+    for (const r of chosen) {
+      const { payload, error: e } = recordPayload(r.form, t);
+      if (e) { setError(`${r.fileName}: ${e}`); return; }
+      payloads.push({ ...payload, sourceUploadId: r.uploadId, sourceDoc: r.form.sourceDoc || r.fileName });
+    }
+    setSaving(true);
+    try {
+      const res = await api.bulkEnergyRecords(assetId, payloads);
+      onSaved(res.imported);
+    } catch (err) {
+      setError(errText(err, t('buildings.errors.saveFailed')));
+    } finally { setSaving(false); }
+  };
+
+  const included = rows.filter((r) => r.include).length;
+  const footer = step === 'review' ? (
+    <>
+      <button className="btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
+      <button className="btn-primary flex items-center gap-2" onClick={save} disabled={saving || !included}>
+        {saving && <Loader2 className="w-4 h-4 animate-spin" />}{t('buildings.bills.saveN', { n: included })}
+      </button>
+    </>
+  ) : (
+    <>
+      <button className="btn-secondary" onClick={onClose} disabled={step === 'reading'}>{t('common.cancel')}</button>
+      <button
+        className="btn-primary flex items-center gap-2"
+        onClick={read}
+        disabled={!files.length || step === 'reading' || (estimate && !estimate.sufficient)}
+      >
+        {step === 'reading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+        {step === 'reading' ? t('buildings.bills.reading') : t('buildings.bills.readN', { n: files.length })}
+      </button>
+    </>
+  );
+
+  return (
+    <Modal title={t('buildings.bills.title')} onClose={step === 'reading' ? () => {} : onClose} footer={footer}>
+      <div className="space-y-4">
+        <ErrorBox message={error} />
+
+        {step !== 'review' && (
+          <>
+            <p className="text-sm text-gray-600 dark:text-gray-300">{t('buildings.bills.intro')}</p>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files); }}
+              onClick={() => step === 'choose' && inputRef.current?.click()}
+              className={`rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors ${dragOver ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40' : 'border-gray-300 dark:border-gray-700 hover:border-brand-400'}`}
+            >
+              <Upload className="w-8 h-8 mx-auto text-gray-400" />
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mt-2">{t('buildings.bills.dropHere')}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{t('buildings.bills.limits')}</p>
+              <input ref={inputRef} type="file" multiple accept={BILL_ACCEPT} className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }} />
+            </div>
+            {files.length > 0 && (
+              <ul className="space-y-1">
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                    <span className="flex-1 truncate text-gray-700 dark:text-gray-200">{f.name}</span>
+                    <span className="text-xs text-gray-400">{(f.size / 1024).toFixed(0)} KB</span>
+                    {step === 'choose' && (
+                      <button onClick={() => setFiles((fs) => fs.filter((_, j) => j !== i))} className="text-gray-400 hover:text-red-600" aria-label={t('common.delete')}><X className="w-4 h-4" /></button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {files.length > 0 && (
+              <CreditPreview action="doc-extract" params={{ fileCount: files.length, assumeVision: true }} label={t('buildings.bills.cost')} onEstimate={setEstimate} />
+            )}
+          </>
+        )}
+
+        {step === 'review' && (
+          <>
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-sm text-blue-800 dark:text-blue-200">
+              <Info className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>{t('buildings.bills.reviewIntro')}</span>
+            </div>
+            {results.filter((f) => f.status !== 'ok').map((f) => (
+              <div key={f.uploadId} className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-sm text-amber-800 dark:text-amber-200">
+                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <span><strong>{f.fileName}</strong>: {f.status === 'error' ? t('buildings.bills.fileError') : t('buildings.bills.fileEmpty')} {f.error || f.notes || ''}</span>
+              </div>
+            ))}
+            {rows.length === 0 && <p className="text-sm text-gray-500 text-center py-4">{t('buildings.bills.noDrafts')}</p>}
+            {rows.map((r) => {
+              const dup = duplicateOf(r.form, existing);
+              const meta = results.find((f) => f.uploadId === r.uploadId);
+              return (
+                <div key={r.key} className={`rounded-xl border p-3 space-y-2 ${r.include ? 'border-gray-200 dark:border-gray-700' : 'border-gray-100 dark:border-gray-800 opacity-60'}`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200 cursor-pointer">
+                      <input type="checkbox" checked={r.include} onChange={() => toggle(r.key)} className="w-4 h-4" />
+                      {r.fileName}
+                    </label>
+                    <a href={billFileUrl(r.uploadId)} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-600 dark:text-brand-400 inline-flex items-center gap-1 hover:underline">
+                      <Eye className="w-3.5 h-3.5" />{t('buildings.bills.openBill')}
+                    </a>
+                    {meta?.supplier && <span className="text-xs text-gray-500">{meta.supplier}</span>}
+                    {meta?.confidence != null && (
+                      <span className={`badge text-[10px] ${meta.confidence >= 0.8 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}>
+                        {t('buildings.bills.confidence', { pct: Math.round(meta.confidence * 100) })}
+                      </span>
+                    )}
+                  </div>
+                  {r.evidence && <p className="text-xs text-gray-500 dark:text-gray-400">{t('buildings.bills.readFrom')}: “{r.evidence}”</p>}
+                  {(r.issues.length > 0 || dup) && (
+                    <ul className="text-xs text-amber-700 dark:text-amber-300 list-disc pl-5">
+                      {r.issues.map((i) => <li key={i}>{i}</li>)}
+                      {dup && <li>{t('buildings.bills.duplicate')}</li>}
+                    </ul>
+                  )}
+                  {r.include && <RecordFields value={r.form} onChange={setRowForm(r.key)} t={t} />}
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 function BuildingDetail({ id }) {
   const { t } = useT();
   const { dark } = useTheme();
@@ -586,6 +788,8 @@ function BuildingDetail({ id }) {
   const [busy, setBusy] = useState(false);
   const [recError, setRecError] = useState('');
   const [importMsg, setImportMsg] = useState('');
+  const [showBills, setShowBills] = useState(false);
+  const billFeature = useFeature('ai_doc_extract');
   const fileRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -788,6 +992,9 @@ function BuildingDetail({ id }) {
           <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{t('buildings.records')} ({asset.energyRecords.length})</h2>
           <div className="flex gap-2 flex-wrap">
             <button className="btn-secondary text-sm flex items-center gap-1.5" onClick={downloadCsvTemplate}><Download className="w-4 h-4" />{t('buildings.csvTemplate')}</button>
+            {billFeature.allowed && (
+              <button className="btn-secondary text-sm flex items-center gap-1.5" onClick={() => { setShowBills(true); setImportMsg(''); }}><Sparkles className="w-4 h-4" />{t('buildings.bills.button')}</button>
+            )}
             <button className="btn-secondary text-sm flex items-center gap-1.5" onClick={() => fileRef.current?.click()} disabled={busy}><Upload className="w-4 h-4" />{t('buildings.importCsv')}</button>
             <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={importCsv} />
             <button className="btn-primary text-sm flex items-center gap-1.5" onClick={() => { setAdding((v) => !v); setRecError(''); }}><Plus className="w-4 h-4" />{t('buildings.addRecord')}</button>
@@ -845,7 +1052,13 @@ function BuildingDetail({ id }) {
                     <td className="py-2 px-2 text-right whitespace-nowrap text-gray-800 dark:text-gray-200">{fmt(rec.quantity, 2)} {unitLabel(rec.unit)}</td>
                     <td className="py-2 px-2 text-right text-gray-800 dark:text-gray-200">{fmt(rec.kwh)}</td>
                     <td className="py-2 px-2 text-right whitespace-nowrap text-gray-800 dark:text-gray-200">{rec.cost == null ? '—' : `${fmt(rec.cost)} ${rec.currency || ''}`}</td>
-                    <td className="py-2 px-2 text-gray-500 dark:text-gray-400 max-w-[12rem] truncate" title={rec.sourceDoc || ''}>{rec.sourceDoc || '—'}</td>
+                    <td className="py-2 px-2 text-gray-500 dark:text-gray-400 max-w-[12rem] truncate" title={rec.sourceDoc || ''}>
+                      {rec.sourceUploadId ? (
+                        <a href={billFileUrl(rec.sourceUploadId)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 hover:underline">
+                          <Eye className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{rec.sourceDoc || t('buildings.bills.openBill')}</span>
+                        </a>
+                      ) : (rec.sourceDoc || '—')}
+                    </td>
                     <td className="py-2 px-2 whitespace-nowrap text-right">
                       <button className="p-1.5 text-gray-400 hover:text-brand-600" title={t('common.edit')} aria-label={t('common.edit')} onClick={() => { setRowEdit({ id: rec.id, form: recordToForm(rec) }); setRecError(''); }}><Pencil className="w-4 h-4" /></button>
                       <button className="p-1.5 text-gray-400 hover:text-red-600" title={t('common.delete')} aria-label={t('common.delete')} onClick={() => deleteRow(rec)}><Trash2 className="w-4 h-4" /></button>
@@ -859,6 +1072,16 @@ function BuildingDetail({ id }) {
       </div>
 
       <CrremCard asset={asset} t={t} />
+
+      {showBills && (
+        <BillUploadModal
+          assetId={id}
+          existing={asset.energyRecords}
+          t={t}
+          onClose={() => setShowBills(false)}
+          onSaved={async (n) => { setShowBills(false); setImportMsg(t('buildings.bills.saved', { n })); await load(); }}
+        />
+      )}
 
       {editing && (
         <BuildingForm

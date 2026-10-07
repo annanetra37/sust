@@ -248,7 +248,7 @@ model UploadHistory {
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   fileName       String
-  fileType       String       // E1, S1
+  fileType       String       // E1, S1, G1, BUILDING (energy bill)
   orgUnit        String?
   orgUnitId      String?
   status         UploadStatus @default(PROCESSING)
@@ -927,9 +927,13 @@ model AssetEnergyRecord {
   // split pro rata by days across months.
   periodStart DateTime?
   periodEnd   DateTime?
+  // UploadHistory row holding the original bill (PDF / photo) when the
+  // record came from a bill upload — lets every number open its bill.
+  sourceUploadId String?
   createdAt  DateTime @default(now())
 
   @@index([assetId, year])
+  @@index([sourceUploadId])
 }
 
 model AssetCrremPathway {
