@@ -28,7 +28,7 @@ export const TIERS = {
     features: {
       ai_doc_extract: true, all_standards: true, db_connections: true,
       audit_lineage: true, multi_language_reports: true, sustainability_roi: true,
-      water_resources: true,
+      water_resources: true, building_energy: true,
       priority_support: true,
     },
   },
@@ -62,6 +62,7 @@ export const FEATURE_LABELS = {
   iso_gri_bridge:         'ISO → GRI Bridge',
   iso_bridge:             'ISO-to-GRI/ESRS Bridge',
   water_resources:        'Water Resources (E3)',
+  building_energy:        'Building Energy',
   biodiversity:           'Biodiversity & Ecosystems (E4)',
 };
 

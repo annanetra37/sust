@@ -23,6 +23,7 @@ const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/tier');
 const { formatError } = require('../utils/errors');
+const buildingEnergy = require('../services/buildingEnergy');
 
 router.use(authenticate);
 router.use(requireFeature('sustainability_roi'));
@@ -52,19 +53,16 @@ async function getFinancials(companyId) {
   return { ...DEFAULTS, ...(row || {}) };
 }
 
-// Convert an activity record's energy quantity → kWh.  Supports the common
-// units the ETL emits (kWh, MWh, GJ, litres of liquid fuels) so the ROI
-// figures line up with the dashboards.
-function toKwh(quantity, unit) {
-  if (!quantity || quantity <= 0) return 0;
-  const u = String(unit || '').toLowerCase();
-  if (u.includes('kwh')) return quantity;
-  if (u.includes('mwh')) return quantity * 1000;
-  if (u.includes('gj'))  return quantity * 277.778;
-  if (u.includes('litre') && (u.includes('diesel') || u.includes('dies'))) return quantity * 10;
-  if (u.includes('litre') && u.includes('petrol')) return quantity * 9.1;
-  if (u.includes('litre')) return quantity * 9; // rough average
-  return 0;
+// Convert an activity record's energy quantity → kWh via the shared building
+// energy module, so ROI, CRREM and the Building Energy page agree.  Volumes in
+// m³ are only treated as natural gas when the row says so (m³ can be water).
+function toKwh(row) {
+  const unit = String(row.unit || '').toLowerCase();
+  if (unit.includes('m3') || unit.includes('m³')) {
+    const text = `${row.activityCategory || ''} ${row.activitySubcat || ''}`.toLowerCase();
+    if (!text.includes('gas')) return 0;
+  }
+  return buildingEnergy.unitToKwh(row.quantity, row.unit);
 }
 
 // Detect whether an activity record represents energy consumption (vs. a
@@ -110,7 +108,7 @@ async function energyCostSavings(companyId, baselineYear, currentYear, fin) {
   ]);
 
   const sumKwh = (rows) =>
-    rows.filter(isEnergyActivity).reduce((s, r) => s + toKwh(r.quantity, r.unit), 0);
+    rows.filter(isEnergyActivity).reduce((s, r) => s + toKwh(r), 0);
 
   const baselineKwh = sumKwh(baselineRows);
   const currentKwh = sumKwh(currentRows);

@@ -106,7 +106,32 @@ router.get('/', async (req, res) => {
       })),
     }));
 
-    res.json({ tree, filters: { orgUnits, users } });
+    // Building energy bills with a source document, so each value on the
+    // Building Energy page can be traced back to its bill.
+    const billRows = await prisma.assetEnergyRecord.findMany({
+      where: { sourceDoc: { not: null }, asset: { companyId } },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      include: { asset: { select: { id: true, name: true, city: true } } },
+    });
+    const buildingBills = billRows.map((r) => ({
+      id: r.id,
+      assetId: r.asset.id,
+      assetName: r.asset.name,
+      city: r.asset.city,
+      year: r.year,
+      month: r.month,
+      periodStart: r.periodStart,
+      periodEnd: r.periodEnd,
+      fuel: r.fuel,
+      quantity: r.quantity,
+      unit: r.unit,
+      cost: r.cost,
+      currency: r.currency,
+      sourceDoc: r.sourceDoc,
+      createdAt: r.createdAt,
+    }));
+
+    res.json({ tree, filters: { orgUnits, users }, buildingBills });
   } catch (err) {
     const { status, error } = formatError(err);
     res.status(status).json({ error });

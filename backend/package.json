@@ -12,7 +12,9 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "node src/prisma/seed.js"
+    "db:seed": "node src/prisma/seed.js",
+    "test": "node --test --test-timeout=60000 test/*.test.js",
+    "db:seed:buildings": "node src/prisma/seedBuildingDemo.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
