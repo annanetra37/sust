@@ -1564,6 +1564,29 @@
       "csvEmpty": "The CSV file has no data rows.",
       "saveFailed": "Could not save. Please try again.",
       "loadFailed": "Could not load buildings."
+    },
+    "bills": {
+      "button": "Upload bills",
+      "title": "Upload energy bills",
+      "intro": "Upload gas, electricity or heat bills as PDF or photos. AI reads the consumption, billing period and amount from each bill — in Armenian, Russian or English. You check every value before it is saved, and each saved record keeps a link to its bill.",
+      "dropHere": "Drop bills here or click to choose",
+      "limits": "PDF, JPG, PNG or WebP · up to 10 files · 10 MB each",
+      "onlyPdfImages": "Only PDF and image files (JPG, PNG, WebP) can be read.",
+      "cost": "Reading cost",
+      "readN": "Read {n} bill(s)",
+      "reading": "Reading bills…",
+      "readFailed": "Could not read the bills. Please try again.",
+      "reviewIntro": "Check each value against the bill before saving. Untick anything that is wrong or already entered.",
+      "fileError": "could not be read.",
+      "fileEmpty": "no energy data found.",
+      "noDrafts": "No energy data was found in these files.",
+      "openBill": "Open bill",
+      "confidence": "{pct}% confidence",
+      "readFrom": "Read from",
+      "duplicate": "A record for this fuel and month already exists — untick to avoid double counting.",
+      "nothingSelected": "Tick at least one record to save.",
+      "saveN": "Save {n} record(s)",
+      "saved": "Saved {n} record(s) from bills."
     }
   }
 }

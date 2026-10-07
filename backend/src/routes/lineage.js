@@ -26,8 +26,8 @@ router.get('/', async (req, res) => {
     orgUnits.forEach((u) => { orgUnitMap[u.id] = u; });
 
     // Build filtered query for uploads
-    const where = { companyId };
-    if (topic) where.fileType = topic;
+    // Energy bills for buildings are listed separately (buildingBills below).
+    const where = { companyId, fileType: topic || { not: 'BUILDING' } };
     if (userId) where.userId = userId;
 
     // orgUnitId filter: check both orgUnitId field AND orgUnit text field
@@ -109,7 +109,7 @@ router.get('/', async (req, res) => {
     // Building energy bills with a source document, so each value on the
     // Building Energy page can be traced back to its bill.
     const billRows = await prisma.assetEnergyRecord.findMany({
-      where: { sourceDoc: { not: null }, asset: { companyId } },
+      where: { OR: [{ sourceDoc: { not: null } }, { sourceUploadId: { not: null } }], asset: { companyId } },
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
       include: { asset: { select: { id: true, name: true, city: true } } },
     });
@@ -128,6 +128,7 @@ router.get('/', async (req, res) => {
       cost: r.cost,
       currency: r.currency,
       sourceDoc: r.sourceDoc,
+      sourceUploadId: r.sourceUploadId,
       createdAt: r.createdAt,
     }));
 
@@ -212,7 +213,7 @@ router.post('/export', async (req, res) => {
 
         doc.fontSize(10).font('Helvetica-Bold').text(upload.fileName);
         doc.fontSize(9).font('Helvetica');
-        doc.text(`  Type: ${upload.fileType === 'E1' ? 'Environmental' : 'Social'} | Unit: ${ouName} | By: ${userName}`);
+        doc.text(`  Type: ${{ E1: 'Environmental', S1: 'Social', G1: 'Governance', BUILDING: 'Building energy bill' }[upload.fileType] || upload.fileType} | Unit: ${ouName} | By: ${userName}`);
         doc.text(`  Status: ${upload.status} | Audit: ${upload.auditStatus || 'pending'} | Rows: ${upload.processedRows || 0}/${upload.totalRows || 0}`);
         doc.text(`  Date: ${new Date(upload.createdAt).toLocaleString()}`);
 

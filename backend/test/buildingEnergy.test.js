@@ -181,3 +181,30 @@ test('unitToKwh (ROI) converts gas m³ instead of returning 0', () => {
   assert.equal(be.unitToKwh(10, 'GJ'), 2777.78);
   assert.equal(be.unitToKwh(10, 'litres diesel'), 100);
 });
+
+test('bill drafts: normalise fuel, unit, period and flag problems', () => {
+  const { toDrafts, normaliseFuel } = require('../src/services/billExtract');
+  assert.equal(normaliseFuel('Natural Gas'), 'natural_gas');
+  assert.equal(normaliseFuel('Գազ'), 'natural_gas');
+  assert.equal(normaliseFuel('электроэнергия'), 'electricity');
+  assert.equal(normaliseFuel('unicorn'), null);
+
+  const [gas, elec, meter, bad] = toDrafts({ items: [
+    { fuel: 'gas', quantity: '1 234', unit: 'խ.մ', periodStart: '2025-01-01', periodEnd: '2025-01-31', cost: '185,100', currency: 'amd' },
+    { fuel: 'electricity', quantity: 3600, unit: 'kWh', periodStart: '2025-01-15', periodEnd: '2025-02-14', cost: 172800, currency: 'AMD' },
+    { fuel: 'natural_gas', quantity: null, unit: 'm3', meterPrevious: 1000, meterCurrent: 1450, month: '2025-03' },
+    { fuel: 'coal', quantity: null, unit: 'tonnes' },
+  ] });
+  // A full calendar month is stored as that month.
+  assert.deepEqual([gas.fuel, gas.unit, gas.year, gas.month, gas.periodStart, gas.cost, gas.currency], ['natural_gas', 'm3', 2025, 1, null, 185100, 'AMD']);
+  assert.equal(gas.quantity, 1234);
+  assert.deepEqual(gas.issues, []);
+  // A straddling billing period keeps its dates (split pro rata later).
+  assert.equal(elec.periodStart, '2025-01-15');
+  assert.equal(elec.month, null);
+  assert.equal(elec.year, 2025);
+  // Consumption from meter readings.
+  assert.equal(meter.quantity, 450);
+  assert.equal(meter.month, 3);
+  assert.ok(bad.issues.length >= 3);
+});
