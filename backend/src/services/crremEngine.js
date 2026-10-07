@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const prisma = require('../config/prisma');
+const buildingEnergy = require('./buildingEnergy');
 const path = require('path');
 const fs = require('fs');
 
@@ -66,23 +67,35 @@ function buildDefaultPathways() {
 }
 
 // Get the pathway for a specific asset (country × class × scenario).
-// Falls back to GLO::office if no match.
+// No fallback: an asset whose country/class has no calibrated pathway would
+// otherwise be silently compared against global office values.
 function getPathway(country, assetClass, scenario) {
   const pw = loadPathways();
-  return pw[`${country}::${assetClass}::${scenario}`]
-    || pw[`GLO::${assetClass}::${scenario}`]
-    || pw[`GLO::office::${scenario}`]
-    || [];
+  return pw[`${country}::${assetClass}::${scenario}`] || null;
 }
 
-// Grid emission factor lookup (simplified — reuses the factor DB if available).
-const GRID_FACTORS = {
-  DE: 0.381, FR: 0.052, NL: 0.328, US: 0.389, UK: 0.207, EU: 0.238,
-  CN: 0.612, GLO: 0.450,
-};
+function hasPathway(country, assetClass) {
+  return !!getPathway(country, assetClass, '1.5C');
+}
 
-function gridFactor(country) {
-  return GRID_FACTORS[country] || GRID_FACTORS.GLO;
+function noPathwayError(asset) {
+  const err = new Error(`No CRREM pathway calibrated for ${asset.country} / ${asset.assetClass}.`);
+  err.code = 'NO_COUNTRY_PATHWAY';
+  return err;
+}
+
+// Annual energy and emissions totals by calendar year.  Uses the shared
+// buildingEnergy conversions so CRREM and the Building Energy page agree.
+function annualTotals(asset, records) {
+  const byYear = {};
+  for (const rec of records) {
+    const c = buildingEnergy.convertRecord(rec, asset.country);
+    if (c.kwh == null) continue;
+    if (!byYear[rec.year]) byYear[rec.year] = { kwh: 0, kgCo2e: 0 };
+    byYear[rec.year].kwh += c.kwh;
+    byYear[rec.year].kgCo2e += c.kgCo2e;
+  }
+  return byYear;
 }
 
 /**
@@ -100,34 +113,19 @@ async function analyseAsset(assetId, scenario = '1.5C') {
   if (!asset) throw new Error('Asset not found.');
   if (asset.grossFloorAreaM2 <= 0) throw new Error('Asset has no floor area.');
 
-  // Sum energy by year → compute kgCO2e/m2 intensity.
+  // Get the pathway — refuse rather than fall back to another country.
+  const pw = getPathway(asset.country, asset.assetClass, scenario);
+  if (!pw) throw noPathwayError(asset);
+
+  const totals = annualTotals(asset, asset.energyRecords);
   const byYear = {};
-  for (const rec of asset.energyRecords) {
-    if (!byYear[rec.year]) byYear[rec.year] = 0;
-    let kwh = rec.quantity;
-    const u = (rec.unit || '').toLowerCase();
-    if (u.includes('mwh')) kwh *= 1000;
-    else if (u === 'm3') kwh *= 10.55; // natural gas approx
-    else if (u === 'litre') kwh *= 10; // heating oil approx
-
-    // Convert kWh → kgCO2e using fuel type or grid factor
-    let factor = gridFactor(asset.country);
-    if (rec.fuel === 'natural_gas') factor = 0.184;
-    else if (rec.fuel === 'oil') factor = 0.268;
-    else if (rec.fuel === 'district_heat') factor = 0.15;
-    else if (rec.fuel === 'district_cool') factor = 0.05;
-
-    byYear[rec.year] += kwh * factor;
-  }
+  for (const [yr, t] of Object.entries(totals)) byYear[yr] = t.kgCo2e;
 
   // Current intensity = most recent year with data.
   const sortedYears = Object.keys(byYear).map(Number).sort((a, b) => b - a);
   const latestYear = sortedYears[0] || new Date().getFullYear();
   const currentKgCo2e = byYear[latestYear] || 0;
   const currentIntensity = currentKgCo2e / asset.grossFloorAreaM2;
-
-  // Get the pathway.
-  const pw = getPathway(asset.country, asset.assetClass, scenario);
 
   // Project asset forward (flat — no retrofit assumption) and find stranding.
   let strandedFromYear = null;
@@ -174,6 +172,10 @@ async function analysePortfolio(companyId) {
   const assets = await prisma.realEstateAsset.findMany({ where: { companyId } });
   const results = [];
   for (const asset of assets) {
+    if (!hasPathway(asset.country, asset.assetClass)) {
+      results.push({ assetId: asset.id, name: asset.name, skipped: true, code: 'NO_COUNTRY_PATHWAY', reason: noPathwayError(asset).message });
+      continue;
+    }
     try {
       const r15 = await analyseAsset(asset.id, '1.5C');
       const r20 = await analyseAsset(asset.id, '2.0C');
@@ -185,4 +187,4 @@ async function analysePortfolio(companyId) {
   return results;
 }
 
-module.exports = { analyseAsset, analysePortfolio, getPathway, loadPathways };
+module.exports = { analyseAsset, analysePortfolio, getPathway, hasPathway, loadPathways, annualTotals };

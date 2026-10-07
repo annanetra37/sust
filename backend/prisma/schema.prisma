@@ -882,7 +882,7 @@ model RealEstateAsset {
   companyId        String
   company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name             String
-  assetClass       String   // office | retail | residential | industrial | logistics | hotel | mixed
+  assetClass       String   // office | retail | residential | industrial | logistics | hotel | mixed | school | kindergarten | public_admin | healthcare | residential_multi
   tenure           String   // owned | leased
   grossFloorAreaM2 Float
   netLeasableM2    Float?
@@ -895,6 +895,12 @@ model RealEstateAsset {
   certifications   Json?    // [{ scheme: "LEED", level: "Gold", year: 2021 }]
   tenantCount      Int?
   occupancyPct     Float?
+  // Building Energy page: intensity uses heatedAreaM2 when set, else gross.
+  heatedAreaM2       Float?
+  retrofitDate       DateTime?
+  retrofitDescription String?
+  retrofitCost       Float?
+  retrofitCurrency   String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -911,12 +917,16 @@ model AssetEnergyRecord {
   asset      RealEstateAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
   year       Int
   month      Int?
-  fuel       String   // electricity | natural_gas | district_heat | district_cool | oil
+  fuel       String   // electricity | natural_gas | district_heat | district_cool | lpg | biomass | oil
   quantity   Float
-  unit       String   // kWh | m3 | litre | MWh
+  unit       String   // kWh | MWh | Gcal | m3 | litre | kg
   cost       Float?
   currency   String?
   sourceDoc  String?
+  // Billing period for bills that do not align with calendar months;
+  // split pro rata by days across months.
+  periodStart DateTime?
+  periodEnd   DateTime?
   createdAt  DateTime @default(now())
 
   @@index([assetId, year])

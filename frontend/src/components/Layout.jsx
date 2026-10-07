@@ -25,6 +25,7 @@ function buildNav(t) {
       iconBg: 'bg-emerald-100 dark:bg-emerald-900',
       children: [
         { label: t('nav.climateEmissions'), path: '/dashboard/E/environmental-1' },
+        { label: t('nav.buildingsEnergy'), path: '/buildings', feature: 'building_energy' },
         { label: t('nav.productCarbonFootprint'), path: '/pcf' },
         { label: t('nav.pollutionWaste'), path: '/coming-soon', badge: t('nav.soon') },
         { label: t('nav.waterResources'), path: '/dashboard/E/environmental-3' },
@@ -73,7 +74,8 @@ export default function Layout() {
   const { t, lang, setLang, supportedLangs } = useT();
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Start collapsed on phone-width screens so the sidebar doesn't cover the page.
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 768);
   const [expanded, setExpanded] = useState({});
   const currentTier = normaliseTier(user?.company?.tier);
   const NAV = buildNav(t);
@@ -103,7 +105,7 @@ export default function Layout() {
             if (item.children) {
               const navKey = item.key || item.label;
               const isExpanded = expanded[navKey];
-              const isActive = item.children.some((c) => location.pathname === c.path);
+              const isActive = item.children.some((c) => location.pathname === c.path || (c.path !== '/' && c.path !== '/coming-soon' && location.pathname.startsWith(`${c.path}/`)));
 
               return (
                 <div key={navKey} className="mt-1">
@@ -130,12 +132,15 @@ export default function Layout() {
                           to={child.path}
                           className={clsx(
                             'block px-3 py-1.5 rounded-lg text-sm transition-colors',
-                            location.pathname === child.path
+                            location.pathname === child.path || (child.path === '/buildings' && location.pathname.startsWith('/buildings/'))
                               ? `${item.activeBg || 'bg-brand-50'} ${item.color} font-medium`
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                           )}
                         >
                           {child.label}
+                          {child.feature && !hasFeature(currentTier, child.feature) && (
+                            <Lock className="inline w-3 h-3 ml-1.5 text-gray-400" />
+                          )}
                           {child.badge && (
                             <span className="ml-2 badge bg-gray-100 dark:bg-gray-700 text-gray-400 text-[10px]">{child.badge}</span>
                           )}

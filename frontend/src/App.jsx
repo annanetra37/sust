@@ -34,6 +34,7 @@ import IsoGriBridge from './pages/IsoGriBridge';
 import ReadinessAssessment from './pages/ReadinessAssessment';
 import E3Dashboard from './pages/E3Dashboard';
 import E4Dashboard from './pages/E4Dashboard';
+import BuildingEnergy from './pages/BuildingEnergy';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -93,6 +94,8 @@ export default function App() {
         <Route path="/iso-gri" element={<IsoGriBridge />} />
         <Route path="/dashboard/E/environmental-3" element={<E3Dashboard />} />
         <Route path="/dashboard/E/environmental-4" element={<E4Dashboard />} />
+        <Route path="/buildings" element={<BuildingEnergy />} />
+        <Route path="/buildings/:id" element={<BuildingEnergy />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
       </Route>
 

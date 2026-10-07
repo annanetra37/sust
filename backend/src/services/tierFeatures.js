@@ -62,6 +62,7 @@ const TIERS = {
       multi_language_reports: true,  // languages other than English
       sustainability_roi:     true,  // /api/roi — Sustainability ROI dashboard
       water_resources:        true,  // /api/water — E3 Water Resources module
+      building_energy:        true,  // /api/real-estate — Building Energy page
       priority_support:       true,
     },
   },
@@ -111,6 +112,7 @@ const FEATURE_LABELS = {
   sla_guarantee:          'SLA guarantee',
   api_access:             'API access',
   water_resources:        'Water Resources (E3)',
+  building_energy:        'Building Energy',
   biodiversity:           'Biodiversity & Ecosystems (E4)',
   iso_gri_bridge:         'ISO → GRI Bridge',
   iso_bridge:             'ISO-to-GRI/ESRS Bridge',

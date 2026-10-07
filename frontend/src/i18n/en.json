@@ -86,7 +86,8 @@
     "enterprise": "Enterprise",
     "isoGriBridge": "ISO → GRI Bridge",
     "isoBridge": "ISO Bridge",
-    "whereToStart": "Where to Start"
+    "whereToStart": "Where to Start",
+    "buildingsEnergy": "Buildings & energy"
   },
   "home": {
     "welcomeBack": "Welcome back, {name}",
@@ -1414,5 +1415,155 @@
     "allReady": "Everything is in hand — go connect your data!",
     "markReady": "Mark as in hand",
     "markNotReady": "Mark as not ready"
+  },
+  "buildings": {
+    "title": "Buildings & energy",
+    "subtitle": "Log energy bills per building and see energy intensity (kWh/m²) before and after a retrofit.",
+    "addBuilding": "Add building",
+    "editBuilding": "Edit building",
+    "help": {
+      "title": "How this page works",
+      "body": "Add a building with its heated floor area and retrofit date, then log monthly energy bills (gas in m³ or kWh, electricity in kWh). The platform converts every bill to kWh with documented factors and compares the 12 months before the retrofit with the 12 months after it. The retrofit month itself is excluded."
+    },
+    "empty": {
+      "title": "No buildings yet",
+      "body": "Start by adding a building with its floor area and retrofit date. Then add monthly bills by hand, or import them from a CSV file using the template."
+    },
+    "csvTemplate": "CSV template",
+    "importCsv": "Import CSV",
+    "addRecord": "Add record",
+    "imported": "Imported {n} records.",
+    "retrofit": "Retrofit",
+    "retrofitted": "Retrofit",
+    "noRetrofit": "No retrofit date set — showing the latest 12 months. Edit the building to add one.",
+    "area": "Area",
+    "latestEui": "Latest EUI",
+    "vsBaseline": "vs baseline",
+    "recordCount": "{n} energy records",
+    "built": "built {year}",
+    "backToList": "All buildings",
+    "notFound": "Building not found.",
+    "beforeAfter": "Before / after retrofit",
+    "latest12": "Latest 12 months",
+    "areaBasis": {
+      "heated": "per m² heated area",
+      "gross": "per m² gross floor area"
+    },
+    "factorsUsed": "Factors used",
+    "noFactors": "No records yet.",
+    "factorStatus": {
+      "standard": "standard",
+      "sourced": "sourced",
+      "legacy": "unverified default",
+      "pending_source": "pending source",
+      "missing": "missing"
+    },
+    "biogenic": "biogenic, reported separately",
+    "kpi": {
+      "before": "Before (kWh/m²)",
+      "after": "After (kWh/m²)",
+      "eui": "Energy intensity",
+      "change": "Change",
+      "kwhSaved": "Energy saved",
+      "kwhPerYear": "kWh per year",
+      "costSaved": "Cost saved",
+      "costSavedEstimated": "Cost saved (estimated)",
+      "perYear": "per year",
+      "noCost": "Add bill costs to see savings",
+      "noUsd": "USD rate not configured",
+      "co2Avoided": "CO₂ avoided",
+      "tco2PerYear": "tCO₂e per year",
+      "totalKwh": "Total energy",
+      "emissions": "Emissions"
+    },
+    "notWeatherNormalised": "Not weather-normalised — compare heating seasons with care.",
+    "dataNotes": "Data notes",
+    "missingMonths": "Months without data ({from} → {to})",
+    "chartTitle": "Monthly energy intensity by fuel (kWh/m²)",
+    "period": {
+      "baseline": "before retrofit",
+      "post": "after retrofit",
+      "retrofit": "retrofit month (excluded)"
+    },
+    "records": "Energy records",
+    "noRecordsYet": "No energy records yet. Add a bill or import a CSV.",
+    "annual": "annual",
+    "periodMonth": "Calendar month",
+    "periodRange": "Billing period (dates)",
+    "confirmDeleteRecord": "Delete the record for {period}?",
+    "confirmDeleteBuilding": "Delete {name} and all its energy records?",
+    "lineageTitle": "Building energy bills",
+    "fields": {
+      "name": "Name",
+      "assetClass": "Building type",
+      "country": "Country code",
+      "city": "City / region",
+      "grossFloorAreaM2": "Gross floor area (m²)",
+      "heatedAreaM2": "Heated area (m²)",
+      "yearBuilt": "Year built",
+      "occupancyPct": "Occupancy (%)",
+      "retrofitDate": "Retrofit date",
+      "retrofitDescription": "What was done",
+      "retrofitCost": "Retrofit cost",
+      "currency": "Currency",
+      "period": "Period",
+      "periodType": "Period type",
+      "month": "Month",
+      "periodStart": "From",
+      "periodEnd": "To",
+      "fuel": "Fuel",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "cost": "Cost",
+      "sourceDoc": "Source document"
+    },
+    "hints": {
+      "country": "Two-letter code, e.g. AM for Armenia",
+      "heatedArea": "Used for kWh/m² when set; otherwise gross area",
+      "retrofitDescription": "e.g. wall and roof insulation, window replacement"
+    },
+    "classes": {
+      "school": "School",
+      "kindergarten": "Kindergarten",
+      "public_admin": "Municipal / public administration",
+      "healthcare": "Healthcare",
+      "residential_multi": "Residential multi-apartment",
+      "office": "Office",
+      "retail": "Retail",
+      "residential": "Residential",
+      "industrial": "Industrial",
+      "logistics": "Logistics",
+      "hotel": "Hotel",
+      "mixed": "Mixed use"
+    },
+    "fuels": {
+      "electricity": "Electricity",
+      "natural_gas": "Natural gas",
+      "district_heat": "District heat",
+      "district_cool": "District cooling",
+      "lpg": "LPG",
+      "biomass": "Wood / biomass",
+      "oil": "Diesel / heating oil"
+    },
+    "crrem": {
+      "title": "Paris-alignment pathway (CRREM)",
+      "notCalibratedAm": "Not yet calibrated for Armenia. Planned with local partners.",
+      "notCalibrated": "Not yet calibrated for {country}.",
+      "nextStep": "Available for this country — run the analysis from the real-estate module.",
+      "stranded": "misaligned from {year}",
+      "aligned": "aligned to 2050",
+      "source": "Source: CRREM pathways bundled with the real-estate sector pack."
+    },
+    "errors": {
+      "required": "Name, city and gross floor area are required.",
+      "positive": "{field} must be a positive number.",
+      "quantity": "Quantity must be greater than 0.",
+      "period": "Choose the billing month or both dates.",
+      "periodOrder": "The end date must be on or after the start date.",
+      "future": "Dates cannot be in the future.",
+      "csvEmpty": "The CSV file has no data rows.",
+      "saveFailed": "Could not save. Please try again.",
+      "loadFailed": "Could not load buildings."
+    }
   }
 }

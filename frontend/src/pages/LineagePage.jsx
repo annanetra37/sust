@@ -270,6 +270,8 @@ export default function LineagePage() {
         )}
       </div>
 
+      {data?.buildingBills?.length > 0 && <BuildingBills bills={data.buildingBills} t={t} navigate={navigate} />}
+
       {/* Legend */}
       <div className="flex items-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 shrink-0 px-1">
         <span>{t('lineage.auditLegend')}</span>
@@ -277,6 +279,49 @@ export default function LineagePage() {
         <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" /> {t('lineage.sourceFile')}</span>
         <span className="ml-auto">{t('lineage.expandCollapseHint')} · {t('lineage.zoomHint')}</span>
       </div>
+    </div>
+  );
+}
+
+// Building energy bills with a source document (Building Energy page), so a
+// kWh/m² figure can be traced back to the bill it came from.
+function BuildingBills({ bills, t, navigate }) {
+  const [open, setOpen] = useState(false);
+  const byAsset = {};
+  for (const b of bills) (byAsset[b.assetId] ||= { name: b.assetName, city: b.city, bills: [] }).bills.push(b);
+  const period = (b) => (b.periodStart
+    ? `${String(b.periodStart).slice(0, 10)} → ${String(b.periodEnd).slice(0, 10)}`
+    : b.month ? `${b.year}-${String(b.month).padStart(2, '0')}` : `${b.year}`);
+  return (
+    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
+      <button onClick={() => setOpen((v) => !v)} className="flex items-center gap-2 px-4 py-3 w-full text-left">
+        <Building2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <span className="font-semibold text-sm text-gray-900 dark:text-white flex-1">{t('buildings.lineageTitle')}</span>
+        <span className="badge bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px]">{bills.length}</span>
+        {open ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronRight className="w-4 h-4 text-gray-400" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3 max-h-80 overflow-y-auto">
+          {Object.entries(byAsset).map(([id, a]) => (
+            <div key={id}>
+              <button onClick={() => navigate(`/buildings/${id}`)} className="text-xs font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+                {a.name} · {a.city}
+              </button>
+              <div className="mt-1 space-y-1">
+                {a.bills.map((b) => (
+                  <div key={b.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800/60">
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[16rem]">{b.sourceDoc}</span>
+                    <span className="text-gray-500">{period(b)}</span>
+                    <span className="text-gray-500">{t(`buildings.fuels.${b.fuel}`)} · {Number(b.quantity).toLocaleString()} {b.unit}</span>
+                    {b.cost != null && <span className="text-gray-500">{Number(b.cost).toLocaleString()} {b.currency}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
