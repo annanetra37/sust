@@ -228,7 +228,7 @@ export default function Layout() {
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           {modules.length > 1 && (
-            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 overflow-x-auto" role="tablist" aria-label={t('launcher.switcher')}>
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 shrink-0" role="tablist" aria-label={t('launcher.switcher')}>
               <Link to="/launcher" className="p-1.5 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200" title={t('launcher.allModules')}>
                 <LayoutGrid className="w-4 h-4" />
               </Link>
@@ -273,11 +273,11 @@ export default function Layout() {
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <TierBadge tier={currentTier} size="md" />
-            <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            <span className="hidden sm:inline-flex"><TierBadge tier={currentTier} size="md" /></span>
+            <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 hidden sm:inline-flex">
               {user?.company?.creditBalance ?? 0} {t('common.credits')}
             </span>
-            <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{user?.role}</span>
+            <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hidden sm:inline-flex">{user?.role}</span>
           </div>
         </header>
 
