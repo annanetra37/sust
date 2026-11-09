@@ -1,0 +1,98 @@
+{
+  "_readme": "Starter criteria library for Green Key Readiness (Hotels & Hostels). Titles and guidance are short Triple i paraphrases, NOT the Green Key criteria text. Only the criteria named in the product spec (section 5.3) are seeded; the domain owner completes the library through the Criteria library page (add / edit / import JSON or CSV). Types marked provisional must be confirmed against the official criteria by the domain owner. Rule keys inside 'applicability' are read by services/gk/applicability.js (minEmployees, maxEmployees, requiresFacility, excludesFacility, notSeasonal, seasonalOnly, countries, excludeCountries, typeByEmployees, naAllowedWithJustification) and services/gk/readiness.js (evidenceMaxAgeMonths, reviewEveryMonths).",
+  "starterSet": true,
+  "areas": [
+    { "area": 1, "name": "Sustainable management", "subAreas": ["Environmental strategy and management involvement", "Corporate social responsibility", "Team engagement"] },
+    { "area": 2, "name": "Guest awareness and involvement", "subAreas": ["Guest involvement", "Responsible tourism"] },
+    { "area": 3, "name": "Water", "subAreas": ["Management", "Pollution"] },
+    { "area": 4, "name": "Energy and carbon", "subAreas": ["Energy management", "HVAC, equipment and lights", "Greenhouse gas"] },
+    { "area": 5, "name": "Waste", "subAreas": ["Management", "Reduction"] },
+    { "area": 6, "name": "Procurement", "subAreas": ["Administration and other", "Food and beverage", "Washing and cleaning"] },
+    { "area": 7, "name": "Living environment", "subAreas": ["Indoor environment", "Biodiversity protection"] }
+  ],
+  "versions": {
+    "2026-2031": [
+      {
+        "code": "1.1", "area": 1, "subArea": "Environmental strategy and management involvement",
+        "title": "Named sustainability representative and substitute",
+        "guidance": "Name one person responsible for the programme and one substitute. Both should be permanent staff. Keep a record when either changes.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": {},
+        "evidenceTypes": ["appointment letter", "organisation chart"], "auditMethod": "interview", "dataLink": "team"
+      },
+      {
+        "code": "1.2", "area": 1, "subArea": "Environmental strategy and management involvement",
+        "title": "Documented strategic sustainability targets",
+        "guidance": "Set measurable targets: four or more for establishments above 50 employees, otherwise two or more, spread over at least two areas. Horizon of six years at most, baseline taken from real data, document less than two years old and reviewed each certification period.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": { "evidenceMaxAgeMonths": 24 },
+        "evidenceTypes": ["targets document"], "auditMethod": "document", "dataLink": "targets"
+      },
+      {
+        "code": "1.3", "area": 1, "subArea": "Environmental strategy and management involvement",
+        "title": "Two-year action plan linked to the targets",
+        "guidance": "Plan concrete actions (four or more above 50 employees, otherwise two or more) over 24 months, split by year. Each action needs a way to measure it, an owner, a deadline and a link to a target. Explain any action not completed and give the next step.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": {},
+        "evidenceTypes": ["action plan"], "auditMethod": "document", "dataLink": "actions"
+      },
+      {
+        "code": "1.6", "area": 1, "subArea": "Corporate social responsibility",
+        "title": "Staff grievance channel",
+        "guidance": "Offer staff a way to raise concerns safely and record how they are handled. Becomes imperative above 50 employees.",
+        "type": "guideline",
+        "applicability": { "typeByEmployees": { "threshold": 50, "above": "imperative", "atOrBelow": "guideline" } },
+        "evidenceTypes": ["procedure", "attestation"], "auditMethod": "interview", "dataLink": null
+      },
+      {
+        "code": "1.9", "area": 1, "subArea": "Corporate social responsibility",
+        "title": "Indigenous Peoples assessment (100 km radius)",
+        "guidance": "Assess whether Indigenous Peoples live within 100 km. If none are present, mark the criterion not applicable and store the assessment as justification.",
+        "type": "guideline", "typeProvisional": true,
+        "applicability": { "naAllowedWithJustification": true },
+        "evidenceTypes": ["assessment note"], "auditMethod": "document", "dataLink": null
+      },
+      {
+        "code": "1.10", "area": 1, "subArea": "Corporate social responsibility",
+        "title": "Fair recruitment and staff development",
+        "guidance": "Show that hiring and staff development follow fair, non-discriminatory practice. Becomes imperative above 50 employees. Use attestations; do not upload payroll documents.",
+        "type": "guideline",
+        "applicability": { "typeByEmployees": { "threshold": 50, "above": "imperative", "atOrBelow": "guideline" } },
+        "evidenceTypes": ["policy", "attestation"], "auditMethod": "document", "dataLink": null
+      },
+      {
+        "code": "1.20", "area": 1, "subArea": "Team engagement",
+        "title": "Regular staff sustainability briefings",
+        "guidance": "Brief staff at least twice a year (once if seasonal or five staff or fewer). Keep the topic, date and attendance, and move the content forward each year.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": {},
+        "evidenceTypes": ["briefing log"], "auditMethod": "interview", "dataLink": "training"
+      },
+      {
+        "code": "1.21", "area": 1, "subArea": "Team engagement",
+        "title": "Staff sustainability training",
+        "guidance": "Hold one general and one department-specific training each year and train new hires within four weeks of starting.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": {},
+        "evidenceTypes": ["training log"], "auditMethod": "sampling", "dataLink": "training"
+      },
+      {
+        "code": "2.5", "area": 2, "subArea": "Responsible tourism",
+        "title": "Guest information on low-carbon transport",
+        "guidance": "Tell guests about public transport, cycling and walking options. Check that the information is still correct twice a year.",
+        "type": "guideline", "typeProvisional": true,
+        "applicability": { "reviewEveryMonths": 6 },
+        "evidenceTypes": ["guest information", "photo"], "auditMethod": "visual", "dataLink": null
+      },
+      {
+        "code": "3.1", "area": 3, "subArea": "Management",
+        "title": "Monthly water consumption records",
+        "guidance": "Record total water use per source every month for the last two calendar years (first-time applicants: the previous full year or at least three months; six months during the transition). Document the method, flag estimates, keep permits for non-public sources and investigate large changes.",
+        "type": "imperative", "typeProvisional": true,
+        "applicability": {},
+        "evidenceTypes": ["meter readings", "water bills", "permit"], "auditMethod": "document", "dataLink": "water"
+      }
+    ],
+    "2022-2026": []
+  }
+}

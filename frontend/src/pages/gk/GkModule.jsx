@@ -1,13 +1,30 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ModuleGate from '../../components/ModuleGate';
+import { useT } from '../../i18n';
+import Portfolio from './Portfolio';
+import Clients from './Clients';
+import CriteriaLibrary from './CriteriaLibrary';
+import Certificates from './Certificates';
+import Establishment from './Establishment';
+import { FeeFootnote } from './ui';
 
-// Placeholder — routes for the green_key module are implemented here.
+// Green Key Readiness module (hotels) — routes under /gk/*.
 export default function GkModule() {
+  const { t } = useT();
   return (
     <ModuleGate module="green_key">
-      <Routes>
-        <Route index element={<div className="card">Coming soon</div>} />
-      </Routes>
+      <div className="max-w-7xl mx-auto">
+        <Routes>
+          <Route index element={<Portfolio />} />
+          <Route path="clients" element={<Clients />} />
+          <Route path="criteria" element={<CriteriaLibrary />} />
+          <Route path="certificates" element={<Certificates />} />
+          <Route path="establishments/:id" element={<Establishment />} />
+          <Route path="establishments/:id/:tab" element={<Establishment />} />
+          <Route path="*" element={<Navigate to="/gk" replace />} />
+        </Routes>
+        <FeeFootnote t={t} />
+      </div>
     </ModuleGate>
   );
 }
