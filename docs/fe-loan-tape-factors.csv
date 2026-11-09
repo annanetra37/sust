@@ -1,0 +1,6 @@
+kind,key,region,currency,unit,value,scope1Share,notes
+revenue_sector,55.10,AM,AMD,tCO2e/M revenue,,,Fill in from your licensed source
+asset_sector,C,,AMD,tCO2e/M outstanding,,,
+building_benchmark,office,AM,,kWh/m2/yr,,,
+energy_label,C,AM,,kWh/m2/yr,,,
+grid,AM,AM,,kgCO2e/kWh,,,

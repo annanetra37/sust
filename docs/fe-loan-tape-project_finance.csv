@@ -1,0 +1,2 @@
+facilityRef,counterpartyId,counterpartyIsPseudonym,counterpartyName,outstanding,undrawn,currency,originationDate,branch,segment,relationshipManager,country,naceCode,localSectorCode,revenue,revenueCurrency,equityPlusDebt
+PF-0001,SPV-4001,,,800000000,,AMD,2023-01-20,,Project,,AM,35.11,,,,2000000000

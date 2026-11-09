@@ -1,0 +1,2 @@
+facilityRef,counterpartyId,counterpartyIsPseudonym,counterpartyName,outstanding,undrawn,currency,originationDate,branch,segment,relationshipManager,country,valueAtOrigination
+MV-0001,CLIENT-3001,,,6000000,,AMD,2024-02-01,,Retail,,AM,9000000
