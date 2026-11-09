@@ -30,6 +30,7 @@ const { loadCriteria } = require('../services/gk/library');
 const fs = require('fs');
 
 const DEMO_COMPANY = 'Green Key Readiness Demo (synthetic)';
+const DEMO_CLIENTS = ['Sevan Lakeside Hotel (synthetic)', 'Caucasus Stay Group (synthetic)'];
 const DEFAULT_EMAIL = process.env.GK_DEMO_EMAIL || 'hotel-demo@triplei.local';
 
 const now = new Date();
@@ -68,42 +69,54 @@ function pdfBuffer(title, lines) {
  * platform admin "Demo data" action (routes/modules.js).
  * @returns {{ company, email, created }}
  */
-async function seedGkDemo({ email = DEFAULT_EMAIL, password = process.env.GK_DEMO_PASSWORD, log = console.log } = {}) {
+async function seedGkDemo({ email = DEFAULT_EMAIL, password = process.env.GK_DEMO_PASSWORD, companyId = null, userId = null, log = console.log } = {}) {
   const DEMO_EMAIL = email;
   seed = 42; // same synthetic numbers on every run
   // ── Company, modules, user ────────────────────────────────────────────────
-  let company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
-  if (!company) {
-    company = await prisma.company.create({ data: { name: DEMO_COMPANY, country: 'AM', industry: 'Hospitality consulting', companySize: '1-50', tier: 'PROFESSIONAL' } });
-  } else if (company.tier !== 'PROFESSIONAL') {
-    company = await prisma.company.update({ where: { id: company.id }, data: { tier: 'PROFESSIONAL' } });
+  let company; let user;
+  if (companyId) {
+    // Load into an existing organisation (platform admin "into my organisation").
+    company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) throw new Error('Organisation not found.');
+    user = { id: userId };
+  } else {
+    company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
+    if (!company) {
+      company = await prisma.company.create({ data: { name: DEMO_COMPANY, country: 'AM', industry: 'Hospitality consulting', companySize: '1-50', tier: 'PROFESSIONAL' } });
+    } else if (company.tier !== 'PROFESSIONAL') {
+      company = await prisma.company.update({ where: { id: company.id }, data: { tier: 'PROFESSIONAL' } });
+    }
   }
-  for (const module of ['green_key', 'general']) {
+  for (const module of companyId ? ['green_key'] : ['green_key', 'general']) {
     await prisma.companyModule.upsert({
       where: { companyId_module: { companyId: company.id, module } },
       update: { enabled: true, trialEndsAt: null },
       create: { companyId: company.id, module, enabled: true },
     });
   }
-  let user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
-  if (!user) {
-    if (!password) throw new Error('A password is required to create the demo user.');
-    user = await prisma.user.create({
-      data: {
-        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
-        firstName: 'Demo', lastName: 'Consultant', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
-      },
-    });
-  } else if (user.companyId !== company.id) {
-    throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
-  } else if (password) {
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
+  if (!companyId) {
+    user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
+    if (!user) {
+      if (!password) throw new Error('A password is required to create the demo user.');
+      user = await prisma.user.create({
+        data: {
+          email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
+          firstName: 'Demo', lastName: 'Consultant', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
+        },
+      });
+    } else if (user.companyId !== company.id) {
+      throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
+    } else if (password) {
+      await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
+    }
   }
 
-  // ── Reset previous demo data (cascades) and stored evidence files ─────────
-  const oldFiles = await prisma.gkEvidence.findMany({ where: { establishment: { client: { companyId: company.id } } }, select: { storedFilePath: true } });
+  // ── Reset previous demo clients only (names marked synthetic) ─────────────
+  // so loading into a real organisation never touches its own clients.
+  const demoClientWhere = { companyId: company.id, name: { in: DEMO_CLIENTS } };
+  const oldFiles = await prisma.gkEvidence.findMany({ where: { establishment: { client: demoClientWhere } }, select: { storedFilePath: true } });
   for (const f of oldFiles) { try { fs.unlinkSync(getFilePath(f.storedFilePath)); } catch { /* gone */ } }
-  await prisma.gkClient.deleteMany({ where: { companyId: company.id } });
+  await prisma.gkClient.deleteMany({ where: demoClientWhere });
 
   const criteria = await loadCriteria(prisma, company.id, { version: '2026-2031' });
   const C = Object.fromEntries(criteria.map((c) => [c.code, c]));
@@ -246,7 +259,7 @@ async function seedGkDemo({ email = DEFAULT_EMAIL, password = process.env.GK_DEM
   await nc({ criterionCode: '3.1', description: 'Estimated months without documented method (synthetic)', raisedAt: addDays(now, -200), deadline: addDays(now, -140), status: 'closed', closedAt: addDays(now, -150), closureNote: 'Method documented' });
 
   log(`Green Key demo ready: ${DEMO_COMPANY}\n  login: ${DEMO_EMAIL}\n  clients: 2, establishments: 4, months: ${months.length}`);
-  return { company: company.name, email: DEMO_EMAIL };
+  return { company: company.name, email: companyId ? null : DEMO_EMAIL };
 }
 
 module.exports = { seedGkDemo, DEMO_COMPANY };

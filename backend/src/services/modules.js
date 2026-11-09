@@ -29,15 +29,20 @@ function isActive(row, now = new Date()) {
   return !!row && row.enabled && (!row.trialEndsAt || new Date(row.trialEndsAt) > now);
 }
 
-/** Entitled module keys for a company, in launcher order. */
-async function entitledModules(companyId) {
+/**
+ * Entitled module keys, in launcher order.  Platform admins (Triple i staff)
+ * always get every module in their own organisation, so one login can use
+ * General ESG, Financed Emissions and Green Key.
+ */
+async function entitledModules(companyId, email) {
+  if (isPlatformAdmin(email)) return [...MODULE_KEYS];
   const rows = await prisma.companyModule.findMany({ where: { companyId } });
   const byKey = Object.fromEntries(rows.map((r) => [r.module, r]));
   return MODULE_KEYS.filter((k) => (k === 'general' ? (!byKey.general || isActive(byKey.general)) : isActive(byKey[k])));
 }
 
-async function hasModule(companyId, moduleKey) {
-  return (await entitledModules(companyId)).includes(moduleKey);
+async function hasModule(companyId, moduleKey, email) {
+  return (await entitledModules(companyId, email)).includes(moduleKey);
 }
 
 // ─── Live status lines for the launcher cards ───────────────────────────────
@@ -81,8 +86,8 @@ async function statusGreenKey(companyId) {
 
 const STATUS = { general: statusGeneral, financed_emissions: statusFinanced, green_key: statusGreenKey };
 
-async function launcherCards(companyId) {
-  const keys = await entitledModules(companyId);
+async function launcherCards(companyId, email) {
+  const keys = await entitledModules(companyId, email);
   return Promise.all(keys.map(async (k) => {
     let status = null;
     try { status = await STATUS[k](companyId); } catch (err) { console.error(`[modules] status ${k}:`, err.message); }

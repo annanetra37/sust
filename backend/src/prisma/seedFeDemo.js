@@ -28,6 +28,7 @@ const { SET, FACTORS } = require('./feDemo/factors');
 const { demoBook } = require('./feDemo/generate');
 
 const DEMO_COMPANY = 'Demo Bank (synthetic data)';
+const DEMO_PORTFOLIO = 'Main loan book (synthetic)';
 const DEFAULT_EMAIL = process.env.FE_DEMO_EMAIL || 'bank-demo@triplei.local';
 
 /**
@@ -35,15 +36,23 @@ const DEFAULT_EMAIL = process.env.FE_DEMO_EMAIL || 'bank-demo@triplei.local';
  * platform admin "Demo data" action (routes/modules.js).
  * @returns {{ company, email, created }}
  */
-async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEMO_PASSWORD, log = console.log } = {}) {
+async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEMO_PASSWORD, companyId = null, userId = null, log = console.log } = {}) {
   const DEMO_EMAIL = email;
-  let company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
-  if (!company) {
-    company = await prisma.company.create({ data: { name: DEMO_COMPANY, country: 'AM', industry: 'Banking', companySize: '250+', tier: 'PROFESSIONAL' } });
-  } else if (company.tier === 'STARTER') {
-    company = await prisma.company.update({ where: { id: company.id }, data: { tier: 'PROFESSIONAL' } });
+  let company; let user;
+  if (companyId) {
+    // Load into an existing organisation (platform admin "into my organisation").
+    company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) throw new Error('Organisation not found.');
+    user = { id: userId };
+  } else {
+    company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
+    if (!company) {
+      company = await prisma.company.create({ data: { name: DEMO_COMPANY, country: 'AM', industry: 'Banking', companySize: '250+', tier: 'PROFESSIONAL' } });
+    } else if (company.tier === 'STARTER') {
+      company = await prisma.company.update({ where: { id: company.id }, data: { tier: 'PROFESSIONAL' } });
+    }
   }
-  for (const module of ['financed_emissions', 'general']) {
+  for (const module of companyId ? ['financed_emissions'] : ['financed_emissions', 'general']) {
     await prisma.companyModule.upsert({
       where: { companyId_module: { companyId: company.id, module } },
       create: { companyId: company.id, module, enabled: true },
@@ -51,26 +60,31 @@ async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEM
     });
   }
 
-  let user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
-  if (!user) {
-    if (!password) throw new Error('A password is required to create the demo user.');
-    user = await prisma.user.create({
-      data: {
-        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
-        firstName: 'Demo', lastName: 'Bank', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
-      },
-    });
-  } else if (user.companyId !== company.id) {
-    throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
-  } else if (password) {
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
+  if (!companyId) {
+    user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
+    if (!user) {
+      if (!password) throw new Error('A password is required to create the demo user.');
+      user = await prisma.user.create({
+        data: {
+          email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
+          firstName: 'Demo', lastName: 'Bank', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
+        },
+      });
+    } else if (user.companyId !== company.id) {
+      throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
+    } else if (password) {
+      await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
+    }
   }
 
-  // Replace previous demo FE data (periods, lines, runs cascade).
-  await prisma.fePortfolio.deleteMany({ where: { companyId: company.id } });
-  await prisma.feCounterparty.deleteMany({ where: { companyId: company.id } });
-  await prisma.feFactorSet.deleteMany({ where: { companyId: company.id } });
-  await prisma.feSectorMap.deleteMany({ where: { companyId: company.id } });
+  // Replace only the previous demo records (names marked synthetic), so
+  // loading into a real organisation never touches its own data.
+  const bookForIds = demoBook();
+  const demoStableIds = [...new Set(bookForIds.filter((l) => l.counterparty).map((l) => stableIdFor(company.id, l.counterparty.clientId)))];
+  await prisma.fePortfolio.deleteMany({ where: { companyId: company.id, name: DEMO_PORTFOLIO } });
+  await prisma.feCounterparty.deleteMany({ where: { companyId: company.id, stableId: { in: demoStableIds } } });
+  await prisma.feFactorSet.deleteMany({ where: { companyId: company.id, name: SET.name } });
+  await prisma.feSectorMap.deleteMany({ where: { companyId: company.id, code: 'AM-HOTEL' } });
 
   const set = await prisma.feFactorSet.create({ data: { ...SET, companyId: company.id } });
   await prisma.feFactor.createMany({ data: FACTORS.map((f) => ({ ...f, setId: set.id })) });
@@ -92,7 +106,7 @@ async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEM
 
   const portfolio = await prisma.fePortfolio.create({
     data: {
-      companyId: company.id, name: 'Main loan book (synthetic)', legalEntity: 'Demo Bank CJSC (synthetic)', baseCurrency: 'AMD',
+      companyId: company.id, name: DEMO_PORTFOLIO, legalEntity: 'Demo Bank CJSC (synthetic)', baseCurrency: 'AMD',
       fxSource: 'Central Bank of Armenia (not used: tape in AMD)', assetClasses: ['business_loans', 'commercial_re', 'mortgages'],
     },
   });
@@ -128,7 +142,7 @@ async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEM
     log(`${p.name}: ${lines.length} lines, ${t.absoluteFinanced} tCO2e (ILLUSTRATIVE), coverage ${t.coveragePct}%, weighted DQ ${t.weightedDq}, ${t.exceptions} exceptions`);
   }
   log(`Demo bank ready. Log in as ${DEMO_EMAIL}.`);
-  return { company: company.name, email: DEMO_EMAIL };
+  return { company: company.name, email: companyId ? null : DEMO_EMAIL };
 }
 
 module.exports = { seedFeDemo, DEMO_COMPANY };

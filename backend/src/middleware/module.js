@@ -8,7 +8,7 @@ function requireModule(moduleKey) {
   return async (req, res, next) => {
     try {
       if (!req.user || !req.user.companyId) return res.status(401).json({ error: 'Authentication required.' });
-      if (await hasModule(req.user.companyId, moduleKey)) return next();
+      if (await hasModule(req.user.companyId, moduleKey, req.user.email)) return next();
       return res.status(403).json({
         error: 'MODULE_NOT_ENABLED',
         module: moduleKey,
