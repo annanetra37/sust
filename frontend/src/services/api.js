@@ -271,6 +271,11 @@ const api = {
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
+  // Module Launcher & entitlements
+  getModules: () => request('/modules'),
+  getModuleAdminCompanies: () => request('/modules/admin/companies'),
+  updateCompanyModules: (companyId, modules) => request(`/modules/admin/companies/${companyId}`, { method: 'PUT', body: JSON.stringify({ modules }) }),
+
   // Real Estate
   getAssets: () => request('/real-estate/assets'),
   getAsset: (id) => request(`/real-estate/assets/${id}`),
@@ -378,4 +383,5 @@ const api = {
   getApiBase: () => API_BASE,
 };
 
+export { request };
 export default api;

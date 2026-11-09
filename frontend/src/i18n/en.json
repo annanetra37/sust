@@ -1588,5 +1588,72 @@
       "saveN": "Save {n} record(s)",
       "saved": "Saved {n} record(s) from bills."
     }
+  },
+  "launcher": {
+    "welcome": "Welcome, {name}",
+    "subtitle": "Choose a workspace. You can switch any time from the top bar.",
+    "open": "Open",
+    "continue": "Continue",
+    "platformAdmin": "Module entitlements",
+    "statusUnavailable": "Status unavailable",
+    "switcher": "Switch module",
+    "allModules": "All modules",
+    "notEnabledTitle": "{module} is not enabled",
+    "notEnabledBody": "This module is not part of your organisation's plan. Contact Triple i to enable it.",
+    "backToLauncher": "Back to modules",
+    "status": {
+      "general": "{units} organisational units · {activities} activity records",
+      "feEmpty": "No reporting period yet — create a portfolio to start",
+      "feNotCalculated": "{period} — {exposures} exposures loaded, not calculated yet",
+      "fe": "Reporting period {period} — {pct}% of exposure calculated",
+      "gkEmpty": "No establishments yet — add a client to start",
+      "gk": "{n} establishment(s) — next certificate expiry {date}",
+      "gkNoCert": "{n} establishment(s) — no certificate yet"
+    },
+    "modules": {
+      "general": {
+        "name": "General ESG",
+        "short": "ESG",
+        "description": "Your organisation's own emissions, workforce, governance and reporting."
+      },
+      "financed_emissions": {
+        "name": "Financed Emissions",
+        "short": "Financed",
+        "description": "PCAF financed emissions for banks and lenders, from the loan tape, with data quality scores."
+      },
+      "green_key": {
+        "name": "Green Key Readiness",
+        "short": "Green Key",
+        "description": "Hotel certification readiness: criteria, evidence, resource data, carbon and audit lifecycle."
+      }
+    }
+  },
+  "feNav": {
+    "overview": "Overview",
+    "portfolios": "Portfolios & periods",
+    "intake": "Data intake",
+    "counterparties": "Counterparties",
+    "calculations": "Calculations",
+    "review": "Review & audit",
+    "reports": "Reports & disclosures",
+    "factors": "Factors & mapping"
+  },
+  "gkNav": {
+    "portfolio": "Portfolio",
+    "clients": "Clients & establishments",
+    "criteria": "Criteria library",
+    "certificates": "Certificates & audits"
+  },
+  "platformAdmin": {
+    "title": "Module entitlements",
+    "subtitle": "Switch modules on or off per organisation and set trial end dates. Changes are logged.",
+    "search": "Search organisations",
+    "company": "Organisation",
+    "on": "On",
+    "off": "Off",
+    "trialEnds": "Trial ends",
+    "notAllowed": "Only Triple i platform admins can manage entitlements.",
+    "loadFailed": "Could not load organisations.",
+    "saveFailed": "Could not save."
   }
 }

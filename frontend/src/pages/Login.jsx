@@ -20,7 +20,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      navigate('/');
+      navigate('/launcher');
     } catch (err) {
       if (err.needsVerification) {
         navigate('/verify-email', { state: { email: form.email } });

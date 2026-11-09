@@ -35,6 +35,10 @@ import ReadinessAssessment from './pages/ReadinessAssessment';
 import E3Dashboard from './pages/E3Dashboard';
 import E4Dashboard from './pages/E4Dashboard';
 import BuildingEnergy from './pages/BuildingEnergy';
+import Launcher from './pages/Launcher';
+import PlatformAdmin from './pages/PlatformAdmin';
+import FeModule from './pages/fe/FeModule';
+import GkModule from './pages/gk/GkModule';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -66,8 +70,14 @@ export default function App() {
       <Route path="/readiness" element={<ReadinessAssessment />} />
       <Route path="/readiness/:token" element={<ReadinessAssessment />} />
 
+      {/* Module Launcher — full screen, no sidebar */}
+      <Route path="/launcher" element={<ProtectedRoute><Launcher /></ProtectedRoute>} />
+
       {/* Protected routes */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+        <Route path="/platform-admin" element={<PlatformAdmin />} />
+        <Route path="/fe/*" element={<FeModule />} />
+        <Route path="/gk/*" element={<GkModule />} />
         <Route path="/" element={<Home />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/dashboard/S/social-1" element={<S1Dashboard />} />
