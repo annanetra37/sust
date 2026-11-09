@@ -20,10 +20,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 
-if (process.env.NODE_ENV === 'production') {
-  console.error('seedFeDemo: refusing to run with NODE_ENV=production.');
-  process.exit(1);
-}
 
 const prisma = require('../config/prisma');
 const { stableIdFor } = require('../services/fe/loanTape');
@@ -32,9 +28,15 @@ const { SET, FACTORS } = require('./feDemo/factors');
 const { demoBook } = require('./feDemo/generate');
 
 const DEMO_COMPANY = 'Demo Bank (synthetic data)';
-const DEMO_EMAIL = process.env.FE_DEMO_EMAIL || 'bank-demo@triplei.local';
+const DEFAULT_EMAIL = process.env.FE_DEMO_EMAIL || 'bank-demo@triplei.local';
 
-async function main() {
+/**
+ * Create or refresh the demo workspace.  Used by the CLI below and by the
+ * platform admin "Demo data" action (routes/modules.js).
+ * @returns {{ company, email, created }}
+ */
+async function seedFeDemo({ email = DEFAULT_EMAIL, password = process.env.FE_DEMO_PASSWORD, log = console.log } = {}) {
+  const DEMO_EMAIL = email;
   let company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
   if (!company) {
     company = await prisma.company.create({ data: { name: DEMO_COMPANY, country: 'AM', industry: 'Banking', companySize: '250+', tier: 'PROFESSIONAL' } });
@@ -51,15 +53,17 @@ async function main() {
 
   let user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
   if (!user) {
-    if (!process.env.FE_DEMO_PASSWORD) throw new Error('Set FE_DEMO_PASSWORD to create the demo user.');
+    if (!password) throw new Error('A password is required to create the demo user.');
     user = await prisma.user.create({
       data: {
-        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(process.env.FE_DEMO_PASSWORD, 12),
+        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
         firstName: 'Demo', lastName: 'Bank', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
       },
     });
   } else if (user.companyId !== company.id) {
-    throw new Error(`${DEMO_EMAIL} belongs to another company; set FE_DEMO_EMAIL.`);
+    throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
+  } else if (password) {
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
   }
 
   // Replace previous demo FE data (periods, lines, runs cascade).
@@ -121,11 +125,20 @@ async function main() {
       });
     }
     const t = run.totals;
-    console.log(`${p.name}: ${lines.length} lines, ${t.absoluteFinanced} tCO2e (ILLUSTRATIVE), coverage ${t.coveragePct}%, weighted DQ ${t.weightedDq}, ${t.exceptions} exceptions`);
+    log(`${p.name}: ${lines.length} lines, ${t.absoluteFinanced} tCO2e (ILLUSTRATIVE), coverage ${t.coveragePct}%, weighted DQ ${t.weightedDq}, ${t.exceptions} exceptions`);
   }
-  console.log(`Demo bank ready. Log in as ${DEMO_EMAIL}.`);
+  log(`Demo bank ready. Log in as ${DEMO_EMAIL}.`);
+  return { company: company.name, email: DEMO_EMAIL };
 }
 
-main()
-  .catch((e) => { console.error(e.message); process.exitCode = 1; })
-  .finally(() => prisma.$disconnect());
+module.exports = { seedFeDemo, DEMO_COMPANY };
+
+if (require.main === module) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('seedFeDemo: refusing to run from the command line with NODE_ENV=production; use the platform admin "Demo data" action instead.');
+    process.exit(1);
+  }
+  seedFeDemo()
+    .catch((err) => { console.error('seedFeDemo failed:', err.message); process.exitCode = 1; })
+    .finally(() => prisma.$disconnect());
+}

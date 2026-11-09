@@ -106,7 +106,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 768);
   const [expanded, setExpanded] = useState({});
   const currentTier = normaliseTier(user?.company?.tier);
-  const { modules } = useModules();
+  const { modules, isPlatformAdmin } = useModules();
   const currentModule = moduleForPath(location.pathname);
   const NAV = currentModule === 'financed_emissions' ? buildFeNav(t) : currentModule === 'green_key' ? buildGkNav(t) : buildNav(t);
 
@@ -227,12 +227,12 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen((v) => !v)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          {modules.length > 1 && (
+          {(modules.length > 1 || isPlatformAdmin) && (
             <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 shrink-0" role="tablist" aria-label={t('launcher.switcher')}>
               <Link to="/launcher" className="p-1.5 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200" title={t('launcher.allModules')}>
                 <LayoutGrid className="w-4 h-4" />
               </Link>
-              {modules.map((m) => {
+              {modules.length > 1 && modules.map((m) => {
                 const Icon = MODULE_ICONS[m.key] || Leaf;
                 const active = m.key === currentModule;
                 return (

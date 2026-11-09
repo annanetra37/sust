@@ -54,7 +54,27 @@ VITE_API_URL=https://your-backend-url.up.railway.app
 
 4. In the frontend's `vite.config.js`, the proxy targets `localhost:4000`. For production, update the API base URL in `frontend/src/services/api.js` to use the backend's Railway URL, or set up a custom domain.
 
-### 5. Set Custom Domains (Optional)
+### 5. Sector modules (Financed Emissions, Green Key)
+
+Database tables are created automatically: the backend's start command
+(`prisma db push` before `node src/server.js`, in the Dockerfile) updates the
+schema on every deploy. To confirm, open `https://<backend-url>/api/health` —
+`"schema": "ok"` means the module tables exist.
+
+1. In the backend service's **Variables** tab, add
+   `PLATFORM_ADMIN_EMAILS=you@yourcompany.com` (comma-separated for several
+   Triple i staff). Redeploy.
+2. Log in with that email. The Module Launcher shows a **Module
+   entitlements** button (also reachable from the grid icon in the top bar).
+3. Switch modules on per organisation there (General ESG, Financed
+   Emissions, Green Key Readiness), optionally with a trial end date.
+4. **Demo data**, on the same page: choose a password and click
+   *Create / refresh* for the demo bank and/or the demo hotel group. Each
+   demo is a separate organisation with its own login
+   (`bank-demo@triplei.local`, `hotel-demo@triplei.local` by default), filled
+   with synthetic data. No shell access is needed.
+
+### 6. Set Custom Domains (Optional)
 
 1. In each service, go to **Settings** → **Networking** → **Generate Domain** or add a custom domain
 2. Update `FRONTEND_URL` in the backend to match the frontend's domain
@@ -78,6 +98,7 @@ This populates emission factor categories.
 | `FRONTEND_URL` | Yes | Frontend URL for CORS |
 | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for AI features |
 | `ANTHROPIC_MODEL` | No | AI model (default: claude-sonnet-5) |
+| `PLATFORM_ADMIN_EMAILS` | For modules | Triple i staff emails allowed to manage module entitlements and load demo data |
 | `SMTP_HOST` | No | Email server (leave empty for dev mode) |
 | `SMTP_PORT` | No | Email port (default: 587) |
 | `SMTP_USER` | No | Email sender address |

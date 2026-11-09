@@ -39,18 +39,18 @@ export function statusLine(card, t, lang) {
 
 export default function Launcher() {
   const { user } = useAuth();
-  const { modules, loading, isPlatformAdmin } = useModules();
+  const { modules, loading, isPlatformAdmin, error } = useModules();
   const { t, lang } = useT();
   const navigate = useNavigate();
   const last = lastModule();
 
   // Single-module users skip the launcher.
   useEffect(() => {
-    if (!loading && modules.length === 1 && !isPlatformAdmin) {
+    if (!loading && !error && modules.length === 1 && !isPlatformAdmin) {
       rememberModule(modules[0].key);
       navigate(modules[0].home, { replace: true });
     }
-  }, [loading, modules, isPlatformAdmin, navigate]);
+  }, [loading, error, modules, isPlatformAdmin, navigate]);
 
   const enter = (card) => { rememberModule(card.key); navigate(card.home); };
 
@@ -66,6 +66,11 @@ export default function Launcher() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('launcher.welcome', { name: user?.firstName || '' })}</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('launcher.subtitle')}</p>
 
+        {error && (
+          <div className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-sm text-red-700 dark:text-red-300">
+            {t('launcher.loadError')} <span className="opacity-80">({error})</span>
+          </div>
+        )}
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>
         ) : (

@@ -23,10 +23,6 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const PDFDocument = require('pdfkit');
 
-if (process.env.NODE_ENV === 'production') {
-  console.error('seedGkDemo: refusing to run with NODE_ENV=production.');
-  process.exit(1);
-}
 
 const prisma = require('../config/prisma');
 const { saveFile, getFilePath } = require('../utils/fileStore');
@@ -34,7 +30,7 @@ const { loadCriteria } = require('../services/gk/library');
 const fs = require('fs');
 
 const DEMO_COMPANY = 'Green Key Readiness Demo (synthetic)';
-const DEMO_EMAIL = process.env.GK_DEMO_EMAIL || 'hotel-demo@triplei.local';
+const DEFAULT_EMAIL = process.env.GK_DEMO_EMAIL || 'hotel-demo@triplei.local';
 
 const now = new Date();
 const addMonths = (d, n) => { const x = new Date(d); x.setUTCMonth(x.getUTCMonth() + n); return x; };
@@ -67,7 +63,14 @@ function pdfBuffer(title, lines) {
   });
 }
 
-async function main() {
+/**
+ * Create or refresh the demo workspace.  Used by the CLI below and by the
+ * platform admin "Demo data" action (routes/modules.js).
+ * @returns {{ company, email, created }}
+ */
+async function seedGkDemo({ email = DEFAULT_EMAIL, password = process.env.GK_DEMO_PASSWORD, log = console.log } = {}) {
+  const DEMO_EMAIL = email;
+  seed = 42; // same synthetic numbers on every run
   // ── Company, modules, user ────────────────────────────────────────────────
   let company = await prisma.company.findFirst({ where: { name: DEMO_COMPANY } });
   if (!company) {
@@ -84,15 +87,17 @@ async function main() {
   }
   let user = await prisma.user.findUnique({ where: { email: DEMO_EMAIL } });
   if (!user) {
-    if (!process.env.GK_DEMO_PASSWORD) throw new Error('Set GK_DEMO_PASSWORD to create the demo user.');
+    if (!password) throw new Error('A password is required to create the demo user.');
     user = await prisma.user.create({
       data: {
-        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(process.env.GK_DEMO_PASSWORD, 12),
+        email: DEMO_EMAIL, passwordHash: await bcrypt.hash(password, 12),
         firstName: 'Demo', lastName: 'Consultant', role: 'ADMIN', isActive: true, emailVerified: true, companyId: company.id,
       },
     });
   } else if (user.companyId !== company.id) {
-    throw new Error(`${DEMO_EMAIL} belongs to another company; set GK_DEMO_EMAIL.`);
+    throw new Error(`${DEMO_EMAIL} belongs to another company; choose another email.`);
+  } else if (password) {
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(password, 12), isActive: true } });
   }
 
   // ── Reset previous demo data (cascades) and stored evidence files ─────────
@@ -240,9 +245,18 @@ async function main() {
   await nc({ criterionCode: '1.21', description: 'New-hire training later than four weeks (synthetic)', raisedAt: addDays(now, -20), deadline: addDays(now, 40), status: 'open' });
   await nc({ criterionCode: '3.1', description: 'Estimated months without documented method (synthetic)', raisedAt: addDays(now, -200), deadline: addDays(now, -140), status: 'closed', closedAt: addDays(now, -150), closureNote: 'Method documented' });
 
-  console.log(`Green Key demo ready: ${DEMO_COMPANY}\n  login: ${DEMO_EMAIL}\n  clients: 2, establishments: 4, months: ${months.length}`);
+  log(`Green Key demo ready: ${DEMO_COMPANY}\n  login: ${DEMO_EMAIL}\n  clients: 2, establishments: 4, months: ${months.length}`);
+  return { company: company.name, email: DEMO_EMAIL };
 }
 
-main()
-  .catch((err) => { console.error('seedGkDemo failed:', err); process.exitCode = 1; })
-  .finally(() => prisma.$disconnect());
+module.exports = { seedGkDemo, DEMO_COMPANY };
+
+if (require.main === module) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('seedGkDemo: refusing to run from the command line with NODE_ENV=production; use the platform admin "Demo data" action instead.');
+    process.exit(1);
+  }
+  seedGkDemo()
+    .catch((err) => { console.error('seedGkDemo failed:', err.message); process.exitCode = 1; })
+    .finally(() => prisma.$disconnect());
+}
