@@ -1,0 +1,3 @@
+facilityRef,counterpartyId,counterpartyIsPseudonym,counterpartyName,outstanding,undrawn,currency,originationDate,branch,segment,relationshipManager,country,naceCode,localSectorCode,revenue,revenueCurrency,equityPlusDebt
+BL-0001,CLIENT-1001,,,90000000,10000000,AMD,2023-03-15,Yerevan Centre,SME,,AM,55.10,,850000000,AMD,500000000
+BL-0002,CLIENT-1002,,,40000000,,AMD,,Gyumri,Corporate,,AM,10,,,,300000000

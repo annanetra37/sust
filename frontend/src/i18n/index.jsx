@@ -1,11 +1,15 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import en from './en.json';
+import enBase from './en.json';
+import feEn from './fe.en.json';
+import gkEn from './gk.en.json';
 import de from './de.json';
 import fr from './fr.json';
 import es from './es.json';
 import sv from './sv.json';
 import ar from './ar.json';
 
+// Sector modules keep their strings in their own files (fe.*, gk.*).
+const en = { ...enBase, ...feEn, ...gkEn };
 const TRANSLATIONS = { en, de, fr, es, sv, ar };
 const SUPPORTED_LANGS = ['en', 'de', 'fr', 'es', 'sv', 'ar'];
 const LANG_LABELS = { en: 'English', de: 'Deutsch', fr: 'Français', es: 'Español', sv: 'Svenska', ar: 'العربية' };

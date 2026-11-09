@@ -85,6 +85,15 @@ model Company {
   disclosureDrafts   DisclosureDraft[]
   reverseExportPacks ReverseExportPack[]
   preparationPlans   PreparationPlan[]
+
+  // Sector modules (Module Launcher): entitlements, Financed Emissions, Green Key
+  modules          CompanyModule[]
+  fePortfolios     FePortfolio[]
+  feCounterparties FeCounterparty[]
+  feFactorSets     FeFactorSet[]
+  feSectorMaps     FeSectorMap[]
+  gkClients        GkClient[]
+  gkCriteria       GkCriterion[]
 }
 
 // ─── Sustainability ROI inputs ──────────────────────────────────
@@ -248,7 +257,7 @@ model UploadHistory {
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   fileName       String
-  fileType       String       // E1, S1
+  fileType       String       // E1, S1, G1, BUILDING (energy bill)
   orgUnit        String?
   orgUnitId      String?
   status         UploadStatus @default(PROCESSING)
@@ -927,9 +936,13 @@ model AssetEnergyRecord {
   // split pro rata by days across months.
   periodStart DateTime?
   periodEnd   DateTime?
+  // UploadHistory row holding the original bill (PDF / photo) when the
+  // record came from a bill upload — lets every number open its bill.
+  sourceUploadId String?
   createdAt  DateTime @default(now())
 
   @@index([assetId, year])
+  @@index([sourceUploadId])
 }
 
 model AssetCrremPathway {
@@ -1150,3 +1163,533 @@ model BiodiversityAssessment {
   @@index([companyId, year])
   @@index([siteId])
 }
+
+// ═════════════════════════════════════════════════════════════════════════
+// Sector modules — Module Launcher entitlements
+// ═════════════════════════════════════════════════════════════════════════
+
+// Which modules a tenant may enter.  No row for 'general' means enabled
+// (every existing tenant keeps General ESG); 'financed_emissions' and
+// 'green_key' need an enabled row.
+model CompanyModule {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  module      String    // general | financed_emissions | green_key
+  enabled     Boolean   @default(true)
+  trialEndsAt DateTime?
+  limits      Json?     // { maxExposures, maxEstablishments, maxUsers }
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([companyId, module])
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// Module A — Financed Emissions (PCAF Part A, 3rd edition)
+// Tenant → Portfolio → Reporting period → Exposure → Counterparty
+// ═════════════════════════════════════════════════════════════════════════
+
+model FePortfolio {
+  id              String     @id @default(uuid())
+  companyId       String
+  company         Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name            String
+  legalEntity     String?
+  baseCurrency    String     @default("AMD")
+  fxSource        String?
+  assetClasses    String[]   @default([]) // business_loans | commercial_re | mortgages | motor_vehicle | project_finance
+  inflationAdjust Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  periods         FePeriod[]
+
+  @@index([companyId])
+}
+
+model FePeriod {
+  id            String          @id @default(uuid())
+  portfolioId   String
+  portfolio     FePortfolio     @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  name          String          // e.g. FY2025
+  reportingDate DateTime
+  status        String          @default("OPEN") // OPEN | IN_REVIEW | LOCKED
+  ledgerTotal   Float?          // general-ledger outstanding, for reconciliation
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  exposures     FeExposure[]
+  uploads       FeUpload[]
+  runs          FeCalcRun[]
+  events        FePeriodEvent[]
+
+  @@index([portfolioId])
+}
+
+// Sign-off trail: submit, approve/lock, reopen (with reason), comments.
+model FePeriodEvent {
+  id         String   @id @default(uuid())
+  periodId   String
+  period     FePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  action     String   // SUBMIT | APPROVE | REJECT | REOPEN | COMMENT
+  fromStatus String?
+  toStatus   String?
+  comment    String?
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@index([periodId])
+}
+
+// A counterparty is identified by a pseudonymised stable id (hash of the
+// bank's own client id); the name is optional.
+model FeCounterparty {
+  id             String                    @id @default(uuid())
+  companyId      String
+  company        Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stableId       String                    // sha256(tenant salt + bank client id), or the bank's own pseudonym
+  name           String?
+  country        String?
+  naceCode       String?                   // NACE Rev.2, e.g. "55.10" or "I55"
+  localSectorCode String?
+  revenue        Float?                    // annual revenue, in revenueCurrency
+  revenueCurrency String?
+  equityPlusDebt Float?                    // total equity + debt, for attribution
+  parentStableId String?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  emissions      FeCounterpartyEmissions[]
+  exposures      FeExposure[]
+
+  @@unique([companyId, stableId])
+  @@index([companyId, naceCode])
+}
+
+// Counterparty emissions by year and source (top of the PCAF ladder).
+model FeCounterpartyEmissions {
+  id             String         @id @default(uuid())
+  counterpartyId String
+  counterparty   FeCounterparty @relation(fields: [counterpartyId], references: [id], onDelete: Cascade)
+  year           Int
+  source         String         // reported | energy | production
+  verified       Boolean        @default(false)
+  scope1         Float?         // tCO2e
+  scope2         Float?
+  scope3         Float?
+  notes          String?
+  createdAt      DateTime       @default(now())
+
+  @@index([counterpartyId, year])
+}
+
+// One line of the loan tape (a facility).
+model FeExposure {
+  id                 String          @id @default(uuid())
+  periodId           String
+  period             FePeriod        @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  counterpartyId     String?
+  counterparty       FeCounterparty? @relation(fields: [counterpartyId], references: [id], onDelete: SetNull)
+  facilityRef        String          // bank facility id (pseudonymised if needed)
+  assetClass         String          // business_loans | commercial_re | mortgages | motor_vehicle | project_finance
+  outstanding        Float
+  undrawn            Float?
+  currency           String
+  originationDate    DateTime?
+  valueAtOrigination Float?          // property / vehicle value at origination
+  branch             String?
+  segment            String?
+  relationshipManager String?
+  // Real estate (CRE / mortgages)
+  propertyType       String?
+  floorAreaM2        Float?
+  energyKwh          Float?          // actual annual energy use
+  energyLabel        String?
+  country            String?
+  uploadId           String?
+  rowNumber          Int?
+  createdAt          DateTime        @default(now())
+
+  results            FeLineResult[]
+
+  @@unique([periodId, facilityRef])
+  @@index([periodId, assetClass])
+  @@index([counterpartyId])
+}
+
+model FeUpload {
+  id               String   @id @default(uuid())
+  periodId         String
+  period           FePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  assetClass       String
+  fileName         String
+  totalRows        Int
+  acceptedRows     Int
+  rejectedRows     Int
+  totalOutstanding Float
+  errors           Json?    // [{ row, field, message }]
+  uploadedById     String
+  createdAt        DateTime @default(now())
+
+  @@index([periodId])
+}
+
+// Versioned factor sets: global (companyId null, published by Triple i) or
+// tenant custom (flagged in outputs).
+model FeFactorSet {
+  id          String     @id @default(uuid())
+  companyId   String?
+  company     Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  version     String
+  source      String
+  illustrative Boolean   @default(false) // demo values — never for disclosure
+  createdAt   DateTime   @default(now())
+
+  factors     FeFactor[]
+
+  @@index([companyId])
+}
+
+model FeFactor {
+  id       String      @id @default(uuid())
+  setId    String
+  set      FeFactorSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  kind     String      // revenue_sector | asset_sector | building_benchmark | energy_label | grid
+  key      String      // NACE code/division/section, property type, label, or country
+  region   String?     // country code, null = any
+  currency String?     // for revenue/asset factors
+  unit     String      // tCO2e/M revenue | tCO2e/M outstanding | kWh/m2/yr | kgCO2e/kWh
+  value    Float
+  scope1Share Float?   // share of value that is scope 1 (rest scope 2), optional
+  notes    String?
+
+  @@index([setId, kind, key])
+}
+
+// Local or custom sector codes mapped to factor keys.
+model FeSectorMap {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code      String  // code as it appears on the tape
+  factorKey String  // NACE key used for factor lookup
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, code])
+}
+
+// Every calculation run is stored with its inputs hash, methodology and
+// factor-set version so a locked period can be reproduced exactly.
+model FeCalcRun {
+  id                 String         @id @default(uuid())
+  periodId           String
+  period             FePeriod       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  status             String         @default("COMPLETED") // COMPLETED | FAILED
+  methodologyVersion String
+  factorSetId        String?
+  factorSetVersion   String?
+  inputsHash         String
+  outputsHash        String?
+  totals             Json?
+  createdById        String
+  createdAt          DateTime       @default(now())
+
+  results            FeLineResult[]
+
+  @@index([periodId, createdAt])
+}
+
+model FeLineResult {
+  id             String     @id @default(uuid())
+  runId          String
+  run            FeCalcRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  exposureId     String
+  exposure       FeExposure @relation(fields: [exposureId], references: [id], onDelete: Cascade)
+  attribution    Float?
+  financedScope1 Float?
+  financedScope2 Float?
+  financedTotal  Float?     // tCO2e
+  undrawnFinanced Float?    // optional undrawn commitments, shown separately
+  dqScore        Int?       // PCAF 1 (best) – 5
+  method         String?
+  explanation    String?
+  exception      String?    // why no result (missing input)
+
+  @@index([runId])
+  @@index([exposureId])
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// Module B — Green Key Readiness (hotels)
+// Consultant workspace (tenant) → Client → Brand (optional) → Establishment
+// ═════════════════════════════════════════════════════════════════════════
+
+model GkClient {
+  id             String            @id @default(uuid())
+  companyId      String
+  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name           String
+  clientType     String            @default("group") // group | owner | operator
+  country        String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  brands         GkBrand[]
+  establishments GkEstablishment[]
+
+  @@index([companyId])
+}
+
+model GkBrand {
+  id             String            @id @default(uuid())
+  clientId       String
+  client         GkClient          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  name           String
+  establishments GkEstablishment[]
+}
+
+// The certifiable unit: one establishment per permanent location.
+model GkEstablishment {
+  id                  String               @id @default(uuid())
+  clientId            String
+  client              GkClient             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  brandId             String?
+  brand               GkBrand?             @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  name                String
+  category            String               @default("hotels_hostels")
+  country             String               @default("AM")
+  city                String?
+  rooms               Int?
+  beds                Int?
+  employees           Int?
+  seasonal            Boolean              @default(false)
+  facilities          Json?                // { restaurant, animals, outsourcedHousekeeping, pool, meetingSpaceM2 }
+  criteriaVersion     String               @default("2026-2031")
+  priorPeriods        Int                  @default(0) // completed certification periods before this one
+  transition          Boolean              @default(false) // re-certifying from 2022–2026
+  dispensation        Boolean              @default(false) // one-period dispensation confirmed
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  statuses            GkCriterionStatus[]
+  evidence            GkEvidence[]
+  resources           GkResourceRecord[]
+  occupancy           GkOccupancy[]
+  targets             GkTarget[]
+  actions             GkAction[]
+  team                GkTeamMember[]
+  trainings           GkTraining[]
+  certifications      GkCertification[]
+  nonConformities     GkNonConformity[]
+
+  @@index([clientId])
+}
+
+// Criteria library — paraphrased guidance only (no verbatim criteria text).
+// companyId null = Triple i library; a tenant may add its own criteria.
+model GkCriterion {
+  id            String              @id @default(uuid())
+  companyId     String?
+  company       Company?            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  version       String              // 2022-2026 | 2026-2031
+  category      String              @default("hotels_hostels")
+  code          String              // e.g. 3.1
+  area          Int                 // 1–7
+  subArea       String?
+  title         String
+  guidance      String?
+  type          String              // imperative | guideline
+  applicability Json?               // rules, see services/gk/applicability.js
+  evidenceTypes String[]            @default([])
+  auditMethod   String?             // document | sampling | visual | interview
+  dataLink      String?             // energy | water | waste | occupancy | targets | actions | team | training
+  sortOrder     Int                 @default(0)
+  createdAt     DateTime            @default(now())
+
+  statuses      GkCriterionStatus[]
+  evidenceLinks GkEvidenceLink[]
+
+  @@index([version, category])
+  @@index([companyId])
+}
+
+model GkCriterionStatus {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  criterionId     String
+  criterion       GkCriterion     @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  status          String          @default("not_started") // not_started | in_progress | evidence_uploaded | approved | conforms | na
+  naJustification String?
+  ownerName       String?
+  dueDate         DateTime?
+  comments        Json?           // [{ by, at, text }]
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([establishmentId, criterionId])
+}
+
+model GkEvidence {
+  id              String           @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment  @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  fileName        String
+  storedFilePath  String
+  mime            String?
+  size            Int?
+  description     String?
+  documentDate    DateTime?
+  validUntil      DateTime?
+  status          String           @default("pending") // pending | approved | rejected
+  reviewNote      String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  uploadedById    String
+  createdAt       DateTime         @default(now())
+
+  links           GkEvidenceLink[]
+
+  @@index([establishmentId])
+}
+
+model GkEvidenceLink {
+  id          String      @id @default(uuid())
+  evidenceId  String
+  evidence    GkEvidence  @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  criterionId String
+  criterion   GkCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([evidenceId, criterionId])
+}
+
+// Monthly resource data: energy by source, water by source, waste by stream.
+model GkResourceRecord {
+  id               String          @id @default(uuid())
+  establishmentId  String
+  establishment    GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  year             Int
+  month            Int
+  kind             String          // energy | water | waste
+  source           String          // energy: buildingEnergy fuel keys; water: municipal|well|surface|rainwater|tanker; waste: mixed|paper|plastic|glass|metal|organic|hazardous|other
+  quantity         Float
+  unit             String
+  estimated        Boolean         @default(false)
+  estimationMethod String?         // area_allocation | occupancy_allocation | tank_refills | delivery_logs | other
+  cost             Float?
+  currency         String?
+  disposal         String?         // waste: landfill | recycled | composted | incinerated
+  notes            String?
+  createdAt        DateTime        @default(now())
+
+  @@index([establishmentId, year, month])
+}
+
+model GkOccupancy {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  year            Int
+  month           Int
+  guestNights     Int
+  occupiedRooms   Int
+
+  @@unique([establishmentId, year, month])
+}
+
+model GkTarget {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  area            Int             // criteria area 1–7
+  description     String
+  metric          String?
+  baselineYear    Int?
+  baselineValue   Float?
+  targetValue     Float?
+  targetYear      Int?
+  documentDate    DateTime?
+  createdAt       DateTime        @default(now())
+
+  actions         GkAction[]
+}
+
+model GkAction {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  targetId        String?
+  target          GkTarget?       @relation(fields: [targetId], references: [id], onDelete: SetNull)
+  description     String
+  owner           String?
+  measure         String?         // how progress is measured
+  dueDate         DateTime?
+  status          String          @default("planned") // planned | in_progress | done | not_fulfilled
+  justification   String?
+  nextStep        String?
+  createdAt       DateTime        @default(now())
+}
+
+model GkTeamMember {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  role            String          // representative | substitute | committee
+  name            String
+  position        String?
+  email           String?
+  permanentStaff  Boolean         @default(true)
+  fromDate        DateTime        @default(now())
+  toDate          DateTime?       // null = current
+}
+
+model GkTraining {
+  id              String          @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  kind            String          // briefing | general_training | departmental_training | new_hire
+  topic           String
+  department      String?
+  date            DateTime
+  durationMin     Int?
+  format          String?
+  participants    Int?
+  staffName       String?         // new_hire
+  hireDate        DateTime?       // new_hire
+  notes           String?
+  createdAt       DateTime        @default(now())
+}
+
+model GkCertification {
+  id              String            @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment   @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  periodNumber    Int
+  criteriaVersion String
+  status          String            @default("applied") // applied | certified | suspended | expired | withdrawn
+  auditDate       DateTime?
+  validFrom       DateTime?
+  validTo         DateTime?
+  surveillanceDate DateTime?
+  notes           String?
+  createdAt       DateTime          @default(now())
+
+  nonConformities GkNonConformity[]
+}
+
+model GkNonConformity {
+  id              String           @id @default(uuid())
+  establishmentId String
+  establishment   GkEstablishment  @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  certificationId String?
+  certification   GkCertification? @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  criterionCode   String?
+  description     String
+  raisedAt        DateTime         @default(now())
+  deadline        DateTime
+  status          String           @default("open") // open | closed
+  closedAt        DateTime?
+  closureNote     String?
+}
+

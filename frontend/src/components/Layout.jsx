@@ -6,13 +6,15 @@ import { useT } from '../i18n';
 import {
   LayoutDashboard, Leaf, Users2, Building2, BarChart3, FileText, Settings,
   History, Database, ChevronDown, ChevronRight, LogOut, Menu, X, Globe, Shield, Target,
-  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages, GitMerge, Compass
+  Sun, Moon, GitBranch, Activity, Lock, TrendingUp, Truck, Languages, GitMerge, Compass,
+  LayoutGrid, Landmark, Hotel, Briefcase, Upload, Calculator, ClipboardCheck, BookOpen, Library, Award,
 } from 'lucide-react';
 import clsx from 'clsx';
 import AssistantChat from './AssistantChat';
 import { LogoFull } from './Logo';
 import TierBadge from './TierBadge';
 import { hasFeature, normaliseTier } from '../config/tierFeatures';
+import { useModules, moduleForPath, rememberModule } from '../context/ModuleContext';
 
 function buildNav(t) {
   return [
@@ -68,6 +70,32 @@ function buildNav(t) {
   ];
 }
 
+// Sidebar for the Financed Emissions module (spec §4.4).
+function buildFeNav(t) {
+  return [
+    { label: t('feNav.overview'), path: '/fe', icon: LayoutDashboard },
+    { label: t('feNav.portfolios'), path: '/fe/portfolios', icon: Briefcase },
+    { label: t('feNav.intake'), path: '/fe/intake', icon: Upload },
+    { label: t('feNav.counterparties'), path: '/fe/counterparties', icon: Building2 },
+    { label: t('feNav.calculations'), path: '/fe/calculations', icon: Calculator },
+    { label: t('feNav.review'), path: '/fe/review', icon: ClipboardCheck },
+    { label: t('feNav.reports'), path: '/fe/reports', icon: FileText },
+    { label: t('feNav.factors'), path: '/fe/factors', icon: Library },
+  ];
+}
+
+// Sidebar for the Green Key Readiness module (spec §5.5).
+function buildGkNav(t) {
+  return [
+    { label: t('gkNav.portfolio'), path: '/gk', icon: LayoutDashboard },
+    { label: t('gkNav.clients'), path: '/gk/clients', icon: Hotel },
+    { label: t('gkNav.criteria'), path: '/gk/criteria', icon: BookOpen },
+    { label: t('gkNav.certificates'), path: '/gk/certificates', icon: Award },
+  ];
+}
+
+const MODULE_ICONS = { general: Leaf, financed_emissions: Landmark, green_key: Hotel };
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { dark, toggle: toggleTheme } = useTheme();
@@ -78,7 +106,9 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(() => typeof window === 'undefined' || window.innerWidth >= 768);
   const [expanded, setExpanded] = useState({});
   const currentTier = normaliseTier(user?.company?.tier);
-  const NAV = buildNav(t);
+  const { modules } = useModules();
+  const currentModule = moduleForPath(location.pathname);
+  const NAV = currentModule === 'financed_emissions' ? buildFeNav(t) : currentModule === 'green_key' ? buildGkNav(t) : buildNav(t);
 
   const toggle = (key) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -160,7 +190,7 @@ export default function Layout() {
                 title={locked ? `Upgrade required to unlock ${item.label}` : undefined}
                 className={clsx(
                   'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  location.pathname === item.path
+                  (location.pathname === item.path || (item.path.length > 3 && /^\/(fe|gk)\//.test(item.path) && location.pathname.startsWith(`${item.path}/`)))
                     ? 'bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300'
                     : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
                   locked && 'opacity-60'
@@ -197,6 +227,30 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen((v) => !v)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
+          {modules.length > 1 && (
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 shrink-0" role="tablist" aria-label={t('launcher.switcher')}>
+              <Link to="/launcher" className="p-1.5 rounded-md text-gray-500 hover:text-gray-800 dark:hover:text-gray-200" title={t('launcher.allModules')}>
+                <LayoutGrid className="w-4 h-4" />
+              </Link>
+              {modules.map((m) => {
+                const Icon = MODULE_ICONS[m.key] || Leaf;
+                const active = m.key === currentModule;
+                return (
+                  <Link
+                    key={m.key}
+                    to={m.home}
+                    onClick={() => rememberModule(m.key)}
+                    role="tab"
+                    aria-selected={active}
+                    className={clsx('flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold whitespace-nowrap transition-colors',
+                      active ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200')}
+                  >
+                    <Icon className="w-3.5 h-3.5" /><span className="hidden md:inline">{t(`launcher.modules.${m.key}.short`)}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
           <div className="flex-1" />
           <div className="flex items-center gap-3 text-sm">
             {/* Language switcher dropdown */}
@@ -219,11 +273,11 @@ export default function Layout() {
             >
               {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
-            <TierBadge tier={currentTier} size="md" />
-            <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+            <span className="hidden sm:inline-flex"><TierBadge tier={currentTier} size="md" /></span>
+            <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 hidden sm:inline-flex">
               {user?.company?.creditBalance ?? 0} {t('common.credits')}
             </span>
-            <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">{user?.role}</span>
+            <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hidden sm:inline-flex">{user?.role}</span>
           </div>
         </header>
 

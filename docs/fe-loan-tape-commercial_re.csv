@@ -1,0 +1,2 @@
+facilityRef,counterpartyId,counterpartyIsPseudonym,counterpartyName,outstanding,undrawn,currency,originationDate,branch,segment,relationshipManager,country,naceCode,localSectorCode,valueAtOrigination,propertyType,floorAreaM2,energyKwh,energyLabel
+CRE-0001,CLIENT-2001,,,300000000,,AMD,2022-06-01,Yerevan Centre,Corporate,,AM,68.20,,600000000,office,2400,360000,

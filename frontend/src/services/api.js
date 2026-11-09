@@ -271,6 +271,11 @@ const api = {
   exportPcfPdf: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pdf&token=${accessToken || ''}`,
   exportPcfPact: (calcId) => `${API_BASE}/pcf/calculations/${calcId}/export?format=pact&token=${accessToken || ''}`,
 
+  // Module Launcher & entitlements
+  getModules: () => request('/modules'),
+  getModuleAdminCompanies: () => request('/modules/admin/companies'),
+  updateCompanyModules: (companyId, modules) => request(`/modules/admin/companies/${companyId}`, { method: 'PUT', body: JSON.stringify({ modules }) }),
+
   // Real Estate
   getAssets: () => request('/real-estate/assets'),
   getAsset: (id) => request(`/real-estate/assets/${id}`),
@@ -283,6 +288,7 @@ const api = {
   deleteEnergyRecord: (assetId, recordId) => request(`/real-estate/assets/${assetId}/energy/${recordId}`, { method: 'DELETE' }),
   bulkEnergyRecords: (assetId, records) => request(`/real-estate/assets/${assetId}/energy/bulk`, { method: 'POST', body: JSON.stringify(records) }),
   getIntensity: (assetId) => request(`/real-estate/assets/${assetId}/intensity`),
+  extractBills: (assetId, formData) => request(`/real-estate/assets/${assetId}/bills/extract`, { method: 'POST', body: formData }),
   runCrrem: (assetId, scenario) => request(`/real-estate/assets/${assetId}/crrem`, { method: 'POST', body: JSON.stringify({ scenario }) }),
   getPortfolioCrrem: () => request('/real-estate/portfolio/crrem'),
 
@@ -377,4 +383,5 @@ const api = {
   getApiBase: () => API_BASE,
 };
 
+export { request };
 export default api;

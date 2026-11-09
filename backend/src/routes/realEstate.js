@@ -6,8 +6,13 @@ const { authenticate } = require('../middleware/auth');
 const { requireFeature } = require('../middleware/tier');
 const { formatError } = require('../utils/errors');
 const { logActivity } = require('../utils/activityLog');
+const multer = require('multer');
 const crremEngine = require('../services/crremEngine');
 const buildingEnergy = require('../services/buildingEnergy');
+const billExtract = require('../services/billExtract');
+const estimator = require('../utils/estimator');
+const { deductCredits } = require('../middleware/credits');
+const { saveFile } = require('../utils/fileStore');
 
 router.use(authenticate, requireFeature('building_energy'));
 
@@ -16,6 +21,13 @@ const ASSET_CLASSES = [
   'school', 'kindergarten', 'public_admin', 'healthcare', 'residential_multi',
 ];
 const MAX_BULK = 500;
+const MAX_BILLS = 10;
+const BILL_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const billUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: MAX_BILLS },
+  fileFilter: (_req, file, cb) => cb(null, BILL_MIMES.includes(file.mimetype)),
+});
 
 const sendError = (res, err) => { const { status, error } = formatError(err); res.status(status).json({ error }); };
 
@@ -107,6 +119,7 @@ function parseRecord(body, partial = false) {
   if (has('currency')) data.currency = body.currency ? String(body.currency).toUpperCase() : null;
   if (!partial && data.cost != null && !data.currency) data.currency = 'AMD';
   if (has('sourceDoc')) data.sourceDoc = body.sourceDoc ? String(body.sourceDoc).slice(0, 500) : null;
+  if (has('sourceUploadId')) data.sourceUploadId = body.sourceUploadId ? String(body.sourceUploadId) : null;
   for (const k of ['periodStart', 'periodEnd']) {
     if (!has(k)) continue;
     data[k] = date(body[k]);
@@ -127,6 +140,19 @@ function checkFuelUnit(rec) {
   return buildingEnergy.isValidUnit(rec.fuel, rec.unit)
     ? null
     : `Unit ${rec.unit} is not valid for ${buildingEnergy.FUELS[rec.fuel]?.label || rec.fuel}. Allowed: ${(buildingEnergy.FUELS[rec.fuel]?.units || []).join(', ')}.`;
+}
+
+// Bill links must point at this company's own bill uploads.  Returns the
+// uploads by id (for default sourceDoc names) or an error message.
+async function checkUploadIds(req, records) {
+  const ids = [...new Set(records.map((r) => r.sourceUploadId).filter(Boolean))];
+  if (!ids.length) return { uploads: new Map() };
+  const found = await prisma.uploadHistory.findMany({
+    where: { id: { in: ids }, companyId: req.user.companyId, fileType: 'BUILDING' },
+    select: { id: true, fileName: true },
+  });
+  if (found.length !== ids.length) return { error: 'Unknown bill file reference.' };
+  return { uploads: new Map(found.map((u) => [u.id, u])) };
 }
 
 async function findAsset(req) {
@@ -231,6 +257,9 @@ router.post('/assets/:id/energy', async (req, res) => {
     const fu = !errors.length && checkFuelUnit(data);
     if (fu) errors.push(fu);
     if (errors.length) return res.status(400).json({ error: errors.join(' '), errors });
+    const up = await checkUploadIds(req, [data]);
+    if (up.error) return res.status(400).json({ error: up.error });
+    if (data.sourceUploadId && !data.sourceDoc) data.sourceDoc = up.uploads.get(data.sourceUploadId).fileName;
     const record = await prisma.assetEnergyRecord.create({ data: { ...data, assetId: asset.id } });
     logActivity(req.user.id, req.user.companyId, 'RE_ENERGY_CREATE', `Added ${data.fuel} record to ${asset.name}`, { assetId: asset.id, recordId: record.id }, req.ip);
     res.status(201).json(record);
@@ -261,6 +290,9 @@ router.post('/assets/:id/energy/bulk', async (req, res) => {
         rowErrors,
       });
     }
+    const up = await checkUploadIds(req, parsed);
+    if (up.error) return res.status(400).json({ error: up.error });
+    for (const d of parsed) if (d.sourceUploadId && !d.sourceDoc) d.sourceDoc = up.uploads.get(d.sourceUploadId).fileName;
     const result = await prisma.$transaction(parsed.map((d) => prisma.assetEnergyRecord.create({ data: d })));
     logActivity(req.user.id, req.user.companyId, 'RE_ENERGY_BULK', `Imported ${result.length} energy records to ${asset.name}`, { assetId: asset.id, count: result.length }, req.ip);
     res.status(201).json({ imported: result.length });
@@ -284,6 +316,8 @@ router.put('/assets/:id/energy/:recordId', async (req, res) => {
     if (!!merged.periodStart !== !!merged.periodEnd) errors.push('periodStart and periodEnd must be given together.');
     else if (merged.periodStart && new Date(merged.periodEnd) < new Date(merged.periodStart)) errors.push('periodEnd must be on or after periodStart.');
     if (errors.length) return res.status(400).json({ error: errors.join(' '), errors });
+    const up = await checkUploadIds(req, [data]);
+    if (up.error) return res.status(400).json({ error: up.error });
     const updated = await prisma.assetEnergyRecord.update({ where: { id: record.id }, data });
     logActivity(req.user.id, req.user.companyId, 'RE_ENERGY_UPDATE', `Updated ${updated.fuel} record on ${asset.name}`, { assetId: asset.id, recordId: record.id, fields: Object.keys(data) }, req.ip);
     res.json(updated);
@@ -299,6 +333,80 @@ router.delete('/assets/:id/energy/:recordId', async (req, res) => {
     await prisma.assetEnergyRecord.delete({ where: { id: record.id } });
     logActivity(req.user.id, req.user.companyId, 'RE_ENERGY_DELETE', `Deleted ${record.fuel} record from ${asset.name}`, { assetId: asset.id, recordId: record.id, sourceDoc: record.sourceDoc }, req.ip);
     res.json({ message: 'Energy record deleted.' });
+  } catch (err) { sendError(res, err); }
+});
+
+// ─── Bill upload with AI extraction ─────────────────────────────────────────
+//
+// Stores each bill (so every record can open its original), reads it with AI
+// and returns DRAFT records.  Nothing is saved as energy data here: the user
+// reviews the drafts and saves them through /energy/bulk with sourceUploadId.
+
+router.post('/assets/:id/bills/extract', requireFeature('ai_doc_extract'), (req, res, next) => {
+  billUpload.array('files', MAX_BILLS)(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Each bill must be 10 MB or smaller.' : err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE' ? `Upload at most ${MAX_BILLS} bills at a time.` : err.message });
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const asset = await findAsset(req);
+    if (!asset) return res.status(404).json({ error: 'Asset not found.' });
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ error: 'Choose at least one PDF or image (JPG, PNG, WebP).' });
+
+    const estimate = estimator.estimateDocExtract({ fileCount: files.length, assumeVision: true });
+    const company = await prisma.company.findUnique({ where: { id: req.user.companyId }, select: { creditBalance: true } });
+    if (company.creditBalance < estimate.credits) {
+      return res.status(403).json({ error: 'Insufficient credits', required: estimate.credits, available: company.creditBalance });
+    }
+
+    const results = [];
+    const CONCURRENCY = 3;
+    for (let i = 0; i < files.length; i += CONCURRENCY) {
+      const batch = files.slice(i, i + CONCURRENCY);
+      results.push(...await Promise.all(batch.map(async (file) => {
+        const stored = saveFile(file, req.user.companyId);
+        const upload = await prisma.uploadHistory.create({
+          data: {
+            companyId: req.user.companyId, userId: req.user.id,
+            fileName: file.originalname, fileType: 'BUILDING', orgUnit: asset.name,
+            status: 'PROCESSING', totalRows: 1,
+            storedFilePath: `${file.originalname}::${stored.storedFilePath}`,
+            storedFileSize: stored.storedFileSize, storedFileMime: stored.storedFileMime,
+          },
+        });
+        try {
+          const out = await billExtract.extractBill(file, {
+            companyId: req.user.companyId, userId: req.user.id, relatedId: upload.id,
+            metadata: { file: file.originalname, assetId: asset.id },
+          });
+          await prisma.uploadHistory.update({
+            where: { id: upload.id },
+            data: { status: 'COMPLETED', processedRows: out.drafts.length, completedAt: new Date(), errorMessage: out.drafts.length ? null : out.notes || 'No energy data found.' },
+          });
+          return {
+            uploadId: upload.id, fileName: file.originalname, status: out.drafts.length ? 'ok' : 'empty',
+            confidence: out.confidence, supplier: out.supplier, notes: out.notes,
+            drafts: out.drafts.map((d) => ({ ...d, sourceUploadId: upload.id, sourceDoc: file.originalname })),
+          };
+        } catch (err) {
+          console.error('[bills/extract]', file.originalname, err.message);
+          await prisma.uploadHistory.update({ where: { id: upload.id }, data: { status: 'FAILED', errorMessage: err.message, completedAt: new Date() } });
+          return { uploadId: upload.id, fileName: file.originalname, status: 'error', error: err.message, drafts: [] };
+        }
+      })));
+    }
+
+    const attempted = results.filter((r) => r.status !== 'error').length;
+    let creditsUsed = 0;
+    if (attempted) {
+      creditsUsed = estimator.estimateDocExtract({ fileCount: attempted, assumeVision: true }).credits;
+      await deductCredits(req.user.companyId, req.user.id, creditsUsed, 'DOC_EXTRACT_BILLS',
+        `Bill extraction for ${asset.name}: ${attempted} file(s) — ${creditsUsed} credits`, results[0].uploadId);
+    }
+    logActivity(req.user.id, req.user.companyId, 'RE_BILL_EXTRACT', `Read ${files.length} bill(s) for ${asset.name}`,
+      { assetId: asset.id, uploadIds: results.map((r) => r.uploadId), creditsUsed }, req.ip);
+    res.json({ files: results, creditsUsed });
   } catch (err) { sendError(res, err); }
 });
 

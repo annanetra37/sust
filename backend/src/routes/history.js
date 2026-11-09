@@ -101,6 +101,11 @@ router.get('/:id', async (req, res) => {
         orderBy: { createdAt: 'asc' },
         take: 500,
       });
+    } else if (record.fileType === 'BUILDING') {
+      transformedData = await prisma.assetEnergyRecord.findMany({
+        where: { sourceUploadId: record.id, asset: { companyId: req.user.companyId } },
+        orderBy: [{ year: 'asc' }, { month: 'asc' }],
+      });
     } else if (record.fileType === 'S1') {
       // Combine all S1 data types
       const [comp, div, train, turn, inj] = await Promise.all([
