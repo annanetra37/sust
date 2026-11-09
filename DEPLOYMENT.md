@@ -62,17 +62,18 @@ schema on every deploy. To confirm, open `https://<backend-url>/api/health` —
 `"schema": "ok"` means the module tables exist.
 
 1. In the backend service's **Variables** tab, add
-   `PLATFORM_ADMIN_EMAILS=you@yourcompany.com` (comma-separated for several
-   Triple i staff). Redeploy.
-2. Log in with that email. The Module Launcher shows a **Module
-   entitlements** button (also reachable from the grid icon in the top bar).
-3. Switch modules on per organisation there (General ESG, Financed
-   Emissions, Green Key Readiness), optionally with a trial end date.
-4. **Demo data**, on the same page: choose a password and click
-   *Create / refresh* for the demo bank and/or the demo hotel group. Each
-   demo is a separate organisation with its own login
-   (`bank-demo@triplei.local`, `hotel-demo@triplei.local` by default), filled
-   with synthetic data. No shell access is needed.
+   `PLATFORM_ADMIN_EMAILS` = the email you already log in with (comma-separate
+   several Triple i staff). This is not a new account and needs no new
+   password. Redeploy.
+2. Log in as usual. Your login now has all three modules (General ESG,
+   Financed Emissions, Green Key Readiness) and the launcher shows a
+   **Module entitlements** button.
+3. On that page click **Load demo data**: a synthetic loan book and two
+   synthetic hotel clients are added to your own organisation (marked
+   "(synthetic)"; loading again replaces only those records).
+4. To give a customer organisation a module, tick it for that organisation on
+   the same page (optionally with a trial end date). Under *Advanced* you can
+   also create separate demo organisations with their own logins.
 
 ### 6. Set Custom Domains (Optional)
 

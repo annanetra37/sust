@@ -1667,6 +1667,12 @@
     "demoPassword": "Demo password (min. 8 characters)",
     "demoLoad": "Create / refresh",
     "demoLoading": "Creating…",
-    "demoDone": "Ready. Log out and sign in as {email} with the password you chose."
+    "demoDone": "Ready. Log out and sign in as {email} with the password you chose.",
+    "mineTitle": "Load demo data into my organisation",
+    "mineBody": "Adds a synthetic loan book (Financed Emissions) and two synthetic hotel clients with four establishments (Green Key Readiness) to your own organisation, so your login shows all three modules with data. Everything added is marked \"(synthetic)\"; loading again replaces only those records and never touches your real data.",
+    "mineButton": "Load demo data",
+    "mineDone": "Done. Open",
+    "youHaveAll": "As a platform admin you always have all three modules here.",
+    "demoAdvanced": "Advanced: create a separate demo organisation with its own login"
   }
 }

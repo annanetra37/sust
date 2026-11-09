@@ -6,6 +6,34 @@ import { useModules } from '../context/ModuleContext';
 import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
 
+// One click: synthetic bank and hotel data into the admin's own organisation,
+// so the same login sees all three modules with data.
+function MineDemo({ t, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState('');
+  const run = async () => {
+    setBusy(true); setError(''); setDone(false);
+    try { await api.loadModuleDemo('all', { target: 'mine' }); setDone(true); onDone(); } catch (err) { setError(err.error || t('platformAdmin.saveFailed')); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card space-y-3 border-brand-300 dark:border-brand-800">
+      <p className="font-semibold text-gray-900 dark:text-white">{t('platformAdmin.mineTitle')}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300">{t('platformAdmin.mineBody')}</p>
+      {error && <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
+      {done && (
+        <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 flex-wrap"><Check className="w-4 h-4 shrink-0" />{t('platformAdmin.mineDone')}
+          <Link to="/fe" className="underline">{t('launcher.modules.financed_emissions.name')}</Link> · <Link to="/gk" className="underline">{t('launcher.modules.green_key.name')}</Link>
+        </p>
+      )}
+      <button className="btn-primary flex items-center gap-2" onClick={run} disabled={busy}>
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+        {busy ? t('platformAdmin.demoLoading') : t('platformAdmin.mineButton')}
+      </button>
+    </div>
+  );
+}
+
 // One demo card: creates/refreshes a synthetic demo organisation via the API.
 function DemoCard({ kind, icon: Icon, title, body, defaultEmail, t }) {
   const [email, setEmail] = useState(defaultEmail);
@@ -115,6 +143,7 @@ export default function PlatformAdmin() {
                 <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800 align-top">
                   <td className="py-2 px-3">
                     <p className="font-medium text-gray-900 dark:text-white">{c.name}{c.id === user?.company?.id && <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 ml-2 text-[10px]">{t('platformAdmin.yourOrg')}</span>}</p>
+                    {c.id === user?.company?.id && <p className="text-[11px] text-gray-500 mt-0.5">{t('platformAdmin.youHaveAll')}</p>}
                     <p className="text-xs text-gray-500">{c.country} · {c.tier}</p>
                   </td>
                   {data.moduleKeys.map((k) => {
@@ -147,13 +176,17 @@ export default function PlatformAdmin() {
         </div>
       )}
 
-      <div className="pt-4">
+      <div className="pt-4 space-y-3">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('platformAdmin.demoTitle')}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('platformAdmin.demoIntro')}</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-          <DemoCard kind="bank" icon={Landmark} title={t('platformAdmin.demoBank')} body={t('platformAdmin.demoBankBody')} defaultEmail="bank-demo@triplei.local" t={t} />
-          <DemoCard kind="hotels" icon={Hotel} title={t('platformAdmin.demoHotels')} body={t('platformAdmin.demoHotelsBody')} defaultEmail="hotel-demo@triplei.local" t={t} />
-        </div>
+        <MineDemo t={t} onDone={refresh} />
+        <details className="card">
+          <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-200">{t('platformAdmin.demoAdvanced')}</summary>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('platformAdmin.demoIntro')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <DemoCard kind="bank" icon={Landmark} title={t('platformAdmin.demoBank')} body={t('platformAdmin.demoBankBody')} defaultEmail="bank-demo@triplei.local" t={t} />
+            <DemoCard kind="hotels" icon={Hotel} title={t('platformAdmin.demoHotels')} body={t('platformAdmin.demoHotelsBody')} defaultEmail="hotel-demo@triplei.local" t={t} />
+          </div>
+        </details>
       </div>
     </div>
   );

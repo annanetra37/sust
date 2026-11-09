@@ -62,6 +62,7 @@ after(async () => {
   server.close();
   const ids = Object.values(companies).map((c) => c.id);
   await prisma.activityLog.deleteMany({ where: { companyId: { in: ids } } });
+  await prisma.feFactorSet.deleteMany({ where: { companyId: { in: ids } } });
   await prisma.company.deleteMany({ where: { id: { in: ids } } });
   await prisma.$disconnect();
 });
@@ -134,4 +135,32 @@ test('demo data: platform admins only, password and kind validated', { skip }, a
   // An email that belongs to a real organisation is refused, not hijacked.
   const taken = await call('admin', 'POST', '/modules/admin/demo/bank', { email: emails.admin, password: 'long-enough-1' });
   assert.equal(taken.status, 409);
+});
+
+test('platform admins get every module in their own organisation', { skip }, async () => {
+  const r = await call('admin', 'GET', '/modules');
+  assert.deepEqual(r.body.modules.map((m) => m.key), ['general', 'financed_emissions', 'green_key']);
+  assert.equal((await call('admin', 'GET', '/probe/green_key')).status, 200);
+  assert.equal((await call('admin', 'GET', '/probe/financed_emissions')).status, 200);
+});
+
+test('demo data into my organisation fills both modules and only replaces synthetic records', { skip }, async () => {
+  const realClient = await prisma.gkClient.create({ data: { companyId: companies.admin.id, name: 'Real Hotel LLC' } });
+  const realPortfolio = await prisma.fePortfolio.create({ data: { companyId: companies.admin.id, name: 'Real book' } });
+  for (let i = 0; i < 2; i++) { // twice: re-running must not duplicate
+    const r = await call('admin', 'POST', '/modules/admin/demo/all', { target: 'mine' });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.target, 'mine');
+  }
+  const clients = await prisma.gkClient.findMany({ where: { companyId: companies.admin.id } });
+  assert.equal(clients.length, 3);
+  assert.ok(clients.some((c) => c.id === realClient.id));
+  const portfolios = await prisma.fePortfolio.findMany({ where: { companyId: companies.admin.id } });
+  assert.equal(portfolios.length, 2);
+  assert.ok(portfolios.some((p) => p.id === realPortfolio.id));
+  const cards = (await call('admin', 'GET', '/modules')).body.modules;
+  assert.equal(cards.find((m) => m.key === 'green_key').status.establishments, 4);
+  assert.ok(cards.find((m) => m.key === 'financed_emissions').status.coveragePct > 0);
+  // Not available to normal organisation admins.
+  assert.equal((await call('bank', 'POST', '/modules/admin/demo/all', { target: 'mine' })).status, 403);
 });
