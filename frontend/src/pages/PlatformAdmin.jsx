@@ -1,12 +1,58 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, Check, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Check, AlertCircle, Landmark, Hotel, Database } from 'lucide-react';
 import api from '../services/api';
 import { useModules } from '../context/ModuleContext';
+import { useAuth } from '../context/AuthContext';
 import { useT } from '../i18n';
+
+// One demo card: creates/refreshes a synthetic demo organisation via the API.
+function DemoCard({ kind, icon: Icon, title, body, defaultEmail, t }) {
+  const [email, setEmail] = useState(defaultEmail);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    setError(''); setDone(null);
+    if (password.length < 8) { setError(t('platformAdmin.demoPassword')); return; }
+    setBusy(true);
+    try {
+      const res = await api.loadModuleDemo(kind, { email, password });
+      setDone(res);
+      setPassword('');
+    } catch (err) { setError(err.error || t('platformAdmin.saveFailed')); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0"><Icon className="w-5 h-5 text-gray-600 dark:text-gray-300" /></div>
+        <div>
+          <p className="font-semibold text-gray-900 dark:text-white">{title}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{body}</p>
+        </div>
+      </div>
+      <label className="block text-xs text-gray-600 dark:text-gray-400">{t('platformAdmin.demoEmail')}
+        <input className="input mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      </label>
+      <label className="block text-xs text-gray-600 dark:text-gray-400">{t('platformAdmin.demoPassword')}
+        <input className="input mt-1" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      </label>
+      {error && <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5"><AlertCircle className="w-4 h-4 shrink-0" />{error}</p>}
+      {done && <p className="text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5"><Check className="w-4 h-4 shrink-0" />{t('platformAdmin.demoDone', { email: done.email })}</p>}
+      <button className="btn-primary flex items-center gap-2" onClick={run} disabled={busy}>
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+        {busy ? t('platformAdmin.demoLoading') : t('platformAdmin.demoLoad')}
+      </button>
+    </div>
+  );
+}
 
 // Triple i platform admins switch modules on/off per tenant (P-02).
 export default function PlatformAdmin() {
+  const { user } = useAuth();
   const { t } = useT();
   const { isPlatformAdmin, loading: modLoading, refresh } = useModules();
   const [data, setData] = useState(null);
@@ -68,7 +114,7 @@ export default function PlatformAdmin() {
               {companies.map((c) => (
                 <tr key={c.id} className="border-b border-gray-100 dark:border-gray-800 align-top">
                   <td className="py-2 px-3">
-                    <p className="font-medium text-gray-900 dark:text-white">{c.name}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{c.name}{c.id === user?.company?.id && <span className="badge bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 ml-2 text-[10px]">{t('platformAdmin.yourOrg')}</span>}</p>
                     <p className="text-xs text-gray-500">{c.country} · {c.tier}</p>
                   </td>
                   {data.moduleKeys.map((k) => {
@@ -100,6 +146,15 @@ export default function PlatformAdmin() {
           </table>
         </div>
       )}
+
+      <div className="pt-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('platformAdmin.demoTitle')}</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('platformAdmin.demoIntro')}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+          <DemoCard kind="bank" icon={Landmark} title={t('platformAdmin.demoBank')} body={t('platformAdmin.demoBankBody')} defaultEmail="bank-demo@triplei.local" t={t} />
+          <DemoCard kind="hotels" icon={Hotel} title={t('platformAdmin.demoHotels')} body={t('platformAdmin.demoHotelsBody')} defaultEmail="hotel-demo@triplei.local" t={t} />
+        </div>
+      </div>
     </div>
   );
 }

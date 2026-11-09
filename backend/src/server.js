@@ -59,7 +59,13 @@ app.use('/api/water', require('./routes/water'));
 app.use('/api/biodiversity', require('./routes/biodiversity'));
 
 // Health check
-app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+// `schema` says whether the sector-module tables exist (the deploy runs
+// `prisma db push` before starting; "missing" means that step did not run).
+app.get('/api/health', async (_, res) => {
+  let schema = 'ok';
+  try { await require('./config/prisma').companyModule.count(); } catch { schema = 'missing'; }
+  res.json({ status: 'ok', schema, timestamp: new Date().toISOString() });
+});
 
 // Global error handler — returns meaningful messages
 app.use(globalErrorHandler);

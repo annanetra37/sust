@@ -1626,7 +1626,8 @@
         "short": "Green Key",
         "description": "Hotel certification readiness: criteria, evidence, resource data, carbon and audit lifecycle."
       }
-    }
+    },
+    "loadError": "Your modules could not be loaded, so only General ESG is shown. If this keeps happening after a deploy, the database schema may not have been updated."
   },
   "feNav": {
     "overview": "Overview",
@@ -1654,6 +1655,18 @@
     "trialEnds": "Trial ends",
     "notAllowed": "Only Triple i platform admins can manage entitlements.",
     "loadFailed": "Could not load organisations.",
-    "saveFailed": "Could not save."
+    "saveFailed": "Could not save.",
+    "yourOrg": "Your organisation",
+    "demoTitle": "Demo data",
+    "demoIntro": "Create or refresh a demo workspace with synthetic data. Each demo is its own organisation with its own login, so your real data is untouched. Running it again replaces the demo data and resets the password.",
+    "demoBank": "Demo bank (Financed Emissions)",
+    "demoBankBody": "Synthetic loan book: ~60 lines across business loans, commercial real estate and mortgages, FY2024 locked and FY2025 open, calculated with an ILLUSTRATIVE factor set.",
+    "demoHotels": "Demo hotel group (Green Key Readiness)",
+    "demoHotelsBody": "One single-site hotel and a three-branch group in Armenian cities, 14 months of energy, water, waste and occupancy, readiness, evidence, targets, team, certificates and non-conformities.",
+    "demoEmail": "Demo login email",
+    "demoPassword": "Demo password (min. 8 characters)",
+    "demoLoad": "Create / refresh",
+    "demoLoading": "Creating…",
+    "demoDone": "Ready. Log out and sign in as {email} with the password you chose."
   }
 }

@@ -67,4 +67,34 @@ router.put('/admin/companies/:id', requirePlatformAdmin, async (req, res) => {
   } catch (err) { sendError(res, err); }
 });
 
+// ─── Platform admin: demo workspaces (no shell access needed) ──────────────
+//
+// Creates or refreshes the synthetic demo bank / hotel group, each in its own
+// company with its own login.  Body: { email?, password }.  Re-running
+// replaces the demo data and resets the demo user's password.
+
+const DEMOS = {
+  bank: () => require('../prisma/seedFeDemo').seedFeDemo,
+  hotels: () => require('../prisma/seedGkDemo').seedGkDemo,
+};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+router.post('/admin/demo/:kind', requirePlatformAdmin, async (req, res) => {
+  try {
+    const load = DEMOS[req.params.kind];
+    if (!load) return res.status(404).json({ error: 'Unknown demo. Use bank or hotels.' });
+    const { email, password } = req.body || {};
+    if (email && !EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email for the demo login.' });
+    if (!password || String(password).length < 8) return res.status(400).json({ error: 'Choose a demo password of at least 8 characters.' });
+    const lines = [];
+    const result = await load()({ email: email || undefined, password: String(password), log: (m) => lines.push(String(m)) });
+    logActivity(req.user.id, req.user.companyId, 'MODULE_DEMO_SEED', `Loaded ${req.params.kind} demo (${result.company})`, { kind: req.params.kind, email: result.email }, req.ip);
+    res.json({ ...result, log: lines });
+  } catch (err) {
+    console.error('[modules] demo seed failed:', err);
+    if (/belongs to another company/.test(err.message)) return res.status(409).json({ error: err.message });
+    sendError(res, err);
+  }
+});
+
 module.exports = router;

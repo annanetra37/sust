@@ -125,3 +125,13 @@ test('launcher status line reports the latest period and coverage', { skip }, as
   assert.equal(fe.status.period, 'FY2025');
   assert.equal(fe.status.coveragePct, 72.4);
 });
+
+test('demo data: platform admins only, password and kind validated', { skip }, async () => {
+  assert.equal((await call('bank', 'POST', '/modules/admin/demo/bank', { password: 'long-enough-1' })).status, 403);
+  assert.equal((await call('admin', 'POST', '/modules/admin/demo/casino', { password: 'long-enough-1' })).status, 404);
+  assert.equal((await call('admin', 'POST', '/modules/admin/demo/bank', { password: 'short' })).status, 400);
+  assert.equal((await call('admin', 'POST', '/modules/admin/demo/hotels', { email: 'not-an-email', password: 'long-enough-1' })).status, 400);
+  // An email that belongs to a real organisation is refused, not hijacked.
+  const taken = await call('admin', 'POST', '/modules/admin/demo/bank', { email: emails.admin, password: 'long-enough-1' });
+  assert.equal(taken.status, 409);
+});

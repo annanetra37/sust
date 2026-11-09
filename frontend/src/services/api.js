@@ -275,6 +275,7 @@ const api = {
   getModules: () => request('/modules'),
   getModuleAdminCompanies: () => request('/modules/admin/companies'),
   updateCompanyModules: (companyId, modules) => request(`/modules/admin/companies/${companyId}`, { method: 'PUT', body: JSON.stringify({ modules }) }),
+  loadModuleDemo: (kind, data) => request(`/modules/admin/demo/${kind}`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Real Estate
   getAssets: () => request('/real-estate/assets'),
